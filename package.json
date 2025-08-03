@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
+    "build:process-inputs": "node build-process-inputs.cjs",
     "preview": "vite preview",
     "test": "vitest",
     "test:run": "vitest run",
@@ -13,33 +14,34 @@
     "test:ui": "vitest --ui"
   },
   "dependencies": {
-    "solid-js": "^1.9.7",
-    "yaml": "^2.6.1",
+    "@babel/runtime": "^7.26.0",
+    "@codemirror/autocomplete": "^6.18.3",
+    "@codemirror/commands": "^6.7.1",
+    "@codemirror/lang-yaml": "^6.1.1",
+    "@codemirror/language": "^6.10.6",
+    "@codemirror/lint": "^6.8.4",
+    "@codemirror/search": "^6.5.8",
+    "@codemirror/state": "^6.4.1",
+    "@codemirror/theme-one-dark": "^6.1.2",
+    "@codemirror/view": "^6.38.1",
+    "@corvu/resizable": "^0.2.5",
+    "@kobalte/core": "^0.13.8",
+    "@uiw/codemirror-theme-solarized": "^4.23.6",
     "ajv": "^8.12.0",
     "ajv-errors": "^3.0.0",
     "better-ajv-errors": "^1.2.0",
-    "@kobalte/core": "^0.13.8",
-    "@corvu/resizable": "^0.2.5",
-    "@codemirror/state": "^6.4.1",
-    "@codemirror/view": "^6.38.1",
-    "@codemirror/lang-yaml": "^6.1.1",
-    "@codemirror/theme-one-dark": "^6.1.2",
-    "@uiw/codemirror-theme-solarized": "^4.23.6",
+    "solid-js": "^1.9.7",
     "thememirror": "^2.0.1",
-    "@codemirror/commands": "^6.7.1",
-    "@codemirror/language": "^6.10.6",
-    "@codemirror/search": "^6.5.8",
-    "@codemirror/autocomplete": "^6.18.3",
-    "@codemirror/lint": "^6.8.4",
-    "@babel/runtime": "^7.26.0"
+    "yaml": "^2.6.1"
   },
   "devDependencies": {
+    "@types/node": "^22.0.0",
+    "esbuild": "^0.25.8",
+    "jsdom": "^25.0.0",
+    "tsx": "^4.7.0",
     "typescript": "~5.8.3",
     "vite": "^7.0.4",
     "vite-plugin-solid": "^2.11.7",
-    "@types/node": "^22.0.0",
-    "vitest": "^2.0.0",
-    "jsdom": "^25.0.0",
-    "tsx": "^4.7.0"
+    "vitest": "^2.0.0"
   }
 }
