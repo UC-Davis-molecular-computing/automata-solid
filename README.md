@@ -2,6 +2,8 @@
 
 A modern TypeScript-based automata simulator built with SolidJS for visualizing and testing various computational models including Deterministic and Non-deterministic Finite Automata, Turing Machines, Context-Free Grammars, and Regular Expressions.
 
+This was an exercise in vibe-coding for me; it was developed in about two days using Claude Code in August 2025. I wrote essentially no code.
+
 ## Features
 
 ### Supported Automaton Types
