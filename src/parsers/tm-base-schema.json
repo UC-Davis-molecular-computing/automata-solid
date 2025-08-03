@@ -1,0 +1,76 @@
+{
+  "type": "object",
+  "required": ["states", "input_alphabet", "tape_alphabet_extra", "start_state", "accept_state", "reject_state", "delta"],
+  "additionalProperties": false,
+  "properties": {
+    "states": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "errorMessage": "State names must be non-empty strings"
+      },
+      "errorMessage": {
+        "minItems": "TM must have at least one state",
+        "uniqueItems": "State names must be unique (no duplicates allowed)"
+      }
+    },
+    "input_alphabet": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1,
+        "not": {
+          "const": "_"
+        },
+        "errorMessage": "Each input symbol must be exactly one character and cannot be '_' (blank symbol)"
+      },
+      "errorMessage": {
+        "minItems": "Input alphabet must contain at least one symbol",
+        "uniqueItems": "Input alphabet symbols must be unique"
+      }
+    },
+    "tape_alphabet_extra": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1,
+        "errorMessage": "Each tape alphabet symbol must be exactly one character"
+      },
+      "errorMessage": {
+        "uniqueItems": "Tape alphabet extra symbols must be unique"
+      }
+    },
+    "start_state": {
+      "type": "string",
+      "enum": {"$data": "1/states"},
+      "errorMessage": "Start state `${0}` must be one of the defined states: ${1/states}"
+    },
+    "accept_state": {
+      "type": "string",
+      "enum": {"$data": "1/states"},
+      "errorMessage": "Accept state `${0}` must be one of the defined states: ${1/states}"
+    },
+    "reject_state": {
+      "type": "string",
+      "enum": {"$data": "1/states"},
+      "errorMessage": "Reject state `${0}` must be one of the defined states: ${1/states}"
+    },
+    "delta": {
+      "type": "object",
+      "errorMessage": "Delta (transition function) must be an object"
+    }
+  },
+  "errorMessage": {
+    "type": "TM specification must be a valid object",
+    "required": "Missing required field - TM must have: states, input_alphabet, tape_alphabet_extra, start_state, accept_state, reject_state, delta",
+    "additionalProperties": "Unexpected property - TM specifications only allow: states, input_alphabet, tape_alphabet_extra, start_state, accept_state, reject_state, delta"
+  }
+}

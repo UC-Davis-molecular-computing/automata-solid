@@ -1,0 +1,355 @@
+import type { Component } from 'solid-js'
+import { createEffect, For, Show, onMount } from 'solid-js'
+import { createStore } from 'solid-js/store'
+import { NFA } from '../../core/NFA'
+import { NFAParser } from '../../parsers/NFAParser'
+import { appState } from '../store/AppStore'
+import './TableComponent.css'
+
+interface NavigationControls {
+  goForward: () => void
+  goBackward: () => void
+  goToBeginning: () => void
+  goToEnd: () => void
+  canGoForward: () => boolean
+  canGoBackward: () => boolean
+}
+
+interface NFATableComponentProps {
+  onNavigationReady?: (controls: NavigationControls) => void
+  onRunReady?: (runFunction: () => void) => void
+  onResultChange?: (result: { hasResult: boolean; accepted: boolean } | null) => void
+}
+
+interface NFATableComponentState {
+  nfa: NFA | null
+  error: string | null
+  currentPosition: number
+  stateSetsVisited: string[][] // Array of state sets (NFA can be in multiple states)
+  inputSymbols: string[]
+  accepted: boolean
+  hasResult: boolean // Whether computation has been run and result should be shown
+  lastComputedInput: string // Track the input string that was last computed
+}
+
+export const NFATableComponent: Component<NFATableComponentProps> = (props) => {
+  // Local component state
+  const [state, setState] = createStore<NFATableComponentState>({
+    nfa: null,
+    error: null,
+    currentPosition: 0,
+    stateSetsVisited: [],
+    inputSymbols: [],
+    accepted: false,
+    hasResult: false,
+    lastComputedInput: ''
+  })
+
+  // Function to run the computation
+  const runComputation = () => {
+    try {
+      // Parse the NFA from YAML
+      const parser = new NFAParser()
+      const nfa = parser.parseNFA(appState.editorContent)
+      
+      // Process the test input
+      const stateSetsVisited = nfa.stateSetsVisited(appState.inputString)
+      const inputSymbols = Array.from(appState.inputString)
+      const accepted = nfa.accepts(appState.inputString)
+      
+      setState({
+        nfa,
+        error: null,
+        currentPosition: 0,
+        stateSetsVisited,
+        inputSymbols,
+        accepted,
+        hasResult: true,
+        lastComputedInput: appState.inputString
+      })
+      
+    } catch (error) {
+      setState({
+        nfa: null,
+        error: error instanceof Error ? error.message : 'Unknown error parsing NFA',
+        hasResult: false
+      })
+    }
+  }
+
+  // Parse NFA and conditionally process input based on runImmediately setting
+  createEffect(() => {
+    // Always try to parse the NFA for validation
+    try {
+      const parser = new NFAParser()
+      const nfa = parser.parseNFA(appState.editorContent)
+      
+      if (appState.runImmediately) {
+        // Run computation immediately
+        runComputation()
+      } else {
+        // Just parse and show structure, but don't compute results
+        // Reset hasResult when YAML content changes
+        setState({
+          nfa,
+          error: null,
+          hasResult: false
+        })
+      }
+      
+    } catch (error) {
+      setState({
+        nfa: null,
+        error: error instanceof Error ? error.message : 'Unknown error parsing NFA',
+        hasResult: false
+      })
+    }
+  })
+
+  // Reset computation results when test input changes in manual mode
+  createEffect(() => {
+    // Only reset if the input string actually changed since last computation
+    const currentInput = appState.inputString
+    if (!appState.runImmediately && state.nfa && state.hasResult && 
+        currentInput !== state.lastComputedInput) {
+      setState({
+        hasResult: false,
+        currentPosition: 0
+      })
+    }
+  })
+
+  // Report result changes to parent
+  createEffect(() => {
+    if (props.onResultChange) {
+      if (state.error || !state.nfa) {
+        props.onResultChange(null)
+      } else {
+        props.onResultChange({
+          hasResult: state.hasResult,
+          accepted: state.accepted
+        })
+      }
+    }
+  })
+
+  // Navigation functions (exported for use by parent component)
+  // These are always available but include safety checks
+  const goForward = () => {
+    if (!state.nfa || state.error || !state.hasResult) return // Safety guard
+    setState({
+      currentPosition: Math.min(state.currentPosition + 1, state.inputSymbols.length)
+    })
+  }
+
+  const goBackward = () => {
+    if (!state.nfa || state.error || !state.hasResult) return // Safety guard
+    setState({
+      currentPosition: Math.max(state.currentPosition - 1, 0)
+    })
+  }
+
+  const goToBeginning = () => {
+    if (!state.nfa || state.error || !state.hasResult) return // Safety guard
+    setState({
+      currentPosition: 0
+    })
+  }
+
+  const goToEnd = () => {
+    if (!state.nfa || state.error || !state.hasResult) return // Safety guard
+    setState({
+      currentPosition: state.inputSymbols.length
+    })
+  }
+
+  // Export navigation functions and run function once on mount - functions are stable
+  onMount(() => {
+    if (props.onNavigationReady) {
+      props.onNavigationReady({
+        goForward,
+        goBackward, 
+        goToBeginning,
+        goToEnd,
+        // These check both NFA validity, hasResult AND position
+        canGoForward: () => !!(state.nfa && !state.error && state.hasResult && state.currentPosition < state.inputSymbols.length),
+        canGoBackward: () => !!(state.nfa && !state.error && state.hasResult && state.currentPosition > 0)
+      })
+    }
+    
+    // Export run function for manual mode
+    if (props.onRunReady) {
+      props.onRunReady(runComputation)
+    }
+  })
+
+  // Helper functions for rendering
+  const getCurrentStateSet = () => {
+    if (!state.hasResult || !state.stateSetsVisited.length) return []
+    return state.stateSetsVisited[state.currentPosition] || []
+  }
+
+  const getCurrentSymbol = () => {
+    if (!state.hasResult || !state.inputSymbols.length) return null
+    return state.currentPosition < state.inputSymbols.length 
+      ? state.inputSymbols[state.currentPosition] 
+      : null
+  }
+
+  // Format input string with position indicator
+  const formatInputWithPosition = () => {
+    if (!state.hasResult) {
+      // When computation hasn't been run, just show the input string without position indicator
+      return appState.inputString || '(empty)'
+    }
+    const processed = state.inputSymbols.slice(0, state.currentPosition).join('')
+    const remaining = state.inputSymbols.slice(state.currentPosition).join('')
+    return `${processed}^${remaining}`
+  }
+
+  // Format current state set for display
+  const formatCurrentStateSet = () => {
+    const stateSet = getCurrentStateSet()
+    if (stateSet.length === 0) return '∅'
+    if (stateSet.length === 1) return stateSet[0]
+    return `{${stateSet.join(', ')}}`
+  }
+
+  return (
+    <div class="dfa-table-component">
+      <Show when={state.error}>
+        <div class="error-message">
+          <strong>Error:</strong>
+          <pre class="error-text">{state.error}</pre>
+        </div>
+      </Show>
+
+      <Show when={state.nfa && !state.error}>
+        <div class="dfa-content">
+          {/* Compact Input Display */}
+          <div class="input-display">
+            <div class="input-status-line">
+              <span class="input-processed" style="font-family: Consolas, monospace">
+                {formatInputWithPosition()}
+              </span>
+              <Show when={state.hasResult}>
+                <span class="current-states">
+                  Current states: <span class="state-set">{formatCurrentStateSet()}</span>
+                </span>
+              </Show>
+            </div>
+          </div>
+
+          {/* Transition Table */}
+          <div class="transition-table-container">
+            <table id="transition_table" class="transition-table">
+              <thead>
+                <tr id="transition_table_head">
+                  <th class="transition_header_entry">State</th>
+                  <th class="transition_header_entry" colspan={(state.nfa?.inputAlphabet.length || 0) + 1} style="text-align: left;">Transitions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <For each={state.nfa?.states || []}>
+                  {(stateName) => (
+                    <NFATransitionRow 
+                      nfa={state.nfa!}
+                      stateName={stateName}
+                      currentStates={getCurrentStateSet()}
+                      currentSymbol={getCurrentSymbol()}
+                    />
+                  )}
+                </For>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </Show>
+    </div>
+  )
+}
+
+// Separate component for each transition row
+interface NFATransitionRowProps {
+  nfa: NFA
+  stateName: string
+  currentStates: string[]
+  currentSymbol: string | null
+}
+
+const NFATransitionRow: Component<NFATransitionRowProps> = (props) => {
+  const isCurrentState = () => props.currentStates.includes(props.stateName)
+  const isAcceptState = () => {
+    return props.nfa.acceptStates.includes(props.stateName)
+  }
+
+  return (
+    <tr 
+      id={`transition-row-${props.stateName}`}
+    >
+      {/* State Cell */}
+      <td 
+        class="state-cell"
+      >
+        <div class={`transition_entry_${isAcceptState() ? 'accept' : 'reject'} ${isCurrentState() ? 'current' : ''}`}>
+          {props.stateName}
+        </div>
+      </td>
+      
+      {/* Individual Transition Cells for Input Alphabet */}
+      <For each={props.nfa.inputAlphabet}>
+        {(symbol) => (
+          <td class="transition-cell">
+            <NFATransitionEntry
+              nfa={props.nfa}
+              state={props.stateName}
+              symbol={symbol}
+              isCurrentTransition={isCurrentState() && props.currentSymbol === symbol}
+            />
+          </td>
+        )}
+      </For>
+      
+      {/* Epsilon Transition Cell */}
+      <td class="transition-cell">
+        <NFATransitionEntry
+          nfa={props.nfa}
+          state={props.stateName}
+          symbol="" // Empty string for epsilon
+          isCurrentTransition={false} // Epsilon transitions aren't "current" in the same way
+        />
+      </td>
+    </tr>
+  )
+}
+
+// Individual transition entry component
+interface NFATransitionEntryProps {
+  nfa: NFA
+  state: string
+  symbol: string
+  isCurrentTransition: boolean
+}
+
+const NFATransitionEntry: Component<NFATransitionEntryProps> = (props) => {
+  const getTransitionText = () => {
+    try {
+      return props.nfa.transitionStr(props.state, props.symbol)
+    } catch {
+      // No transition defined for this state-symbol pair
+      return null
+    }
+  }
+
+  const transitionText = getTransitionText()
+  
+  return (
+    <Show when={transitionText} fallback={<span class="no-transition">—</span>}>
+      <span 
+        class={`transition-entry ${props.isCurrentTransition ? 'current' : ''}`}
+      >
+        {transitionText}
+      </span>
+    </Show>
+  )
+}

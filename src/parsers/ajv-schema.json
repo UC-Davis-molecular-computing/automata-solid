@@ -1,0 +1,18 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "ajv-schema",
+  "title": "AJV Extended JSON Schema",
+  "description": "JSON Schema with AJV extensions like $data references",
+  "type": "object",
+  "properties": {
+    "$schema": true,
+    "$data": true,
+    "enum": {
+      "oneOf": [
+        { "type": "array" },
+        { "type": "object" }
+      ]
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,36 @@
+/* Model Indicator Styles */
+.model-indicator {
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  margin-left: 24px; /* Space after the menu */
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.model-type-label {
+  color: #495057;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+/* Different colors for different automaton types */
+.header-bar[data-type="dfa"] .model-type-label {
+  color: #28a745;
+}
+
+.header-bar[data-type="nfa"] .model-type-label {
+  color: #17a2b8;
+}
+
+.header-bar[data-type="regex"] .model-type-label {
+  color: #e67e22;
+}
+
+.header-bar[data-type="cfg"] .model-type-label {
+  color: #6f42c1;
+}
+
+.header-bar[data-type="tm"] .model-type-label {
+  color: #dc3545;
+}

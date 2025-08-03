@@ -1,0 +1,17 @@
+# NFA recognizing { x in {0,1}* | third-to-last bit of x is 0 }
+
+states: [q1, q2, q3, q4]
+input_alphabet: [0, 1]
+start_state: q1
+accept_states: [q4]
+
+delta:
+  q1:
+    0: [q1, q2]
+    1: q1
+  q2:
+    0: q3
+    1: q3
+  q3:
+    0: q4
+    1: q4

@@ -1,0 +1,303 @@
+import type { Component } from 'solid-js'
+import { Show, createSignal, onMount, onCleanup } from 'solid-js'
+import Resizable from '@corvu/resizable'
+import { MenuBar } from './components/MenuBar'
+import { ModelIndicator } from './components/ModelIndicator'
+import { CodeEditor } from './components/CodeEditor'
+import { DFATableComponent } from './components/DFATableComponent'
+import { NFATableComponent } from './components/NFATableComponent'
+import { TMComponent } from './components/TMComponent'
+import { RegexComponent } from './components/RegexComponent'
+import { CFGComponent } from './components/CFGComponent'
+import { TM } from '../core/TM'
+import { appState, setAppState, dispatch } from './store/AppStore'
+import { AutomatonType } from './types/AppState'
+import { LoadDefault, SaveFile, OpenFile } from './types/Messages'
+import './App.css'
+
+interface NavigationControls {
+  goForward: () => void
+  goBackward: () => void
+  goToBeginning: () => void
+  goToEnd: () => void
+  canGoForward: () => boolean
+  canGoBackward: () => boolean
+}
+
+const App: Component = () => {
+  // State for navigation controls from active automaton visualization
+  const [navigationControls, setNavigationControls] = createSignal<NavigationControls | null>(null)
+  // State for run function from active automaton visualization
+  const [runFunction, setRunFunction] = createSignal<(() => void) | null>(null)
+  // State for accept/reject status
+  const [computationResult, setComputationResult] = createSignal<{ hasResult: boolean; accepted: boolean; outputString?: string; hitMaxSteps?: boolean } | null>(null)
+  
+  // Wrapper to properly store function in signal
+  const handleRunReady = (fn: (() => void) | null) => {
+    // Use the updater function form to store the function
+    setRunFunction(() => fn)
+  }
+  
+  
+  // Save split percentage when it changes
+  const handleSplitChange = (sizes: number[]) => {
+    const newPercentage = sizes[0] // First panel percentage
+    setAppState('splitPercentage', newPercentage)
+  }
+  
+  // Keyboard event handler for navigation shortcuts and global shortcuts
+  const handleKeyDown = (event: KeyboardEvent) => {
+    // Handle global shortcuts first (Ctrl+key combinations)
+    if (event.ctrlKey || event.metaKey) {
+      switch (event.key.toLowerCase()) {
+        case 'o':
+          event.preventDefault()
+          dispatch(new OpenFile())
+          return
+        case 's':
+          event.preventDefault()
+          dispatch(new SaveFile())
+          return
+        case 'l':
+          event.preventDefault()
+          dispatch(new LoadDefault())
+          return
+      }
+    }
+    
+    // Handle navigation shortcuts only when not in input fields
+    const target = event.target as HTMLElement
+    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+      return
+    }
+    
+    const controls = navigationControls()
+    if (!controls) return
+    
+    switch (event.key) {
+      case ',':
+      case 'ArrowLeft':
+        event.preventDefault()
+        if (controls.canGoBackward()) {
+          controls.goBackward()
+        }
+        break
+      case '.':
+      case 'ArrowRight':
+        event.preventDefault()
+        if (controls.canGoForward()) {
+          controls.goForward()
+        }
+        break
+    }
+  }
+  
+  // Set up keyboard event listeners
+  onMount(() => {
+    document.addEventListener('keydown', handleKeyDown)
+  })
+  
+  onCleanup(() => {
+    document.removeEventListener('keydown', handleKeyDown)
+  })
+  
+  // Navigation button handlers
+  const handleGoToBeginning = () => {
+    const controls = navigationControls()
+    if (controls) controls.goToBeginning()
+  }
+  
+  const handleGoBackward = () => {
+    const controls = navigationControls()
+    if (controls) controls.goBackward()
+  }
+  
+  const handleGoForward = () => {
+    const controls = navigationControls()
+    if (controls) controls.goForward()
+  }
+  
+  const handleGoToEnd = () => {
+    const controls = navigationControls()
+    if (controls) controls.goToEnd()
+  }
+  
+  // Check if navigation is available for current automaton type
+  const hasNavigation = () => {
+    return appState.automatonType === AutomatonType.Dfa || 
+           appState.automatonType === AutomatonType.Nfa ||
+           appState.automatonType === AutomatonType.Tm
+    // Regex and CFG don't need navigation controls
+  }
+  
+  return (
+    <div class="app">
+      
+      {/* Header with Menu Bar and Model Indicator */}
+      <div class="header-bar" data-type={appState.automatonType}>
+        <MenuBar />
+        <ModelIndicator />
+      </div>
+      
+      
+      {/* Placeholder sections */}
+      <div class="main-content">
+        <div class="input-controls">
+          <input 
+            type="text" 
+            placeholder="type input string here" 
+            value={appState.inputString}
+            onInput={(e) => setAppState('inputString', e.currentTarget.value)}
+            size={37}
+          />
+          <Show when={hasNavigation()}>
+            <div class="step-controls">
+              <button 
+                title="go to beginning"
+                onClick={handleGoToBeginning}
+                disabled={!navigationControls()?.canGoBackward()}
+              >
+                |&lt;&lt;
+              </button>
+              <button 
+                title="backward one step (⭠ key or ,)"
+                onClick={handleGoBackward}
+                disabled={!navigationControls()?.canGoBackward()}
+              >
+                &lt; (,)
+              </button>
+              <button 
+                title="forward one step (⭢ key or .)"
+                onClick={handleGoForward}
+                disabled={!navigationControls()?.canGoForward()}
+              >
+                &gt; (.)
+              </button>
+              <button 
+                title="go to end"
+                onClick={handleGoToEnd}
+                disabled={!navigationControls()?.canGoForward()}
+              >
+                &gt;&gt;|
+              </button>
+            </div>
+          </Show>
+          <div 
+            title="When checked, computations run automatically as you type. When unchecked, use the Run button to compute results manually. Useful for TMs that may take time to process."
+          >
+            <label>
+              <input 
+                type="checkbox" 
+                checked={appState.runImmediately}
+                onChange={(e) => setAppState('runImmediately', e.currentTarget.checked)}
+              />
+              Run immediately?
+            </label>
+            <Show when={!appState.runImmediately}>
+              <button 
+                class="run-button"
+                onClick={() => {
+                  const run = runFunction()
+                  if (run) {
+                    run()
+                  }
+                }}
+              >
+                Run
+              </button>
+            </Show>
+          </div>
+          <Show when={computationResult()}>
+            <div class="acceptance-status">
+              <Show when={computationResult()!.hasResult}>
+                <Show when={appState.automatonType === AutomatonType.Tm && computationResult()!.hitMaxSteps} fallback={
+                  <>
+                    <span class={computationResult()!.accepted ? 'accepted' : 'rejected'}>
+                      {computationResult()!.accepted ? 'accept' : 'reject'}
+                    </span>
+                    <Show when={appState.automatonType === AutomatonType.Tm && computationResult()!.outputString !== undefined}>
+                      <span title="This is the string on the last tape, starting at the tape head, until the first _ to the right of there." class="tm-output">
+                        string output: <span class="output-string">{computationResult()!.outputString || 'ε'}</span>
+                      </span>
+                    </Show>
+                  </>
+                }>
+                  <span class="max-steps-reached">MAX_STEPS={TM.MAX_STEPS.toLocaleString()} limit reached</span>
+                </Show>
+              </Show>
+              <Show when={!computationResult()!.hasResult}>
+                <span>Click Run to see result</span>
+              </Show>
+            </div>
+          </Show>
+        </div>
+        
+        <div class="split-content">
+          <Resizable sizes={[appState.splitPercentage, 1 - appState.splitPercentage]} onSizesChange={handleSplitChange}>
+            <Resizable.Panel minSize={0.01}>
+              <div class="editor-section">
+                <CodeEditor />
+              </div>
+            </Resizable.Panel>
+            
+            <Resizable.Handle aria-label="Resize editor and results panels">
+              <div class="resize-handle" />
+            </Resizable.Handle>
+            
+            <Resizable.Panel minSize={0.01}>
+              <div class="results-section">
+                <Show when={appState.automatonType === AutomatonType.Dfa}>
+                  <DFATableComponent 
+                    onNavigationReady={setNavigationControls}
+                    onRunReady={handleRunReady}
+                    onResultChange={setComputationResult}
+                  />
+                </Show>
+                <Show when={appState.automatonType === AutomatonType.Nfa}>
+                  <NFATableComponent 
+                    onNavigationReady={setNavigationControls}
+                    onRunReady={handleRunReady}
+                    onResultChange={setComputationResult}
+                  />
+                </Show>
+                <Show when={appState.automatonType === AutomatonType.Tm}>
+                  <TMComponent 
+                    onNavigationReady={setNavigationControls}
+                    onRunReady={handleRunReady}
+                    onResultChange={setComputationResult}
+                  />
+                </Show>
+                <Show when={appState.automatonType === AutomatonType.Regex}>
+                  <RegexComponent 
+                    onRunReady={handleRunReady}
+                    onResultChange={setComputationResult}
+                  />
+                </Show>
+                <Show when={appState.automatonType === AutomatonType.Cfg}>
+                  <CFGComponent 
+                    onRunReady={handleRunReady}
+                    onResultChange={setComputationResult}
+                  />
+                </Show>
+                <Show when={appState.automatonType !== AutomatonType.Dfa && 
+                            appState.automatonType !== AutomatonType.Nfa && 
+                            appState.automatonType !== AutomatonType.Tm &&
+                            appState.automatonType !== AutomatonType.Regex &&
+                            appState.automatonType !== AutomatonType.Cfg}>
+                  <div class="placeholder">
+                    <p>Visualization for {appState.automatonType.toUpperCase()} coming soon</p>
+                    <p><strong>Current Model:</strong> {appState.automatonType.toUpperCase()}</p>
+                    <p><strong>Theme:</strong> {appState.theme}</p>
+                    <p><strong>Input String:</strong> "{appState.inputString}"</p>
+                  </div>
+                </Show>
+              </div>
+            </Resizable.Panel>
+          </Resizable>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default App

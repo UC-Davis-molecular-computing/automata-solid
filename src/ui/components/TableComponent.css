@@ -1,0 +1,526 @@
+/* DFA Table Component Styles */
+.dfa-table-component {
+  padding: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.error-message {
+  background-color: #fee;
+  border: 1px solid #f00;
+  border-radius: 4px;
+  padding: 15px;
+  margin-bottom: 20px;
+  color: #c00;
+}
+
+.error-text {
+  font-family: Consolas, Monaco, 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 10px 0 0 0;
+  white-space: pre-wrap;
+  overflow-x: auto;
+  background-color: #fff8f8;
+  padding: 10px;
+  border-radius: 4px;
+  border: 1px solid #fcc;
+  color: #000;  /* Black text for better readability */
+}
+
+.dfa-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Compact Input Display */
+.input-status-line {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.position-label {
+  font-weight: 500;
+  color: #495057;
+  white-space: nowrap;
+}
+
+.transition-info {
+  font-size: 14px;
+  color: #6c757d;
+  font-style: italic;
+}
+
+/* Input Display */
+.input-display {
+  background-color: #f8f9fa;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #dee2e6;
+}
+
+.input-processed {
+  font-family: Consolas, Monaco, 'Courier New', monospace;
+  font-size: 16px;
+  font-weight: bold;
+  padding: 6px 10px;
+  background-color: white;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  letter-spacing: 1px;
+  white-space: nowrap;
+  min-width: 100px;
+}
+
+.acceptance-status {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.accepted {
+  color: #28a745;
+  font-weight: bold;
+}
+
+.rejected {
+  color: #dc3545;
+  font-weight: bold;
+}
+
+
+/* Transition Table */
+.transition-table-container {
+  overflow-x: auto;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  display: inline-block; /* Shrink to content */
+}
+
+.transition-table {
+  width: auto; /* Auto-size table to content instead of full width */
+  border-collapse: collapse;
+  background-color: white;
+  table-layout: auto; /* Let table auto-size columns */
+}
+
+.transition-table thead {
+  background-color: #e9ecef;
+}
+
+.transition_header_entry {
+  background-color: #dddddd;
+  padding: 6px 8px;
+  text-align: left;
+  font-weight: bold;
+  border: 1px solid #bbb;
+  font-size: 13px;
+}
+
+/* Make State column auto-fit to content */
+.transition_header_entry:first-child {
+  width: 1px; /* Force minimal width for state column */
+  white-space: nowrap;
+}
+
+.state-cell {
+  width: 1px; /* Force minimal width for state column */
+  white-space: nowrap;
+  padding: 6px 8px;
+  vertical-align: middle;
+}
+
+/* Transition columns should be uniform width */
+.transition_header_entry:not(:first-child) {
+  width: auto;
+  text-align: left;
+}
+
+.transition-cell {
+  padding: 6px 8px;
+  vertical-align: middle;
+  text-align: left;
+  width: auto;
+}
+
+/* Table Rows */
+.transition-table tbody tr {
+  border-bottom: 1px solid #dee2e6;
+}
+
+/* State Cells - now handled by .state-cell above */
+
+.transition_entry_accept {
+  border: 2px solid #28a745; /* Green border for accept states */
+  padding: 4px 6px;
+  border-radius: 4px;
+  font-weight: bold;
+  font-family: Consolas, Monaco, 'Courier New', monospace;
+  font-size: 13px;
+  text-align: left; /* Left-justify text */
+  background-color: #f8fff8; /* Very light green background */
+  display: block; /* Fill the table cell */
+  width: 100%; /* Fill the cell width */
+  box-shadow: 0 1px 2px rgba(40, 167, 69, 0.2);
+  white-space: nowrap; /* Prevent text wrapping */
+  box-sizing: border-box; /* Include padding in width */
+}
+
+.transition_entry_reject {
+  border: 2px solid #dc3545; /* Red border for reject states */
+  padding: 4px 6px;
+  border-radius: 4px;
+  font-weight: bold;
+  font-family: Consolas, Monaco, 'Courier New', monospace;
+  font-size: 13px;
+  text-align: left; /* Left-justify text */
+  background-color: #fff8f8; /* Very light red background */
+  display: block; /* Fill the table cell */
+  width: 100%; /* Fill the cell width */
+  box-shadow: 0 1px 2px rgba(220, 53, 69, 0.2);
+  white-space: nowrap; /* Prevent text wrapping */
+  box-sizing: border-box; /* Include padding in width */
+}
+
+.transition_entry_accept.current {
+  background-color: #b3ffb3; /* Lighter green for current accept state */
+  border-color: #1e7e34; /* Darker green border when current */
+  box-shadow: 0 3px 6px rgba(30, 126, 52, 0.4);
+}
+
+.transition_entry_reject.current {
+  background-color: #ffb3b3; /* Lighter red for current reject state */
+  border-color: #b71c1c; /* Darker red border when current */
+  box-shadow: 0 3px 6px rgba(183, 28, 28, 0.4);
+}
+
+/* Regular state styling (non-accept, non-reject) */
+.transition_entry_ {
+  border: 2px solid #6c757d; /* Gray border for regular states */
+  padding: 4px 6px;
+  border-radius: 4px;
+  font-weight: bold;
+  font-family: Consolas, Monaco, 'Courier New', monospace;
+  font-size: 13px;
+  text-align: left;
+  background-color: #f8f9fa; /* Light gray background */
+  display: block;
+  width: 100%;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.transition_entry_.current {
+  background-color: #e3f2fd; /* Light blue for current regular state */
+  border-color: #007bff; /* Blue border when current */
+  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
+}
+
+/* Transitions Cells - now individual cells handled by .transition-cell above */
+
+.transition-entry {
+  display: block; /* Fill the table cell */
+  padding: 3px 6px;
+  border: 1px solid #6c757d;
+  border-radius: 3px;
+  background-color: #f8f9fa;
+  font-family: Consolas, Monaco, 'Courier New', monospace;
+  font-size: 12px;
+  width: 100%; /* Fill the cell width */
+  text-align: left; /* Left-justify text */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  box-sizing: border-box; /* Include padding in width */
+}
+
+.transition-entry.current {
+  background-color: #e3f2fd;
+  border-color: #007bff;
+  font-weight: bold;
+  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
+}
+
+/* NFA-specific additions */
+.current-states {
+  font-size: 14px;
+  color: #6c757d;
+  white-space: nowrap;
+}
+
+.state-set {
+  font-weight: 600;
+  color: #007bff;
+}
+
+.no-transition {
+  color: #adb5bd;
+  font-style: italic;
+  padding: 6px 12px;
+}
+
+/* Regex-specific additions */
+.regex-info {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.regex-section {
+  background-color: #f8f9fa;
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+}
+
+.regex-section h3 {
+  margin: 0 0 10px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #495057;
+}
+
+.regex-display {
+  font-family: Consolas, Monaco, 'Courier New', monospace;
+  font-size: 18px;
+  background-color: white;
+  padding: 12px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  color: #495057;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.alphabet-display {
+  font-family: Consolas, Monaco, 'Courier New', monospace;
+  font-size: 14px;
+  background-color: white;
+  padding: 8px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  color: #6c757d;
+}
+
+/* Substitution table styling */
+.substitution-table-container {
+  background-color: white;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  overflow-x: auto;
+}
+
+.substitution-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.substitution-table thead {
+  background-color: #e9ecef;
+}
+
+.expression-header,
+.subexpressions-header {
+  background-color: #ddd;
+  padding: 12px;
+  text-align: left;
+  font-weight: 700;
+  border: 1px solid #bbb;
+  font-size: 14px;
+  color: #495057;
+}
+
+.expression-header {
+  border-right: 1px solid #bbb;
+  width: 1px; /* Make column as narrow as possible */
+  white-space: nowrap; /* Prevent text wrapping */
+}
+
+.substitution-row:nth-child(even) {
+  background-color: #f8f9fa;
+}
+
+.expression-cell,
+.subexpressions-cell {
+  padding: 8px 12px;
+  vertical-align: top;
+  text-align: left;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.expression-cell {
+  border-right: 1px solid #dee2e6;
+  width: 1px; /* Make column as narrow as possible */
+  white-space: nowrap; /* Prevent text wrapping */
+}
+
+.expression-cell code,
+.subexpressions-cell code {
+  font-family: Consolas, Monaco, 'Courier New', monospace;
+  font-size: 14px;
+  color: #333;
+  background-color: transparent;
+  white-space: nowrap;
+}
+
+/* Inline alphabet display */
+.inline-alphabet {
+  font-family: Consolas, Monaco, 'Courier New', monospace;
+  font-size: 16px;
+  color: #333;
+  background-color: #f8f9fa;
+  padding: 4px 8px;
+  border-radius: 3px;
+  font-weight: normal;
+}
+
+/* CFG parse tree styling */
+.cfg-parse-tree {
+  background-color: #f8f9fa;
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+  margin-top: 20px;
+}
+
+.cfg-parse-tree h3 {
+  margin: 0 0 10px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #495057;
+}
+
+.parse-tree-display {
+  background-color: white;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  padding: 12px;
+  overflow-x: auto;
+}
+
+.parse-tree-display pre {
+  margin: 0;
+  font-family: Consolas, Monaco, 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #333;
+  white-space: pre;
+}
+
+/* TM-specific styles */
+.tm-tapes-container {
+  background-color: #f8f9fa;
+  padding: 6px 8px;
+  border-radius: 4px;
+  border: 1px solid #dee2e6;
+}
+
+.tm-tapes-container h3 {
+  margin: 0 0 4px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #495057;
+}
+
+.tm-step-counter {
+  margin-left: 8px;
+  font-weight: normal;
+  font-size: 12px;
+  color: #6c757d;
+}
+
+.tm-tapes-table {
+  width: auto;
+  border-collapse: separate;
+  border-spacing: 1px;
+  background-color: white;
+}
+
+.tape_cell {
+  min-width: 20px;
+  height: 20px;
+  text-align: center;
+  vertical-align: middle;
+  border: 1px solid #6c757d;
+  background-color: white;
+  font-family: Consolas, Monaco, 'Courier New', monospace;
+  font-size: 14px;
+  font-weight: bold;
+  border-radius: 5px;
+  padding: 0 0px;
+  white-space: nowrap;
+}
+
+.tape_cell.current {
+  border-color: #007bff;
+  background-color: #e3f2fd;
+  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
+}
+
+.tm-transitions-table {
+  width: auto;
+  border-collapse: separate;
+  border-spacing: 2px;
+}
+
+.tm-transitions-table .transition-entry {
+  display: table-cell;
+  padding: 3px 6px;
+  border: 1px solid #6c757d;
+  border-radius: 3px;
+  background-color: #f8f9fa;
+  font-family: Consolas, Monaco, 'Courier New', monospace;
+  font-size: 12px;
+  text-align: left;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  white-space: nowrap;
+  width: 1px; /* Force auto-width based on content */
+}
+
+.tm-transitions-table .transition-entry.current {
+  background-color: #e3f2fd;
+  border-color: #007bff;
+  font-weight: bold;
+  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .input-status-line {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .input-processed {
+    font-size: 14px;
+    letter-spacing: 0.5px;
+  }
+  
+  .transitions-container {
+    flex-direction: column;
+  }
+  
+  .tm-tapes-table {
+    border-spacing: 1px;
+  }
+  
+  .tape_cell {
+    font-size: 12px;
+    min-width: 25px;
+    height: 25px;
+    padding: 2px 4px;
+  }
+  
+  .tm-transitions-table {
+    border-spacing: 2px;
+  }
+  
+  .tm-transitions-table .transition-entry {
+    font-size: 12px;
+    padding: 4px 8px;
+    white-space: normal;
+    word-break: break-word;
+  }
+}

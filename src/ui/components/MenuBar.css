@@ -1,0 +1,153 @@
+/* Menu Bar Styles */
+.menu-bar {
+  display: flex;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+}
+
+/* Menu Triggers */
+.menu-trigger {
+  background: none;
+  border: none;
+  padding: 8px 16px;
+  cursor: pointer;
+  color: #333;
+  font-size: 14px;
+  font-family: inherit;
+  transition: background-color 0.15s ease;
+}
+
+.menu-trigger:hover {
+  background-color: #e9ecef;
+}
+
+.menu-trigger[data-expanded] {
+  background-color: #007bff;
+  color: white;
+}
+
+/* Menu Content */
+.menu-content {
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 4px;
+  min-width: max-content; /* Size to content */
+  width: max-content; /* Auto-size to widest content */
+  z-index: 1000;
+  font-size: 14px;
+  overflow: hidden; /* Prevent hover areas from extending outside menu */
+  box-sizing: border-box;
+  position: relative;
+}
+
+/* Menu Items */
+.menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* Space between label and shortcut */
+  padding: 8px 12px;
+  margin: 1px 2px; /* Add small margin to contain hover area */
+  border-radius: 2px; /* Slight rounding for hover area */
+  cursor: pointer;
+  background: none;
+  border: none;
+  width: calc(100% - 4px); /* Account for margins */
+  text-align: left;
+  color: #333;
+  font-size: 14px;
+  font-family: inherit;
+  transition: background-color 0.15s ease;
+  min-height: 32px; /* Ensure consistent height */
+  white-space: nowrap; /* Prevent text wrapping */
+  box-sizing: border-box; /* Include padding in width calculation */
+}
+
+.menu-item:hover:not([disabled]):not(:focus) {
+  background-color: #f8f9fa; /* Lighter hover - keep text readable */
+  color: #333; /* Ensure text stays dark on light background */
+}
+
+.menu-item:focus {
+  background-color: #007bff;
+  color: white;
+  outline: none;
+}
+
+.menu-item[disabled] {
+  color: #6c757d;
+  cursor: not-allowed;
+}
+
+/* Menu Separators */
+.menu-separator {
+  height: 1px;
+  background-color: #dee2e6;
+  margin: 4px 0;
+}
+
+/* Radio Indicators */
+.menu-indicator {
+  margin-right: 8px;
+  width: 16px;
+  display: inline-block;
+  text-align: center;
+  font-size: 12px;
+}
+
+/* Submenu styling */
+.menu-content .menu-content {
+  margin-left: 4px;
+}
+
+/* Focus and keyboard navigation */
+.menu-trigger:focus-visible {
+  outline: 2px solid #007bff;
+  outline-offset: -2px;
+}
+
+.menu-item:focus-visible {
+  background-color: #007bff !important;
+  color: white !important;
+  outline: none;
+}
+
+/* Ensure submenu triggers work properly */
+.menu-item[data-expanded] {
+  background-color: #007bff !important;
+  color: white !important;
+}
+
+/* Fix for Model menu items without indicators */
+.menu-item > span {
+  display: block;
+  width: 100%;
+  /* Reserve space for bold text to prevent layout shift */
+  min-width: max-content;
+}
+
+/* Selected item styling - use bold font */
+.selected-item {
+  font-weight: bold;
+}
+
+/* Keyboard shortcuts */
+.menu-shortcut {
+  font-size: 12px;
+  color: #6c757d;
+  margin-left: 20px;
+}
+
+.menu-item:hover .menu-shortcut {
+  color: #495057;
+}
+
+.menu-item:focus .menu-shortcut {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+

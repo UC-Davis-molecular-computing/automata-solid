@@ -1,0 +1,242 @@
+/* Main App Styles */
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Header Bar */
+.header-bar {
+  display: flex;
+  align-items: center;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+}
+
+/* Main Content */
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  gap: 16px;
+  min-height: 0; /* Allow flex child to shrink */
+}
+
+/* Input Controls */
+.input-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+}
+
+.input-controls .acceptance-status {
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.input-controls .tm-output {
+  margin-left: 12px;
+  font-weight: 500;
+  font-size: 14px;
+  color: #495057;
+}
+
+.input-controls .output-string {
+  font-family: Consolas, Monaco, 'Courier New', monospace;
+  font-weight: 600;
+  color: #007bff;
+  background-color: #e3f2fd;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.input-controls .max-steps-reached {
+  font-weight: 600;
+  color: #fd7e14;
+  background-color: #fff3cd;
+  padding: 2px 6px;
+  border-radius: 3px;
+  border: 1px solid #ffeaa7;
+}
+
+.input-controls .accepted {
+  color: #28a745;
+  font-weight: bold;
+}
+
+.input-controls .rejected {
+  color: #dc3545;
+  font-weight: bold;
+}
+
+.input-controls input[type="text"] {
+  padding: 6px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+.step-controls {
+  display: flex;
+  gap: 4px;
+}
+
+.step-controls button {
+  padding: 6px 12px;
+  border: 1px solid #ced4da;
+  background-color: white;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+.step-controls button:hover {
+  background-color: #e9ecef;
+}
+
+.step-controls button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.run-button {
+  margin-left: 8px;
+  padding: 6px 12px;
+  border: 1px solid #007bff;
+  background-color: #007bff;
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-weight: bold;
+}
+
+.run-button:hover {
+  background-color: #0056b3;
+  border-color: #0056b3;
+}
+
+/* Split Content */
+.split-content {
+  flex: 1;
+  min-height: 0; /* Allow flex child to shrink */
+}
+
+/* Resizable Component Styles */
+[data-corvu-resizable-root] {
+  width: 100%;
+  min-height: 100%;
+  display: flex;
+}
+
+[data-corvu-resizable-panel] {
+  display: flex;
+  flex-direction: column;
+  min-width: 0; /* Allow panel to shrink completely */
+}
+
+/* Resize Handle - 10px for easy clicking 
+   To customize width: change all the "10px" values below to your desired size
+   Recommended range: 3px (very thin) to 10px (easy clicking) */
+[data-corvu-resizable-handle] {
+  flex-basis: 10px !important;
+  width: 10px !important;
+  min-width: 10px !important;
+  max-width: 10px !important;
+  flex-shrink: 0 !important;
+  flex-grow: 0 !important;
+  box-sizing: border-box !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: col-resize;
+  background-color: #dee2e6;
+}
+
+/* Also override any potential parent container constraints */
+[data-corvu-resizable-root] [data-corvu-resizable-handle] {
+  flex-basis: 10px !important;
+  width: 10px !important;
+  min-width: 10px !important;
+  max-width: 10px !important;
+}
+
+[data-corvu-resizable-handle]:hover .resize-handle,
+[data-corvu-resizable-handle][data-dragging] .resize-handle {
+  background-color: #007bff;
+}
+
+.resize-handle {
+  width: 1px; /* Ultra-thin visual handle */
+  height: 100%;
+  background-color: #6c757d;
+  transition: background-color 0.15s ease;
+}
+
+.editor-section,
+.results-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  background-color: white;
+  min-width: 0; /* Allow flex child to shrink horizontally */
+}
+
+
+/* Ensure CodeEditor fills the remaining space */
+.editor-section > .code-editor-container {
+  flex: 1;
+  margin: 0;
+}
+
+.editor-section textarea {
+  flex: 1;
+  border: none;
+  padding: 16px;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 14px;
+  resize: none;
+  outline: none;
+}
+
+.results-section .placeholder {
+  flex: 1;
+  padding: 16px;
+  color: #6c757d;
+}
+
+.results-section .placeholder p {
+  margin: 8px 0;
+}
+
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .split-content {
+    flex-direction: column;
+  }
+  
+  .input-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .input-controls input[type="text"] {
+    width: 100%;
+  }
+}

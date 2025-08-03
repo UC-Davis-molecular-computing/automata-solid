@@ -1,0 +1,59 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["states", "input_alphabet", "start_state", "accept_states", "delta"],
+  "additionalProperties": false,
+  "properties": {
+    "states": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "errorMessage": "State names must be non-empty strings"
+      },
+      "errorMessage": {
+        "minItems": "NFA must have at least one state",
+        "uniqueItems": "State names must be unique (no duplicates allowed)"
+      }
+    },
+    "input_alphabet": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1,
+        "errorMessage": "Each input symbol must be exactly one character"
+      },
+      "errorMessage": {
+        "minItems": "Input alphabet must contain at least one symbol",
+        "uniqueItems": "Input alphabet symbols must be unique"
+      }
+    },
+    "start_state": {
+      "type": "string",
+      "enum": {"$data": "1/states"},
+      "errorMessage": "Start state `${0}` must be one of the defined states: ${1/states}"
+    },
+    "accept_states": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": {"$data": "2/states"},
+        "errorMessage": "Accept state `${0}` must be one of the defined states: ${2/states}"
+      }
+    },
+    "delta": {
+      "type": "object",
+      "errorMessage": "Delta (transition function) must be an object"
+    }
+  },
+  "errorMessage": {
+    "type": "NFA specification must be a valid object",
+    "required": "Missing required field - NFA must have: states, input_alphabet, start_state, accept_states, delta",
+    "additionalProperties": "Unexpected property - NFA specifications only allow: states, input_alphabet, start_state, accept_states, delta"
+  }
+}

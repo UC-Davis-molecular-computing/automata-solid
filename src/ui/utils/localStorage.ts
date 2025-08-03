@@ -1,0 +1,106 @@
+import type { AppState } from '../types/AppState'
+
+// Keys for localStorage
+const STORAGE_KEYS = {
+  APP_STATE: 'automata-app-state',
+  APP_VERSION: 'automata-app-version'
+} as const
+
+// Current version for migration purposes
+const CURRENT_VERSION = '1.0.0'
+
+// Fields that should NOT be persisted (everything else is automatically saved)
+type TransientFields = 'parseError' | 'result'
+
+// Automatically computed: all AppState fields except transient ones
+export type PersistableState = Omit<AppState, TransientFields>
+
+// Helper function to extract only persistable fields from AppState
+export function getPersistableState(state: AppState): PersistableState {
+  const { parseError, result, ...persistable } = state
+  return persistable
+}
+
+// Simple helper to filter out transient fields from stored data
+function getValidStoredFields(stored: any): Partial<PersistableState> {
+  if (!stored || typeof stored !== 'object') {
+    return {}
+  }
+  
+  // Remove transient fields - everything else is automatically included
+  const { parseError, result, version, timestamp, ...validFields } = stored
+  
+  // Basic type safety for critical fields only
+  if ('splitPercentage' in validFields) {
+    const split = validFields.splitPercentage
+    if (typeof split !== 'number' || split <= 0 || split >= 1) {
+      delete validFields.splitPercentage
+    }
+  }
+  
+  return validFields
+}
+
+/**
+ * Save state to localStorage with error handling
+ */
+export function saveToLocalStorage(state: PersistableState): void {
+  try {
+    const dataToSave = {
+      ...state,
+      version: CURRENT_VERSION,
+      timestamp: Date.now()
+    }
+    
+    localStorage.setItem(STORAGE_KEYS.APP_STATE, JSON.stringify(dataToSave))
+  } catch (error) {
+    console.warn('Failed to save to localStorage:', error)
+    // In case localStorage is full or disabled, we'll just continue without saving
+  }
+}
+
+/**
+ * Load state from localStorage with error handling and validation
+ */
+export function loadFromLocalStorage(): Partial<PersistableState> | null {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEYS.APP_STATE)
+    if (!stored) return null
+    
+    const parsed = JSON.parse(stored)
+    console.log('📂 Loaded from localStorage:', parsed)
+    
+    // Basic validation
+    if (typeof parsed !== 'object' || parsed === null) {
+      console.warn('Invalid localStorage data format, ignoring')
+      return null
+    }
+    
+    // Version check (for future migrations)
+    if (parsed.version && parsed.version !== CURRENT_VERSION) {
+      console.log(`Version mismatch: stored ${parsed.version}, current ${CURRENT_VERSION}`)
+      // For now, we'll still use the data, but in the future we could migrate here
+    }
+    
+    // Automatically restore all valid fields (excludes transients and invalid data)
+    const validState = getValidStoredFields(parsed)
+    
+    return validState
+    
+  } catch (error) {
+    console.warn('Failed to load from localStorage:', error)
+    return null
+  }
+}
+
+/**
+ * Clear localStorage (useful for debugging or user reset)
+ */
+export function clearLocalStorage(): void {
+  try {
+    localStorage.removeItem(STORAGE_KEYS.APP_STATE)
+    console.log('🗑️ Cleared localStorage')
+  } catch (error) {
+    console.warn('Failed to clear localStorage:', error)
+  }
+}

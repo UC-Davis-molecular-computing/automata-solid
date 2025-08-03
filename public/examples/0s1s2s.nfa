@@ -1,0 +1,16 @@
+# NFA recognizing the language described by the regular expression 0*1*2*
+
+states: [q0, q1, q2]
+input_alphabet: [0, 1, 2]
+start_state: q0
+accept_states: [q2]
+
+delta:
+  q0:
+    0: q0
+    "": q1
+  q1:
+    1: q1
+    "": q2
+  q2:
+    2: q2
