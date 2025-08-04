@@ -3,6 +3,7 @@ import { createEffect, For, Show, onMount } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import { TM, TMConfiguration, ConfigDiff } from '../../core/TM'
 import { TMParser } from '../../parsers/TMParser'
+import { wildcardMatch, WILDCARD } from '../../core/Utils'
 import { appState } from '../store/AppStore'
 import './TableComponent.css' // Reuse existing CSS
 
@@ -327,15 +328,26 @@ const TMTransitionRow: Component<TMTransitionRowProps> = (props) => {
     }))
   }
 
-  const getCurrentTransition = () => {
-    if (!isCurrentState() || !props.currentConfig) return null
-    const scannedSymbols = props.currentConfig.currentScannedSymbols()
-    return scannedSymbols
-  }
-
   const isCurrentTransition = (symbols: string) => {
-    const currentTransition = getCurrentTransition()
-    return currentTransition === symbols
+    if (!isCurrentState() || !props.currentConfig) return false
+    
+    const scannedSymbols = props.currentConfig.currentScannedSymbols()
+    const stateTransitions = props.tm.delta[props.stateName]
+    
+    if (!stateTransitions) return false
+    
+    // Check if exact match exists (has priority over wildcards)
+    const hasExactMatch = stateTransitions.hasOwnProperty(scannedSymbols)
+    
+    if (symbols === scannedSymbols) {
+      // Exact match - always highlight
+      return true
+    } else if (!hasExactMatch && symbols.includes(WILDCARD) && wildcardMatch(scannedSymbols, symbols)) {
+      // Wildcard match - only if no exact match available
+      return true
+    }
+    
+    return false
   }
 
   return (

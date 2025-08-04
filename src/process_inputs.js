@@ -16893,7 +16893,9 @@ full pathname of file searched for is ${fullFilename}`);
       case ".nfa":
         return new NFAParser().parseNFA(machineText);
       case ".tm":
-        return new TMParser().parseTM(machineText);
+        const tm = new TMParser().parseTM(machineText);
+        completeResult.tm = tmToJson(tm);
+        return tm;
       case ".cfg":
         const cfg = new CFGParser().parseCFG(machineText);
         completeResult.cfg = cfgToJson(cfg);
@@ -16965,6 +16967,17 @@ function cfgToJson(cfg) {
       in_symbol: rule.inputSymbol,
       out_symbols: rule.outputString
     }))
+  };
+}
+function tmToJson(tm) {
+  return {
+    states: tm.states,
+    input_alphabet: tm.inputAlphabet,
+    tape_alphabet: tm.tapeAlphabet,
+    start_state: tm.startState,
+    accept_state: tm.acceptState,
+    reject_state: tm.rejectState,
+    delta: tm.delta
   };
 }
 function printCurrentCompleteResultAndExit(outputsFilename) {

@@ -124,7 +124,10 @@ function readMachine(filename: string): DFA | NFA | TM | CFG {
         return new NFAParser().parseNFA(machineText);
         
       case '.tm':
-        return new TMParser().parseTM(machineText);
+        const tm = new TMParser().parseTM(machineText);
+        // Store TM in complete result for downstream processing
+        completeResult.tm = tmToJson(tm);
+        return tm;
         
       case '.cfg':
         const cfg = new CFGParser().parseCFG(machineText);
@@ -218,6 +221,18 @@ function cfgToJson(cfg: CFG): any {
       in_symbol: rule.inputSymbol,
       out_symbols: rule.outputString
     }))
+  };
+}
+
+function tmToJson(tm: TM): any {
+  return {
+    states: tm.states,
+    input_alphabet: tm.inputAlphabet,
+    tape_alphabet: tm.tapeAlphabet,
+    start_state: tm.startState,
+    accept_state: tm.acceptState,
+    reject_state: tm.rejectState,
+    delta: tm.delta
   };
 }
 
