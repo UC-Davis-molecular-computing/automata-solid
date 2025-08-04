@@ -1276,7 +1276,7 @@ delta:
       }
     }
 
-    it('should track intermediate configurations during load and reset states', () => {
+    test('should track intermediate configurations during load and reset states', () => {
       const parser = new TMParser()
       const tm = parser.parseTM(assemblyTM)
 
@@ -1338,7 +1338,7 @@ delta:
       expect(configs.length).toBeGreaterThan(0)
     })
 
-    it('should identify the exact step where extra blanks appear', () => {
+    test('should identify the exact step where extra blanks appear', () => {
       const parser = new TMParser()
       const tm = parser.parseTM(assemblyTM)
 
