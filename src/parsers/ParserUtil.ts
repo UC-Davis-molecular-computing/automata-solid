@@ -570,4 +570,5 @@ export class ParserUtil {
 
     return normalized
   }
+
 }

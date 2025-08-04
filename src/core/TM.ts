@@ -221,21 +221,15 @@ export class TMConfiguration {
       // Write new symbol
       tape[curHeadPos] = nextSymbol
 
-      // Handle tape expansion/contraction
-      const needAddBlank = this.needAddBlank(nextHeadPos, tape.length, move, nextSymbol)
+      // Handle tape expansion/contraction using Elm-based logic
+      const tapeChange = this.calculateTapeChange(nextSymbol, move, curHeadPos, tape)
       
-      if (needAddBlank) {
+      if (tapeChange === 'grow') {
         tape.push(TM.BLANK)
-      } else {
-        // Remove blank if tape head has pulled back and there are two blanks at end
-        const needRemoveBlank = nextHeadPos < tape.length - 1 &&
-                               tape.length >= 2 &&
-                               tape[tape.length - 1] === TM.BLANK &&
-                               tape[tape.length - 2] === TM.BLANK
-        if (needRemoveBlank) {
-          tape.pop()
-        }
+      } else if (tapeChange === 'shrink') {
+        tape.pop()
       }
+      // 'same' means no change to tape length
 
       this.headsPos[tapeIdx] = nextHeadPos
     }
@@ -243,10 +237,27 @@ export class TMConfiguration {
     this.state = nextState
   }
 
-  private needAddBlank(afterHeadPos: number, beforeTapeLength: number, move: number, nextSymbol: string): boolean {
-    return (afterHeadPos > beforeTapeLength - 1 ||
-            (afterHeadPos === beforeTapeLength - 1 && move === 0 && nextSymbol !== TM.BLANK) ||
-            (afterHeadPos === beforeTapeLength - 2 && move === -1 && nextSymbol !== TM.BLANK))
+  private calculateTapeChange(nextSymbol: string, move: number, headPos: number, tape: string[]): 'grow' | 'shrink' | 'same' {
+    const isOnRightEnd = (headPos === tape.length - 1)
+    const isNextRightEnd = (headPos === tape.length - 2)
+    const endsInBlank = (tape[tape.length - 1] === TM.BLANK)
+    const hasPenultimateBlank = (tape.length >= 2 && tape[tape.length - 2] === TM.BLANK)
+    
+    // Grow: if at right end AND (moving right OR writing non-blank)
+    if (isOnRightEnd && (move === 1 || nextSymbol !== TM.BLANK)) {
+      return 'grow'
+    }
+    // Shrink condition 1: moving left AND at right end AND writing blank AND penultimate is blank
+    else if (move === -1 && isOnRightEnd && nextSymbol === TM.BLANK && hasPenultimateBlank) {
+      return 'shrink'
+    }
+    // Shrink condition 2: NOT moving right AND next-to-right-end AND writing blank AND ends in blank
+    else if (move !== 1 && isNextRightEnd && nextSymbol === TM.BLANK && endsInBlank) {
+      return 'shrink'
+    }
+    else {
+      return 'same'
+    }
   }
 
   nextConfig(): TMConfiguration {
@@ -340,21 +351,15 @@ export class TMConfiguration {
       // Write new symbol
       tape[curHeadPos] = nextSymbol
 
-      // Handle tape expansion/contraction
-      const needAddBlank = this.needAddBlank(nextHeadPos, tape.length, move, nextSymbol)
+      // Handle tape expansion/contraction using Elm-based logic
+      const tapeChange = this.calculateTapeChange(nextSymbol, move, curHeadPos, tape)
       
-      if (needAddBlank) {
+      if (tapeChange === 'grow') {
         tape.push(TM.BLANK)
-      } else {
-        // Remove blank if tape head has pulled back and there are two blanks at end
-        const needRemoveBlank = nextHeadPos < tape.length - 1 &&
-                               tape.length >= 2 &&
-                               tape[tape.length - 1] === TM.BLANK &&
-                               tape[tape.length - 2] === TM.BLANK
-        if (needRemoveBlank) {
-          tape.pop()
-        }
+      } else if (tapeChange === 'shrink') {
+        tape.pop()
       }
+      // 'same' means no change to tape length
 
       this.headsPos[tapeIdx] = nextHeadPos
     }

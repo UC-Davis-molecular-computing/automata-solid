@@ -1,8 +1,9 @@
 import { describe, test, expect } from 'vitest'
 import { TM, TMConfiguration, ConfigDiff } from './TM'
+import { TMParser } from '../parsers/TMParser'
 
 describe('TM', () => {
-  
+
   // Simple 2-tape TM that doubles the input (from Dart tests)
   const doubleTM = new TM(
     ['q0', 'q1', 'q2', 'qD', 'qA', 'qR'],
@@ -273,11 +274,11 @@ describe('TM', () => {
     test('copy creates independent copy', () => {
       const config1 = doubleTM.initialConfig('0')
       const config2 = config1.copy()
-      
+
       config2.state = 'different'
       config2.headsPos[0] = 999
       config2.tapes[0][0] = 'X'
-      
+
       expect(config1.state).toBe('q0')
       expect(config1.headsPos[0]).toBe(0)
       expect(config1.tapes[0][0]).toBe('0')
@@ -292,7 +293,7 @@ describe('TM', () => {
       const config1 = new TMConfiguration(doubleTM, 'q0', [0, 0], [['0', '_'], ['_']])
       const config2 = new TMConfiguration(doubleTM, 'qA', [0, 0], [['0', '_'], ['_']])
       const config3 = new TMConfiguration(doubleTM, 'qR', [0, 0], [['0', '_'], ['_']])
-      
+
       expect(config1.isHalting()).toBe(false)
       expect(config2.isHalting()).toBe(true)
       expect(config3.isHalting()).toBe(true)
@@ -324,18 +325,18 @@ describe('TM', () => {
       const config = doubleTM.initialConfig('0')
       expect(config.state).toBe('q0')
       expect(config.currentScannedSymbols()).toBe('0_')
-      
+
       // Debug: check if transition exists
       const stateTransitions = doubleTM.delta[config.state]
       const action = stateTransitions ? stateTransitions[config.currentScannedSymbols()] : undefined
       expect(action).toBeDefined() // Should find the q0,0_ transition
       expect(action).toEqual(['q1', '0$', 'SR'])
-      
+
       config.goToNextConfig()
       expect(config.state).toBe('q1')
       expect(config.currentScannedSymbols()).toBe('0_') // After SR move: head0 stays, head1 moves right
       expect(config.headsPos).toEqual([0, 1]) // Stay, Right
-      
+
       // Check that the symbols were written correctly
       expect(config.tapes[0][0]).toBe('0') // First tape position 0 should have 0
       expect(config.tapes[1][0]).toBe('$') // Second tape position 0 should have $
@@ -347,7 +348,7 @@ describe('TM', () => {
         ['1', '_'], // Invalid input symbol '1' for this TM
         ['_']
       ])
-      
+
       config.goToNextConfig()
       expect(config.state).toBe('qR') // Should reject
     })
@@ -361,7 +362,7 @@ describe('TM', () => {
 
     test('configsVisited produces correct sequence', () => {
       const configs = doubleTM.configsVisited('0')
-      
+
       expect(configs.length).toBe(8)
       expect(configs[0].state).toBe('q0')
       expect(configs[1].state).toBe('q1')
@@ -371,7 +372,7 @@ describe('TM', () => {
       expect(configs[5].state).toBe('qD')
       expect(configs[6].state).toBe('qD')
       expect(configs[7].state).toBe('qA')
-      
+
       // Check final configuration has correct output
       expect(configs[7].outputString()).toBe('00')
     })
@@ -389,7 +390,7 @@ describe('TM', () => {
           'q': { 'a_': ['q', 'a_', 'RR'] } // Always move right, never halt
         }
       )
-      
+
       const configs = loopTM.configsVisited('a')
       expect(configs.length).toBeLessThanOrEqual(TM.MAX_STEPS + 1) // +1 for initial config
     })
@@ -429,7 +430,7 @@ describe('TM', () => {
         'qR',
         { 'q': { 'a_': ['qA', 'a_', 'SR'] } }
       )
-      
+
       const tm2 = new TM(
         ['q', 'qA', 'qR'],
         ['a'],
@@ -439,7 +440,7 @@ describe('TM', () => {
         'qR',
         { 'q': { 'a_': ['qA', 'a_', 'SR'] } }
       )
-      
+
       expect(tm1.equals(tm2)).toBe(true)
     })
 
@@ -453,7 +454,7 @@ describe('TM', () => {
         'qR',
         { 'q': { 'a_': ['qA', 'a_', 'SR'] } } // 2 tapes
       )
-      
+
       const tm2 = new TM(
         ['q', 'qA', 'qR'],
         ['a'],
@@ -463,7 +464,7 @@ describe('TM', () => {
         'qR',
         { 'q': { 'a': ['qA', 'a', 'R'] } } // 1 tape
       )
-      
+
       expect(tm1.equals(tm2)).toBe(false)
     })
 
@@ -477,7 +478,7 @@ describe('TM', () => {
         'qR',
         { 'q': { 'a_': ['qA', 'a_', 'SR'] } }
       )
-      
+
       const tm2 = new TM(
         ['q', 'qA', 'qR'],
         ['a'],
@@ -487,7 +488,7 @@ describe('TM', () => {
         'qR',
         { 'q': { 'a_': ['qR', 'a_', 'SR'] } } // Different next state
       )
-      
+
       expect(tm1.equals(tm2)).toBe(false)
     })
   })
@@ -501,42 +502,42 @@ describe('TM', () => {
     'qA',
     'qR',
     {
-      's': { 
+      's': {
         '0': ['r00', 'x', 'R'],
         '1': ['r11', 'x', 'R'],
         'x': ['qA', 'x', 'S'],
         '_': ['qA', '_', 'S']  // Empty string is a palindrome
       },
-      'r00': { 
+      'r00': {
         '0': ['r00', '0', 'R'],
         '1': ['r01', '1', 'R'],
         '_': ['lx', '_', 'L'],
         'x': ['lx', 'x', 'L']
       },
-      'r11': { 
+      'r11': {
         '0': ['r10', '0', 'R'],
         '1': ['r11', '1', 'R'],
         '_': ['lx', '_', 'L'],
         'x': ['lx', 'x', 'L']
       },
-      'r01': { 
+      'r01': {
         '0': ['r00', '0', 'R'],
         '1': ['r01', '1', 'R'],
         '_': ['qR', '_', 'S'],  // Reject if we reach end in mismatch state
         'x': ['qR', 'x', 'S']   // Reject if we reach marker in mismatch state
       },
-      'r10': { 
+      'r10': {
         '0': ['r10', '0', 'R'],
         '1': ['r11', '1', 'R'],
         '_': ['qR', '_', 'S'],  // Reject if we reach end in mismatch state
         'x': ['qR', 'x', 'S']   // Reject if we reach marker in mismatch state
       },
-      'lx': { 
+      'lx': {
         'x': ['qA', 'x', 'S'],
         '0': ['l', 'x', 'L'],
         '1': ['l', 'x', 'L']
       },
-      'l': { 
+      'l': {
         '0': ['l', '0', 'L'],
         '1': ['l', '1', 'L'],
         'x': ['s', 'x', 'R']
@@ -600,7 +601,7 @@ describe('TM', () => {
     test('correctly processes palindromes by marking and checking', () => {
       // Test the algorithm's state transitions for a simple case
       const states = palindromeTM.statesVisited('0110')
-      
+
       // Should start at s, mark first 0 with x, go right to find matching 0 at end
       expect(states[0]).toBe('s')
       expect(states[states.length - 1]).toBe('qA')
@@ -608,7 +609,7 @@ describe('TM', () => {
 
     test('shows expected rejection path for non-palindromes', () => {
       const states = palindromeTM.statesVisited('01')
-      
+
       // Should start at s, mark first 0 with x, go right but find 1 at end (mismatch)
       expect(states[0]).toBe('s')
       expect(states[states.length - 1]).toBe('qR')
@@ -646,17 +647,17 @@ describe('TM', () => {
     const testCases = [
       // Length 0
       { input: '', expected: true },
-      
+
       // Length 1
       { input: '0', expected: true },
       { input: '1', expected: true },
-      
+
       // Length 2
       { input: '00', expected: true },
       { input: '01', expected: false },
       { input: '10', expected: false },
       { input: '11', expected: true },
-      
+
       // Length 3
       { input: '000', expected: true },
       { input: '001', expected: false },
@@ -666,7 +667,7 @@ describe('TM', () => {
       { input: '101', expected: true },
       { input: '110', expected: false },
       { input: '111', expected: true },
-      
+
       // Length 4
       { input: '0000', expected: true },
       { input: '0110', expected: true },
@@ -676,7 +677,7 @@ describe('TM', () => {
       { input: '0101', expected: false },
       { input: '1010', expected: false },
       { input: '1100', expected: false },
-      
+
       // Length 5+
       { input: '00100', expected: true },
       { input: '11011', expected: true },
@@ -762,7 +763,7 @@ describe('TM', () => {
       // Test that 'a' uses specific rule (increments counter) not wildcard rule
       const configs = countATM.configsVisited('a')
       expect(configs.length).toBeGreaterThan(1)
-      
+
       // Check that 'a' was processed with counter increment
       const secondConfig = configs[1]
       expect(secondConfig.tapes[1][0]).toBe('0') // Counter should be incremented
@@ -773,7 +774,7 @@ describe('TM', () => {
       // Test that 'b' uses wildcard rule (copies symbol, no counter)
       const configsB = countATM.configsVisited('b')
       expect(configsB.length).toBeGreaterThan(1)
-      
+
       const secondConfig = configsB[1]
       expect(secondConfig.tapes[0][0]).toBe('b') // Original symbol copied via wildcard
       expect(secondConfig.tapes[1][0]).toBe('_') // No counter increment
@@ -813,7 +814,7 @@ describe('TM', () => {
       // Test wildcard output copying for input '1'
       const configs1 = maskingTM.configsVisited('1')
       expect(configs1[1].tapes[0][0]).toBe('1') // Input '1' copied to output
-      
+
       // Test specific rule for input '0'
       const configs0 = maskingTM.configsVisited('0')
       expect(configs0[1].tapes[0][0]).toBe('2') // Specific rule: 0 -> 2
@@ -879,7 +880,7 @@ describe('TM', () => {
           }
         }
       )
-      
+
       expect(tm.accepts('0')).toBe(true) // Uses first specific rule
       expect(tm.accepts('1')).toBe(true) // Uses second specific rule
     })
@@ -942,7 +943,7 @@ describe('TM', () => {
       // Test specific pattern for 'a'
       const configsA = complexTM.configsVisited('a')
       expect(configsA[1].tapes[0][0]).toBe('x') // Uses specific rule: a -> x
-      
+
       // Test wildcard pattern for 'b'  
       const configsB = complexTM.configsVisited('b')
       expect(configsB[1].tapes[0][0]).toBe('b') // Uses wildcard rule: ? -> ? (copies 'b')
@@ -967,9 +968,9 @@ describe('TM', () => {
     test('ConfigDiff.diff creates correct diff between configurations', () => {
       const config1 = simpleTM.initialConfig('01')
       const config2 = config1.nextConfig()
-      
+
       const diff = ConfigDiff.diff(config1, config2)
-      
+
       expect(diff.oldState).toBe('q0')
       expect(diff.newState).toBe('q1')
       expect(diff.oldSymbols).toBe('0')
@@ -992,13 +993,13 @@ describe('TM', () => {
           'q1': { '_': ['qA', 'X', 'R'] }  // Write 'X' at blank position and move right - this forces expansion
         }
       )
-      
+
       const config1 = growTM.initialConfig('0')
       config1.goToNextConfig() // Move to q1 at position 1
       const config2 = config1.nextConfig() // This should cause tape growth
-      
+
       const diff = ConfigDiff.diff(config1, config2)
-      
+
       expect(diff.tapesLenDiff[0]).toBe(1) // Tape grew by 1
       expect(diff.headsPosMove[0]).toBe(1) // Head moved right
     })
@@ -1007,10 +1008,10 @@ describe('TM', () => {
       const config1 = simpleTM.initialConfig('01')
       const config2 = config1.nextConfig()
       const diff = ConfigDiff.diff(config1, config2)
-      
+
       const testConfig = config1.copy()
       testConfig.applyDiff(diff)
-      
+
       expect(testConfig.state).toBe(config2.state)
       expect(testConfig.headsPos).toEqual(config2.headsPos)
       expect(testConfig.tapes).toEqual(config2.tapes)
@@ -1020,10 +1021,10 @@ describe('TM', () => {
       const config1 = simpleTM.initialConfig('01')
       const config2 = config1.nextConfig()
       const diff = ConfigDiff.diff(config1, config2)
-      
+
       const testConfig = config2.copy()
       testConfig.applyReverseDiff(diff)
-      
+
       expect(testConfig.state).toBe(config1.state)
       expect(testConfig.headsPos).toEqual(config1.headsPos)
       expect(testConfig.tapes).toEqual(config1.tapes)
@@ -1033,39 +1034,39 @@ describe('TM', () => {
       const originalConfig = simpleTM.initialConfig('01')
       const nextConfig = originalConfig.nextConfig()
       const diff = ConfigDiff.diff(originalConfig, nextConfig)
-      
+
       // Forward then backward should restore original
       const testConfig = originalConfig.copy()
       testConfig.applyDiff(diff)
       testConfig.applyReverseDiff(diff)
-      
+
       expect(testConfig.equals(originalConfig)).toBe(true)
-      
+
       // Backward then forward should restore next
       const testConfig2 = nextConfig.copy()
       testConfig2.applyReverseDiff(diff)
       testConfig2.applyDiff(diff)
-      
+
       expect(testConfig2.equals(nextConfig)).toBe(true)
     })
 
     test('goToNextConfigWithDiff returns correct diff', () => {
       const config = simpleTM.initialConfig('01')
       const originalConfig = config.copy()
-      
+
       const diff = config.goToNextConfigWithDiff()
-      
+
       expect(diff.oldState).toBe('q0')
       expect(diff.newState).toBe('q1')
       expect(diff.oldSymbols).toBe('0')
       expect(diff.newSymbols).toBe('x')
       expect(diff.headsPosMove[0]).toBe(1)
-      
+
       // Verify the config was actually modified
       expect(config.state).toBe('q1')
       expect(config.headsPos[0]).toBe(1)
       expect(config.tapes[0][0]).toBe('x')
-      
+
       // Verify we can recreate the same result by applying diff to original
       const testConfig = originalConfig.copy()
       testConfig.applyDiff(diff)
@@ -1075,19 +1076,19 @@ describe('TM', () => {
     test('getConfigDiffsAndFinalConfig provides memory-efficient computation', () => {
       const input = '01'
       const { diffs, finalConfig } = simpleTM.getConfigDiffsAndFinalConfig(input)
-      
+
       // Should have 2 diffs for this simple computation
       expect(diffs.length).toBe(2)
       expect(finalConfig.state).toBe('qA')
-      
+
       // Verify we can reconstruct the computation using diffs
       const initialConfig = simpleTM.initialConfig(input)
       let currentConfig = initialConfig.copy()
-      
+
       for (const diff of diffs) {
         currentConfig.applyDiff(diff)
       }
-      
+
       expect(currentConfig.equals(finalConfig)).toBe(true)
     })
 
@@ -1104,31 +1105,31 @@ describe('TM', () => {
           // No transition for '1' - should reject
         }
       )
-      
+
       const config = rejectTM.initialConfig('1')
       const diff = config.goToNextConfigWithDiff()
-      
+
       expect(diff.oldState).toBe('q0')
       expect(diff.newState).toBe('qR')
       expect(diff.oldSymbols).toBe('1')
       expect(diff.newSymbols).toBe('1') // Symbol unchanged on rejection
       expect(diff.headsPosMove[0]).toBe(0) // No movement on rejection
       expect(diff.tapesLenDiff[0]).toBe(0) // No tape length change on rejection
-      
+
       expect(config.state).toBe('qR')
     })
 
     test('ConfigDiff works with multi-tape TMs', () => {
       const config1 = doubleTM.initialConfig('00')
       const config2 = config1.nextConfig()
-      
+
       const diff = ConfigDiff.diff(config1, config2)
-      
+
       expect(diff.oldState).toBe('q0')
       expect(diff.newState).toBe('q1')
       expect(diff.headsPosMove).toHaveLength(2) // Two tapes
       expect(diff.tapesLenDiff).toHaveLength(2)
-      
+
       // Verify diff application works
       const testConfig = config1.copy()
       testConfig.applyDiff(diff)
@@ -1138,11 +1139,11 @@ describe('TM', () => {
     test('ConfigDiff handles tape expansion and contraction', () => {
       // Use doubleTM which should expand tapes
       const { diffs } = doubleTM.getConfigDiffsAndFinalConfig('0')
-      
+
       // Find a diff that shows tape growth
       const growthDiff = diffs.find(diff => diff.tapesLenDiff.some(len => len > 0))
       expect(growthDiff).toBeDefined()
-      
+
       if (growthDiff) {
         expect(growthDiff.tapesLenDiff[0]).toBeGreaterThanOrEqual(0)
         expect(growthDiff.tapesLenDiff[1]).toBeGreaterThanOrEqual(0)
@@ -1153,11 +1154,11 @@ describe('TM', () => {
       const config1 = simpleTM.initialConfig('01')
       const config2 = config1.nextConfig()
       const diff = ConfigDiff.diff(config1, config2)
-      
+
       // Try to apply diff to wrong state
       const wrongConfig = simpleTM.initialConfig('01')
       wrongConfig.state = 'q1' // Wrong state
-      
+
       expect(() => wrongConfig.applyDiff(diff)).toThrow(/before states do not match/)
     })
 
@@ -1165,11 +1166,11 @@ describe('TM', () => {
       const config1 = simpleTM.initialConfig('01')
       const config2 = config1.nextConfig()
       const diff = ConfigDiff.diff(config1, config2)
-      
+
       // Try to apply reverse diff to wrong state
       const wrongConfig = config2.copy()
       wrongConfig.state = 'q0' // Wrong state
-      
+
       expect(() => wrongConfig.applyReverseDiff(diff)).toThrow(/after states do not match/)
     })
 
@@ -1177,12 +1178,287 @@ describe('TM', () => {
       const config1 = simpleTM.initialConfig('01')
       const config2 = config1.nextConfig()
       const diff = ConfigDiff.diff(config1, config2)
-      
+
       const str = diff.toString()
       expect(str).toContain('q0 → q1')
       expect(str).toContain('0 → x')
       expect(str).toContain('head moves')
       expect(str).toContain('tapes len diff')
+    })
+  })
+
+  describe('TM Assembly Extra Blank Bug Investigation', () => {
+    const assemblyTM = `
+# TM executing simple assembly programs
+# Test input: ^L00000110;Mx;L00000111;My;A;Mx;L00001001;My;A;
+# Expected output: 00010110
+# Alternative test: ^L00000101;Mx;My;A;Mx;My;A;Mx;My;A;Mx;My;A;
+
+states: [write_initial_marker, read_next_instruction, load, reset_all_register_tapes, move_read_reg, move_to_x, move_to_y, add_move_to_LSB, add_carry0, add_carry1, qA, qR]
+input_alphabet: [0, 1, ;, L, M, A, x, y, ^]
+tape_alphabet_extra: []
+start_state: write_initial_marker
+accept_state: qA
+reject_state: qR
+
+delta:
+  # Each register needs to start with ^_, with tape heads on first position scanning ^
+  write_initial_marker:
+    ^___: [read_next_instruction, ^^^^, RSSS]
+
+  # Read next instruction
+  read_next_instruction:
+    L???: [load, L???, RSSR]
+    M???: [move_read_reg, M???, RSSS]
+    A???: [add_move_to_LSB, A???, RSSS]
+    _???: [qA, _???, SSSR]  # halt
+
+  # Execute load
+  load:
+    0^^?: [load, 0^^0, RSSR]
+    1^^?: [load, 1^^1, RSSR]
+    ;^^?: [reset_all_register_tapes, ;^^_, SLSS]
+    
+  # Reset register tapes back to starting ^ and go to next instruction
+  reset_all_register_tapes:
+    ;???: [reset_all_register_tapes, ;???, SLLL]
+    ;^^^: [read_next_instruction, ;^^^, RSSS]
+    
+  # Figure out which register to move into
+  move_read_reg:
+    x^^^: [move_to_x, x^^^, RRSR]
+    y^^^: [move_to_y, y^^^, RSRR]
+    
+  # Execute move
+  move_to_x:
+    ;?^0: [move_to_x, ;0^0, SRSR]
+    ;?^1: [move_to_x, ;1^1, SRSR]
+    ;?^_: [reset_all_register_tapes, ;_^_, SLSL]
+    
+  move_to_y:
+    ;^?0: [move_to_y, ;^00, SSRR]
+    ;^?1: [move_to_y, ;^11, SSRR]
+    ;^?_: [reset_all_register_tapes, ;^__, SSLL]
+    
+  # Set up for add by moving to LSB
+  add_move_to_LSB:
+    ;???: [add_move_to_LSB, ;???, SRRR]
+    ;___: [add_carry0, ;___, SLLL]
+
+  # Add operations
+  add_carry0:
+    ;00?: [add_carry0, ;000, SLLL]
+    ;01?: [add_carry0, ;011, SLLL]
+    ;10?: [add_carry0, ;101, SLLL]
+    ;11?: [add_carry1, ;110, SLLL]
+    ;^^^: [read_next_instruction, ;^^^, RSSS]
+    
+  add_carry1:
+    ;00?: [add_carry0, ;001, SLLL]
+    ;01?: [add_carry1, ;010, SLLL]
+    ;10?: [add_carry1, ;100, SLLL]
+    ;11?: [add_carry1, ;111, SLLL]
+    ;^^^: [read_next_instruction, ;^^^, RSSS]
+`
+
+    function printConfiguration(config: any, stepNum: number, description: string) {
+      console.log(`\n=== Step ${stepNum}: ${description} ===`)
+      console.log(`State: ${config.state}`)
+      console.log(`Scanned: "${config.currentScannedSymbols()}"`)
+      console.log(`Head positions: [${config.headsPos.join(', ')}]`)
+      for (let i = 0; i < config.tapes.length; i++) {
+        const tape = config.tapes[i]
+        const headPos = config.headsPos[i]
+        const tapeStr = tape.map((sym: string, idx: number) =>
+          idx === headPos ? `[${sym}]` : sym
+        ).join('')
+        console.log(`Tape ${i}: ${tapeStr} (length: ${tape.length})`)
+      }
+    }
+
+    it('should track intermediate configurations during load and reset states', () => {
+      const parser = new TMParser()
+      const tm = parser.parseTM(assemblyTM)
+
+      // Use the test input from the comments
+      const testInput = '^L00000110;Mx;L00000111;My;A;Mx;L00001001;My;A;'
+
+      // Get all configurations to examine intermediate steps
+      const configs = tm.configsVisited(testInput)
+
+      console.log(`Total configurations: ${configs.length}`)
+
+      // Print first few configurations
+      for (let i = 0; i < Math.min(configs.length, 5); i++) {
+        printConfiguration(configs[i], i, configs[i].state)
+      }
+
+      // Find where we enter the load state
+      const loadStateStart = configs.findIndex(config => config.state === 'load')
+      if (loadStateStart !== -1) {
+        console.log(`\n*** LOAD STATE STARTS AT STEP ${loadStateStart} ***`)
+        printConfiguration(configs[loadStateStart], loadStateStart, 'Entering load state')
+
+        // Print next few configurations during load
+        for (let i = loadStateStart + 1; i < configs.length && i < loadStateStart + 10; i++) {
+          if (configs[i].state === 'load') {
+            printConfiguration(configs[i], i, `Load state step ${i - loadStateStart}`)
+          } else {
+            printConfiguration(configs[i], i, `Left load state -> ${configs[i].state}`)
+            break
+          }
+        }
+      }
+
+      // Find where we enter reset_all_register_tapes state
+      const resetStateStart = configs.findIndex(config => config.state === 'reset_all_register_tapes')
+      if (resetStateStart !== -1) {
+        console.log(`\n*** RESET_ALL_REGISTER_TAPES STATE STARTS AT STEP ${resetStateStart} ***`)
+        printConfiguration(configs[resetStateStart], resetStateStart, 'Entering reset_all_register_tapes state')
+
+        // Print several configurations during reset to see the extra blank issue
+        for (let i = resetStateStart; i < configs.length && i < resetStateStart + 15; i++) {
+          if (configs[i].state === 'reset_all_register_tapes') {
+            printConfiguration(configs[i], i, `Reset state step ${i - resetStateStart}`)
+
+            // Check for extra blanks on tapes 2 and 3
+            const tape2Length = configs[i].tapes[2].length
+            const tape3Length = configs[i].tapes[3].length
+            if (tape2Length !== tape3Length) {
+              console.log(`*** MISMATCH: Tape 2 length=${tape2Length}, Tape 3 length=${tape3Length} ***`)
+            }
+          } else {
+            printConfiguration(configs[i], i, `Left reset state -> ${configs[i].state}`)
+            break
+          }
+        }
+      }
+
+      // Basic sanity check - make sure we don't throw an error
+      expect(configs.length).toBeGreaterThan(0)
+    })
+
+    it('should identify the exact step where extra blanks appear', () => {
+      const parser = new TMParser()
+      const tm = parser.parseTM(assemblyTM)
+
+      const testInput = '^L00000110;Mx;'
+      const configs = tm.configsVisited(testInput)
+
+      // Track tape lengths throughout execution
+      const tapeLengths: number[][] = []
+
+      for (let i = 0; i < configs.length; i++) {
+        const config = configs[i]
+        const lengths = config.tapes.map((tape: any[]) => tape.length)
+        tapeLengths.push(lengths)
+
+        // Check if tapes 2 and 3 have different lengths
+        if (lengths[2] !== lengths[3]) {
+          console.log(`\n*** MISMATCH DETECTED AT STEP ${i} ***`)
+          printConfiguration(config, i, `Tape length mismatch`)
+          console.log(`Tape lengths: [${lengths.join(', ')}]`)
+
+          // Print the previous configuration for comparison
+          if (i > 0) {
+            console.log(`\n--- Previous configuration for comparison ---`)
+            printConfiguration(configs[i - 1], i - 1, `Previous step`)
+            console.log(`Previous tape lengths: [${tapeLengths[i - 1].join(', ')}]`)
+          }
+
+          // We found the first mismatch, this is enough for the test
+          break
+        }
+      }
+    })
+  })
+
+  describe('TM Tape Length Bug', () => {
+    test('should not alternate tape lengths when heads are stationary', () => {
+      // Minimal TM that reproduces the alternating blank bug
+      const tmYaml = `
+states: [write_initial_marker, read_next_instruction, load, reset_all_register_tapes, qA, qR]
+input_alphabet: [0, 1, ;, L, M, A, x, y, ^]
+tape_alphabet_extra: []
+start_state: write_initial_marker
+accept_state: qA
+reject_state: qR
+
+delta:
+  write_initial_marker:
+    ^___: [read_next_instruction, ^^^^, RSSS]
+    
+  read_next_instruction:
+    L???: [load, L???, RSSR]
+    M???: [load, M???, RSSS]
+    A???: [load, A???, RSSS]
+    _???: [qA, _???, SSSR]
+    
+  load:
+    0^^?: [load, 0^^0, RSSR]
+    1^^?: [load, 1^^1, RSSR]
+    ;^^?: [reset_all_register_tapes, ;^^_, SLSS]
+    
+  reset_all_register_tapes:
+    ;???: [reset_all_register_tapes, ;???, SLLL]
+    ;^^^: [read_next_instruction, ;^^^, RSSS]
+`
+      const parser = new TMParser()
+      const tm = parser.parseTM(tmYaml)
+
+      // Input: ^L00000101;Mx;
+      const input = '^L00000101;Mx;'
+      const config = tm.initialConfig(input)
+
+      // Run until we reach reset_all_register_tapes state
+      while (config.state !== 'reset_all_register_tapes' && !config.isHalting()) {
+        config.goToNextConfig()
+      }
+
+      // Track tape lengths during reset_all_register_tapes
+      const tape1Lengths: number[] = []
+      const tape2Lengths: number[] = []
+      const tape3Lengths: number[] = []
+
+      // Record lengths while in reset_all_register_tapes state
+      let stepCount = 0
+      while (config.state === 'reset_all_register_tapes' && !config.isHalting() && stepCount < 20) {
+        tape1Lengths.push(config.tapes[1].length)
+        tape2Lengths.push(config.tapes[2].length)
+        tape3Lengths.push(config.tapes[3].length)
+
+        // Also verify heads on tapes 1 and 2 stay at position 0
+        expect(config.headsPos[1]).toBe(0)
+        expect(config.headsPos[2]).toBe(0)
+
+        config.goToNextConfig()
+        stepCount++
+      }
+
+      // Verify we collected some data
+      expect(tape1Lengths.length).toBeGreaterThan(5)
+
+      // BUG: Currently, tapes 1 and 2 alternate between lengths 2 and 3
+      // This test currently FAILS, demonstrating the bug
+
+      // Tapes 1 and 2 should maintain constant length since their heads don't move
+      const tape1AllSame = tape1Lengths.every(len => len === tape1Lengths[0])
+      const tape2AllSame = tape2Lengths.every(len => len === tape2Lengths[0])
+
+      // Print diagnostic info if test fails
+      if (!tape1AllSame || !tape2AllSame) {
+        console.log('Tape 1 lengths:', tape1Lengths)
+        console.log('Tape 2 lengths:', tape2Lengths)
+        console.log('Tape 3 lengths:', tape3Lengths)
+      }
+
+      // These assertions verify the fix works correctly
+      expect(tape1AllSame).toBe(true)
+      expect(tape2AllSame).toBe(true)
+
+      // Tape 3's length should remain constant (it already has all the data)
+      const tape3AllSame = tape3Lengths.every(len => len === tape3Lengths[0])
+      expect(tape3AllSame).toBe(true)
     })
   })
 })

@@ -525,6 +525,42 @@ delta:
     0: [qA, 0, S]
     1: [qR, 1, S]
 `
+  },
+  {
+    name: "wrong number of symbols for number of tapes",
+    yaml: `
+# ^L00000101;Mx;
+
+states: [write_initial_marker, read_next_instruction, load, reset_all_register_tapes, qA, qR]
+input_alphabet: [0, 1, ;, L, M, A, x, y, ^]
+tape_alphabet_extra: []
+start_state: write_initial_marker
+accept_state: qA
+reject_state: qR
+
+delta:
+  # Each register needs to start with ^_, with tape heads on first position scanning ^
+  write_initial_marker:
+    ^___: [read_next_instruction, ^^^^, RSSS]
+
+  # Read next instruction
+  read_next_instruction:
+    L??: [load, L???, RSSR]
+    M???: [load, M???, RSSS]
+    A???: [load, A???, RSSS]
+    _???: [qA, _???, SSSR]  # halt
+
+  # Execute load
+  load:
+    0^^?: [load, 0^^0, RSSR]
+    1^^?: [load, 1^^1, RSSR]
+    ;^^?: [reset_all_register_tapes, ;^^_, SLSS]
+    
+  # Reset register tapes back to starting ^ and go to next instruction
+  reset_all_register_tapes:
+    ;???: [reset_all_register_tapes, ;???, SLLL]
+    ;^^^: [read_next_instruction, ;^^^, RSSS]  
+`
   }
 ]
 

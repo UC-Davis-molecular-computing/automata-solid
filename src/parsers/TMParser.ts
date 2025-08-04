@@ -122,7 +122,7 @@ export class TMParser {
    * This provides precise error positioning for individual delta properties
    */
   private validateDelta(spec: TMSpec, tapeAlphabet: string[], originalYaml: string, doc: any, lineCounter: LineCounter): void {
-    // Determine number of tapes from first transition (simplified)
+    // Determine number of tapes from first transition
     const firstState = Object.keys(spec.delta)[0]
     const firstSymbols = firstState ? Object.keys(spec.delta[firstState])[0] : undefined
     if (!firstSymbols) {
@@ -130,7 +130,7 @@ export class TMParser {
     }
     const numTapes = firstSymbols.length
 
-    // Build dynamic schema for delta validation
+    // Build dynamic schema for delta validation (includes tape count consistency check)
     const deltaSchema = this.buildDeltaSchema(spec.states, tapeAlphabet, numTapes)
     
     // Create a wrapper object to validate just the delta
@@ -153,6 +153,7 @@ export class TMParser {
     }
   }
 
+
   /**
    * Build dynamic schema for delta validation with precise error positioning
    */
@@ -163,36 +164,43 @@ export class TMParser {
     for (const state of states) {
       deltaProperties[state] = {
         type: "object",
-        // Allow any string property since wildcards make exact enumeration impractical
-        additionalProperties: {
-          type: "array",
-          minItems: 3,
-          maxItems: 3,
-          items: [
-            {
-              // Next state
-              type: "string",
-              enum: states,
-              errorMessage: `Next state must be one of the defined states: ${setNotation(states)}`
-            },
-            {
-              // Symbol to write (must match tape alphabet length, allows wildcards)
-              type: "string",
-              minLength: numTapes,
-              maxLength: numTapes,
-              errorMessage: `Write symbols must be exactly ${numTapes} characters from tape alphabet (or wildcard ?): ${setNotation(tapeAlphabet)}`
-            },
-            {
-              // Direction (L, R, or S for Stay) - one character per tape
-              type: "string",
-              minLength: numTapes,
-              maxLength: numTapes,
-              pattern: `^[LRS]{${numTapes}}$`,
-              errorMessage: `Direction must be exactly ${numTapes} characters, each being 'L' (left), 'R' (right), or 'S' (stay)`
-            }
-          ],
-          errorMessage: "Transition must be an array of [next_state, write_symbols, direction]"
-        }
+        // Use patternProperties to validate input symbol length
+        patternProperties: {
+          [`^.{${numTapes}}$`]: {
+            type: "array",
+            minItems: 3,
+            maxItems: 3,
+            items: [
+              {
+                // Next state
+                type: "string",
+                enum: states,
+                errorMessage: `Next state must be one of the defined states: ${setNotation(states)}`
+              },
+              {
+                // Symbol to write (must match tape alphabet length, allows wildcards)
+                type: "string",
+                minLength: numTapes,
+                maxLength: numTapes,
+                errorMessage: `Write symbols must be exactly ${numTapes} characters from tape alphabet (or wildcard ?): ${setNotation(tapeAlphabet)}`
+              },
+              {
+                // Direction (L, R, or S for Stay) - one character per tape
+                type: "string",
+                minLength: numTapes,
+                maxLength: numTapes,
+                pattern: `^[LRS]{${numTapes}}$`,
+                errorMessage: `Direction must be exactly ${numTapes} characters, each being 'L' (left), 'R' (right), or 'S' (stay)`
+              }
+            ],
+            errorMessage: "Transition must be an array of [next_state, write_symbols, direction]"
+          }
+        },
+        // Reject any properties that don't match the length requirement
+        additionalProperties: false,
+        errorMessage: {
+          additionalProperties: `All input symbols must be exactly ${numTapes} characters (determined from first transition). Check for inconsistent tape counts.`
+        }  
       }
     }
 

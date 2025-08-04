@@ -89,6 +89,14 @@ const App: Component = () => {
           controls.goForward()
         }
         break
+      case 'Home':
+        event.preventDefault()
+        controls.goToBeginning()
+        break
+      case 'End':
+        event.preventDefault()
+        controls.goToEnd()
+        break
     }
   }
   
@@ -153,7 +161,7 @@ const App: Component = () => {
           <Show when={hasNavigation()}>
             <div class="step-controls">
               <button 
-                title="go to beginning"
+                title="go to beginning (Home key)"
                 onClick={handleGoToBeginning}
                 disabled={!navigationControls()?.canGoBackward()}
               >
@@ -174,7 +182,7 @@ const App: Component = () => {
                 &gt; (.)
               </button>
               <button 
-                title="go to end"
+                title="go to end (End key)"
                 onClick={handleGoToEnd}
                 disabled={!navigationControls()?.canGoForward()}
               >
