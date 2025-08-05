@@ -16,7 +16,6 @@ import {
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
 import { searchKeymap, highlightSelectionMatches } from '@codemirror/search'
 import { autocompletion, completionKeymap, closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete'
-import { lintKeymap } from '@codemirror/lint'
 import { defaultHighlightStyle, syntaxHighlighting, indentOnInput, bracketMatching, foldGutter, foldKeymap } from '@codemirror/language'
 import { appState, setAppState } from '../store/AppStore'
 import './CodeEditor.css'
@@ -74,8 +73,7 @@ const basicSetupExtensions = [
     ...searchKeymap,
     ...historyKeymap,
     ...foldKeymap,
-    ...completionKeymap,
-    ...lintKeymap
+    ...completionKeymap
   ])
 ]
 
@@ -157,6 +155,7 @@ export const CodeEditor: Component = () => {
       view.setState(newState)
     }
   })
+
 
   onCleanup(() => {
     view?.destroy()

@@ -48,85 +48,129 @@ export class TMParser {
    * @throws Error with precise YAML source positioning
    */
   parseTM(yamlString: string): TM {
-    // Create LineCounter for position tracking
-    const lineCounter = new LineCounter()
-    
-    // Parse YAML using the yaml package with CST preservation
-    const doc = parseDocument(yamlString, { 
-      lineCounter,
-      keepSourceTokens: true // Keep source tokens for position mapping
-    })
-    
-    // Check for YAML syntax errors
-    if (doc.errors.length > 0) {
-      const firstError = doc.errors[0]
-      const position = firstError.linePos ? 
-        { line: firstError.linePos[0].line, col: firstError.linePos[1]?.col || 0, offset: firstError.pos?.[0] || 0 } : 
-        undefined
-      
-      const formattedError = ParserUtil.formatYamlSyntaxError(yamlString, firstError.message, position)
-      throw new Error(formattedError)
+    const result = this.validateTM(yamlString)
+    if (result.errors.length > 0) {
+      throw new Error(result.errors.map(e => e.message).join('\n\n'))
     }
-    
-    // Convert document to JavaScript object
-    const parsed = doc.toJS()
+    return result.tm!
+  }
 
-    // Normalize the parsed data to handle numbers as strings
-    const normalizedSpec = ParserUtil.normalizeTMSpec(parsed)
-
-    // PASS 1: Base structure validation (states, input_alphabet, start_state, accept_states)
-    if (!this.baseValidate(normalizedSpec)) {
-      const errors = this.baseValidate.errors || []
-      const formattedErrors = ParserUtil.formatValidationErrors(yamlString, doc, errors, lineCounter)
-      throw new Error(formattedErrors.map(e => e.message).join('\n\n'))
-    }
-
-    const spec = normalizedSpec as TMSpec
-
-    // PASS 2: Build complete tape alphabet and validate
-    const tapeAlphabetExtraSet = new Set(spec.tape_alphabet_extra)
-    if (!tapeAlphabetExtraSet.has('_')) {
-      tapeAlphabetExtraSet.add('_')
-    }
-    const finalTapeAlphabetExtra = Array.from(tapeAlphabetExtraSet)
-    const tapeAlphabet = [...spec.input_alphabet, ...finalTapeAlphabetExtra]
-    
-    // Check for overlaps between input_alphabet and tape_alphabet_extra
-    const inputSet = new Set(spec.input_alphabet)
-    const extraSet = new Set(finalTapeAlphabetExtra)
-    const intersection = new Set([...inputSet].filter(x => extraSet.has(x)))
-    if (intersection.size > 0) {
-      throw new Error(`Input alphabet and tape alphabet extra cannot overlap. Found overlapping symbols: ${setNotation(Array.from(intersection))}`)
-    }
-
-    // PASS 3: Dynamic delta validation with precise error positioning
-    this.validateDelta(spec, tapeAlphabet, yamlString, doc, lineCounter)
-
+  /**
+   * Validate TM and return structured errors (for linter use)
+   * @param yamlString - YAML specification of the TM
+   * @returns Object with either TM instance or structured errors
+   */
+  validateTM(yamlString: string): { tm?: TM; errors: any[] } {
     try {
-      return new TM(
-        spec.states,
-        spec.input_alphabet,
-        tapeAlphabet,
-        spec.start_state,
-        spec.accept_state,
-        spec.reject_state,
-        spec.delta
-      )
+      // Create LineCounter for position tracking
+      const lineCounter = new LineCounter()
+      
+      // Parse YAML using the yaml package with CST preservation
+      const doc = parseDocument(yamlString, { 
+        lineCounter,
+        keepSourceTokens: true // Keep source tokens for position mapping
+      })
+      
+      // Check for YAML syntax errors
+      if (doc.errors.length > 0) {
+        const firstError = doc.errors[0]
+        const position = firstError.linePos ? 
+          { line: firstError.linePos[0].line, col: firstError.linePos[1]?.col || 0, offset: firstError.pos?.[0] || 0 } : 
+          undefined
+        
+        return {
+          errors: [{
+            message: ParserUtil.formatYamlSyntaxError(yamlString, firstError.message, position),
+            path: 'root',
+            position
+          }]
+        }
+      }
+      
+      // Convert document to JavaScript object
+      const parsed = doc.toJS()
+
+      // Normalize the parsed data to handle numbers as strings
+      const normalizedSpec = ParserUtil.normalizeTMSpec(parsed)
+
+      const spec = normalizedSpec as TMSpec
+
+      // PASS 1: Base structure validation (states, input_alphabet, start_state, accept_states)
+      // This includes checking that _ is not in input_alphabet
+      if (!this.baseValidate(normalizedSpec)) {
+        const errors = this.baseValidate.errors || []
+        const formattedErrors = ParserUtil.formatValidationErrors(yamlString, doc, errors, lineCounter)
+        return { errors: formattedErrors }
+      }
+
+      // PASS 2: Custom validations (alphabet overlap)
+      // Build complete tape alphabet and validate
+      const tapeAlphabetExtraSet = new Set(spec.tape_alphabet_extra || [])
+      if (!tapeAlphabetExtraSet.has('_')) {
+        tapeAlphabetExtraSet.add('_')
+      }
+      const finalTapeAlphabetExtra = Array.from(tapeAlphabetExtraSet)
+      const tapeAlphabet = [...(spec.input_alphabet || []), ...finalTapeAlphabetExtra]
+      
+      // Check for overlaps between input_alphabet and tape_alphabet_extra
+      const inputSet = new Set(spec.input_alphabet || [])
+      const extraSet = new Set(finalTapeAlphabetExtra)
+      const intersection = new Set([...inputSet].filter(x => extraSet.has(x)))
+      if (intersection.size > 0) {
+        const overlapErrors = this.getAlphabetOverlapErrors(spec, Array.from(intersection), yamlString, doc, lineCounter)
+        return { errors: overlapErrors }
+      }
+
+      // PASS 3: Dynamic delta validation with precise error positioning
+      const deltaErrors = this.getDeltaValidationErrors(spec, tapeAlphabet, yamlString, doc, lineCounter)
+      if (deltaErrors.length > 0) {
+        return { errors: deltaErrors }
+      }
+
+      try {
+        const tm = new TM(
+          spec.states,
+          spec.input_alphabet,
+          tapeAlphabet,
+          spec.start_state,
+          spec.accept_state,
+          spec.reject_state,
+          spec.delta
+        )
+        return { tm, errors: [] }
+      } catch (error) {
+        return {
+          errors: [{
+            message: `TM construction failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            path: 'root',
+            position: undefined
+          }]
+        }
+      }
     } catch (error) {
-      throw new Error(`TM construction failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      return {
+        errors: [{
+          message: error instanceof Error ? error.message : 'Unknown validation error',
+          path: 'root',
+          position: undefined
+        }]
+      }
     }
   }
 
   /**
-   * PASS 3: Validate delta structure using dynamically generated schema
-   * This provides precise error positioning for individual delta properties
+   * Get delta validation errors without throwing (for linter use)
    */
-  private validateDelta(spec: TMSpec, tapeAlphabet: string[], originalYaml: string, doc: any, lineCounter: LineCounter): void {
+  private getDeltaValidationErrors(spec: TMSpec, tapeAlphabet: string[], originalYaml: string, doc: any, lineCounter: LineCounter): any[] {
     // Determine number of tapes from first transition
     const firstState = Object.keys(spec.delta)[0]
     const firstSymbols = firstState ? Object.keys(spec.delta[firstState])[0] : undefined
     if (!firstSymbols) {
-      throw new Error('Delta must contain at least one transition')
+      return [{
+        message: 'Delta must contain at least one transition',
+        path: '/delta',
+        position: undefined
+      }]
     }
     const numTapes = firstSymbols.length
 
@@ -148,9 +192,48 @@ export class TMParser {
     
     if (!deltaValidate(deltaWrapper)) {
       const errors = deltaValidate.errors || []
-      const formattedErrors = ParserUtil.formatValidationErrors(originalYaml, doc, errors, lineCounter)
-      throw new Error(formattedErrors.map(e => e.message).join('\n\n'))
+      return ParserUtil.formatValidationErrors(originalYaml, doc, errors, lineCounter)
     }
+    
+    return []
+  }
+
+
+  /**
+   * Get alphabet overlap errors without throwing (for linter use)
+   */
+  private getAlphabetOverlapErrors(spec: TMSpec, overlappingSymbols: string[], yamlString: string, doc: any, lineCounter: LineCounter): any[] {
+    // Create AJV-style errors for the overlapping symbols to use with formatValidationErrors
+    const ajvErrors = []
+    
+    for (const symbol of overlappingSymbols) {
+      const symbolIndex = spec.tape_alphabet_extra.indexOf(symbol)
+      if (symbolIndex >= 0) {
+        ajvErrors.push({
+          instancePath: `/tape_alphabet_extra/${symbolIndex}`,
+          schemaPath: '#/properties/tape_alphabet_extra/items',
+          keyword: 'custom',
+          data: symbol,
+          message: `Input alphabet and tape alphabet extra cannot overlap. Found overlapping symbols: ${setNotation(overlappingSymbols)}`,
+          params: {}
+        })
+      }
+    }
+    
+    if (ajvErrors.length === 0) {
+      // Fallback error
+      ajvErrors.push({
+        instancePath: '/tape_alphabet_extra',
+        schemaPath: '#/properties/tape_alphabet_extra',
+        keyword: 'custom',
+        data: spec.tape_alphabet_extra,
+        message: `Input alphabet and tape alphabet extra cannot overlap. Found overlapping symbols: ${setNotation(overlappingSymbols)}`,
+        params: {}
+      })
+    }
+    
+    // Use the same formatting as other validation errors
+    return ParserUtil.formatValidationErrors(yamlString, doc, ajvErrors, lineCounter)
   }
 
 

@@ -210,7 +210,7 @@ const saveAutomatonToFile = (): void => {
   
   // Use automaton type as file extension for better type detection
   const extension = appState.automatonType.toLowerCase()
-  const filename = `${appState.automatonType}-${Date.now()}.${extension}`
+  const filename = `${appState.automatonType.toLowerCase()}.${extension}`
   downloadFile(filename, appState.editorContent)
   setAppState('parseError', null)
 }

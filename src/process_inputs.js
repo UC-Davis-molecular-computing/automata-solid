@@ -14731,6 +14731,49 @@ ${message}
     }
     return normalized;
   }
+  /**
+   * Convert FormattedError objects to CodeMirror Diagnostic objects
+   * This allows the editor to display inline error highlighting
+   */
+  static convertToDiagnostics(yamlString, formattedErrors) {
+    return formattedErrors.map((error) => {
+      if (!error.position) {
+        const firstNonWhitespace = yamlString.search(/\S/);
+        return {
+          from: firstNonWhitespace >= 0 ? firstNonWhitespace : 0,
+          to: Math.min(yamlString.length, firstNonWhitespace + 50),
+          severity: "error",
+          message: error.message,
+          source: "automata-parser"
+        };
+      }
+      const { line, col, offset } = error.position;
+      const lines = yamlString.split("\n");
+      let from = offset;
+      let to = offset + 1;
+      if (line - 1 < lines.length) {
+        const lineContent = lines[line - 1];
+        const restOfLine = lineContent.substring(col - 1);
+        const tokenMatch = restOfLine.match(/^([^\s:,\[\]{}]+|[:\[\]{}])/);
+        if (tokenMatch) {
+          to = from + tokenMatch[0].length;
+        } else {
+          const endMatch = restOfLine.match(/^[^\s:,\[\]{}]*/);
+          if (endMatch && endMatch[0].length > 0) {
+            to = from + endMatch[0].length;
+          }
+        }
+      }
+      return {
+        from: Math.max(0, Math.min(from, yamlString.length)),
+        to: Math.max(from + 1, Math.min(to, yamlString.length)),
+        severity: "error",
+        message: error.message,
+        source: "automata-parser",
+        markClass: "cm-automata-error"
+      };
+    });
+  }
 };
 
 // src/parsers/dfa-base-schema.json
@@ -15501,21 +15544,30 @@ var TMConfiguration = class _TMConfiguration {
       const move = moves[tapeIdx];
       const nextHeadPos = Math.max(curHeadPos + move, 0);
       tape[curHeadPos] = nextSymbol;
-      const needAddBlank = this.needAddBlank(nextHeadPos, tape.length, move, nextSymbol);
-      if (needAddBlank) {
+      const tapeChange = this.calculateTapeChange(nextSymbol, move, curHeadPos, tape);
+      if (tapeChange === "grow") {
         tape.push(TM.BLANK);
-      } else {
-        const needRemoveBlank = nextHeadPos < tape.length - 1 && tape.length >= 2 && tape[tape.length - 1] === TM.BLANK && tape[tape.length - 2] === TM.BLANK;
-        if (needRemoveBlank) {
-          tape.pop();
-        }
+      } else if (tapeChange === "shrink") {
+        tape.pop();
       }
       this.headsPos[tapeIdx] = nextHeadPos;
     }
     this.state = nextState;
   }
-  needAddBlank(afterHeadPos, beforeTapeLength, move, nextSymbol) {
-    return afterHeadPos > beforeTapeLength - 1 || afterHeadPos === beforeTapeLength - 1 && move === 0 && nextSymbol !== TM.BLANK || afterHeadPos === beforeTapeLength - 2 && move === -1 && nextSymbol !== TM.BLANK;
+  calculateTapeChange(nextSymbol, move, headPos, tape) {
+    const isOnRightEnd = headPos === tape.length - 1;
+    const isNextRightEnd = headPos === tape.length - 2;
+    const endsInBlank = tape[tape.length - 1] === TM.BLANK;
+    const hasPenultimateBlank = tape.length >= 2 && tape[tape.length - 2] === TM.BLANK;
+    if (isOnRightEnd && (move === 1 || nextSymbol !== TM.BLANK)) {
+      return "grow";
+    } else if (move === -1 && isOnRightEnd && nextSymbol === TM.BLANK && hasPenultimateBlank) {
+      return "shrink";
+    } else if (move !== 1 && isNextRightEnd && nextSymbol === TM.BLANK && endsInBlank) {
+      return "shrink";
+    } else {
+      return "same";
+    }
   }
   nextConfig() {
     const next = this.copy();
@@ -15587,14 +15639,11 @@ var TMConfiguration = class _TMConfiguration {
       const move = moves[tapeIdx];
       const nextHeadPos = Math.max(curHeadPos + move, 0);
       tape[curHeadPos] = nextSymbol;
-      const needAddBlank = this.needAddBlank(nextHeadPos, tape.length, move, nextSymbol);
-      if (needAddBlank) {
+      const tapeChange = this.calculateTapeChange(nextSymbol, move, curHeadPos, tape);
+      if (tapeChange === "grow") {
         tape.push(TM.BLANK);
-      } else {
-        const needRemoveBlank = nextHeadPos < tape.length - 1 && tape.length >= 2 && tape[tape.length - 1] === TM.BLANK && tape[tape.length - 2] === TM.BLANK;
-        if (needRemoveBlank) {
-          tape.pop();
-        }
+      } else if (tapeChange === "shrink") {
+        tape.pop();
       }
       this.headsPos[tapeIdx] = nextHeadPos;
     }
@@ -16157,53 +16206,121 @@ var TMParser = class {
    * @throws Error with precise YAML source positioning
    */
   parseTM(yamlString) {
+    const result = this.validateTM(yamlString);
+    if (result.errors.length > 0) {
+      throw new Error(result.errors.map((e) => e.message).join("\n\n"));
+    }
+    return result.tm;
+  }
+  /**
+   * Validate TM and return structured errors (for linter use)
+   * @param yamlString - YAML specification of the TM
+   * @returns Object with either TM instance or structured errors
+   */
+  validateTM(yamlString) {
     var _a, _b;
-    const lineCounter = new import_yaml4.LineCounter();
-    const doc = (0, import_yaml4.parseDocument)(yamlString, {
-      lineCounter,
-      keepSourceTokens: true
-      // Keep source tokens for position mapping
-    });
-    if (doc.errors.length > 0) {
-      const firstError = doc.errors[0];
-      const position = firstError.linePos ? { line: firstError.linePos[0].line, col: ((_a = firstError.linePos[1]) == null ? void 0 : _a.col) || 0, offset: ((_b = firstError.pos) == null ? void 0 : _b[0]) || 0 } : void 0;
-      const formattedError = ParserUtil.formatYamlSyntaxError(yamlString, firstError.message, position);
-      throw new Error(formattedError);
-    }
-    const parsed = doc.toJS();
-    const normalizedSpec = ParserUtil.normalizeTMSpec(parsed);
-    if (!this.baseValidate(normalizedSpec)) {
-      const errors = this.baseValidate.errors || [];
-      const formattedErrors = ParserUtil.formatValidationErrors(yamlString, doc, errors, lineCounter);
-      throw new Error(formattedErrors.map((e) => e.message).join("\n\n"));
-    }
-    const spec = normalizedSpec;
-    const tapeAlphabetExtraSet = new Set(spec.tape_alphabet_extra);
-    if (!tapeAlphabetExtraSet.has("_")) {
-      tapeAlphabetExtraSet.add("_");
-    }
-    const finalTapeAlphabetExtra = Array.from(tapeAlphabetExtraSet);
-    const tapeAlphabet = [...spec.input_alphabet, ...finalTapeAlphabetExtra];
-    const inputSet = new Set(spec.input_alphabet);
-    const extraSet = new Set(finalTapeAlphabetExtra);
-    const intersection = new Set([...inputSet].filter((x) => extraSet.has(x)));
-    if (intersection.size > 0) {
-      throw new Error(`Input alphabet and tape alphabet extra cannot overlap. Found overlapping symbols: ${setNotation(Array.from(intersection))}`);
-    }
-    this.validateDelta(spec, tapeAlphabet, yamlString, doc, lineCounter);
     try {
-      return new TM(
-        spec.states,
-        spec.input_alphabet,
-        tapeAlphabet,
-        spec.start_state,
-        spec.accept_state,
-        spec.reject_state,
-        spec.delta
-      );
+      const lineCounter = new import_yaml4.LineCounter();
+      const doc = (0, import_yaml4.parseDocument)(yamlString, {
+        lineCounter,
+        keepSourceTokens: true
+        // Keep source tokens for position mapping
+      });
+      if (doc.errors.length > 0) {
+        const firstError = doc.errors[0];
+        const position = firstError.linePos ? { line: firstError.linePos[0].line, col: ((_a = firstError.linePos[1]) == null ? void 0 : _a.col) || 0, offset: ((_b = firstError.pos) == null ? void 0 : _b[0]) || 0 } : void 0;
+        return {
+          errors: [{
+            message: ParserUtil.formatYamlSyntaxError(yamlString, firstError.message, position),
+            path: "root",
+            position
+          }]
+        };
+      }
+      const parsed = doc.toJS();
+      const normalizedSpec = ParserUtil.normalizeTMSpec(parsed);
+      const spec = normalizedSpec;
+      const tapeAlphabetExtraSet = new Set(spec.tape_alphabet_extra || []);
+      if (!tapeAlphabetExtraSet.has("_")) {
+        tapeAlphabetExtraSet.add("_");
+      }
+      const finalTapeAlphabetExtra = Array.from(tapeAlphabetExtraSet);
+      const tapeAlphabet = [...spec.input_alphabet || [], ...finalTapeAlphabetExtra];
+      const inputSet = new Set(spec.input_alphabet || []);
+      const extraSet = new Set(finalTapeAlphabetExtra);
+      const intersection = new Set([...inputSet].filter((x) => extraSet.has(x)));
+      if (intersection.size > 0) {
+        const overlapErrors = this.getAlphabetOverlapErrors(spec, Array.from(intersection), yamlString, doc, lineCounter);
+        return { errors: overlapErrors };
+      }
+      if (!this.baseValidate(normalizedSpec)) {
+        const errors = this.baseValidate.errors || [];
+        const formattedErrors = ParserUtil.formatValidationErrors(yamlString, doc, errors, lineCounter);
+        return { errors: formattedErrors };
+      }
+      const deltaErrors = this.getDeltaValidationErrors(spec, tapeAlphabet, yamlString, doc, lineCounter);
+      if (deltaErrors.length > 0) {
+        return { errors: deltaErrors };
+      }
+      try {
+        const tm = new TM(
+          spec.states,
+          spec.input_alphabet,
+          tapeAlphabet,
+          spec.start_state,
+          spec.accept_state,
+          spec.reject_state,
+          spec.delta
+        );
+        return { tm, errors: [] };
+      } catch (error) {
+        return {
+          errors: [{
+            message: `TM construction failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+            path: "root",
+            position: void 0
+          }]
+        };
+      }
     } catch (error) {
-      throw new Error(`TM construction failed: ${error instanceof Error ? error.message : "Unknown error"}`);
+      return {
+        errors: [{
+          message: error instanceof Error ? error.message : "Unknown validation error",
+          path: "root",
+          position: void 0
+        }]
+      };
     }
+  }
+  /**
+   * Get delta validation errors without throwing (for linter use)
+   */
+  getDeltaValidationErrors(spec, tapeAlphabet, originalYaml, doc, lineCounter) {
+    const firstState = Object.keys(spec.delta)[0];
+    const firstSymbols = firstState ? Object.keys(spec.delta[firstState])[0] : void 0;
+    if (!firstSymbols) {
+      return [{
+        message: "Delta must contain at least one transition",
+        path: "/delta",
+        position: void 0
+      }];
+    }
+    const numTapes = firstSymbols.length;
+    const deltaSchema = this.buildDeltaSchema(spec.states, tapeAlphabet, numTapes);
+    const deltaWrapper = { delta: spec.delta };
+    const wrapperSchema = {
+      type: "object",
+      properties: {
+        delta: deltaSchema
+      },
+      required: ["delta"]
+    };
+    const deltaValidate = this.ajv.compile(wrapperSchema);
+    if (!deltaValidate(deltaWrapper)) {
+      const errors = deltaValidate.errors || [];
+      return ParserUtil.formatValidationErrors(originalYaml, doc, errors, lineCounter);
+    }
+    return [];
   }
   /**
    * PASS 3: Validate delta structure using dynamically generated schema
@@ -16233,6 +16350,63 @@ var TMParser = class {
     }
   }
   /**
+   * Get alphabet overlap errors without throwing (for linter use)
+   */
+  getAlphabetOverlapErrors(spec, overlappingSymbols, yamlString, doc, lineCounter) {
+    const ajvErrors = [];
+    for (const symbol of overlappingSymbols) {
+      const symbolIndex = spec.tape_alphabet_extra.indexOf(symbol);
+      if (symbolIndex >= 0) {
+        ajvErrors.push({
+          instancePath: `/tape_alphabet_extra/${symbolIndex}`,
+          schemaPath: "#/properties/tape_alphabet_extra/items",
+          keyword: "custom",
+          data: symbol,
+          message: `Input alphabet and tape alphabet extra cannot overlap. Found overlapping symbols: ${setNotation(overlappingSymbols)}`
+        });
+      }
+    }
+    if (ajvErrors.length === 0) {
+      ajvErrors.push({
+        instancePath: "/tape_alphabet_extra",
+        schemaPath: "#/properties/tape_alphabet_extra",
+        keyword: "custom",
+        data: spec.tape_alphabet_extra,
+        message: `Input alphabet and tape alphabet extra cannot overlap. Found overlapping symbols: ${setNotation(overlappingSymbols)}`
+      });
+    }
+    return ParserUtil.formatValidationErrors(yamlString, doc, ajvErrors, lineCounter);
+  }
+  /**
+   * Validate alphabet overlap and create formatted errors with line context (throws for backward compatibility)
+   */
+  validateAlphabetOverlap(spec, overlappingSymbols, yamlString, doc, lineCounter) {
+    const ajvErrors = [];
+    for (const symbol of overlappingSymbols) {
+      const symbolIndex = spec.tape_alphabet_extra.indexOf(symbol);
+      if (symbolIndex >= 0) {
+        ajvErrors.push({
+          instancePath: `/tape_alphabet_extra/${symbolIndex}`,
+          schemaPath: "#/properties/tape_alphabet_extra/items",
+          keyword: "custom",
+          data: symbol,
+          message: `Input alphabet and tape alphabet extra cannot overlap. Found overlapping symbols: ${setNotation(overlappingSymbols)}`
+        });
+      }
+    }
+    if (ajvErrors.length === 0) {
+      ajvErrors.push({
+        instancePath: "/tape_alphabet_extra",
+        schemaPath: "#/properties/tape_alphabet_extra",
+        keyword: "custom",
+        data: spec.tape_alphabet_extra,
+        message: `Input alphabet and tape alphabet extra cannot overlap. Found overlapping symbols: ${setNotation(overlappingSymbols)}`
+      });
+    }
+    const formattedErrors = ParserUtil.formatValidationErrors(yamlString, doc, ajvErrors, lineCounter);
+    throw new Error(formattedErrors.map((e) => e.message).join("\n\n"));
+  }
+  /**
    * Build dynamic schema for delta validation with precise error positioning
    */
   buildDeltaSchema(states, tapeAlphabet, numTapes) {
@@ -16240,35 +16414,42 @@ var TMParser = class {
     for (const state of states) {
       deltaProperties[state] = {
         type: "object",
-        // Allow any string property since wildcards make exact enumeration impractical
-        additionalProperties: {
-          type: "array",
-          minItems: 3,
-          maxItems: 3,
-          items: [
-            {
-              // Next state
-              type: "string",
-              enum: states,
-              errorMessage: `Next state must be one of the defined states: ${setNotation(states)}`
-            },
-            {
-              // Symbol to write (must match tape alphabet length, allows wildcards)
-              type: "string",
-              minLength: numTapes,
-              maxLength: numTapes,
-              errorMessage: `Write symbols must be exactly ${numTapes} characters from tape alphabet (or wildcard ?): ${setNotation(tapeAlphabet)}`
-            },
-            {
-              // Direction (L, R, or S for Stay) - one character per tape
-              type: "string",
-              minLength: numTapes,
-              maxLength: numTapes,
-              pattern: `^[LRS]{${numTapes}}$`,
-              errorMessage: `Direction must be exactly ${numTapes} characters, each being 'L' (left), 'R' (right), or 'S' (stay)`
-            }
-          ],
-          errorMessage: "Transition must be an array of [next_state, write_symbols, direction]"
+        // Use patternProperties to validate input symbol length
+        patternProperties: {
+          [`^.{${numTapes}}$`]: {
+            type: "array",
+            minItems: 3,
+            maxItems: 3,
+            items: [
+              {
+                // Next state
+                type: "string",
+                enum: states,
+                errorMessage: `Next state must be one of the defined states: ${setNotation(states)}`
+              },
+              {
+                // Symbol to write (must match tape alphabet length, allows wildcards)
+                type: "string",
+                minLength: numTapes,
+                maxLength: numTapes,
+                errorMessage: `Write symbols must be exactly ${numTapes} characters from tape alphabet (or wildcard ?): ${setNotation(tapeAlphabet)}`
+              },
+              {
+                // Direction (L, R, or S for Stay) - one character per tape
+                type: "string",
+                minLength: numTapes,
+                maxLength: numTapes,
+                pattern: `^[LRS]{${numTapes}}$`,
+                errorMessage: `Direction must be exactly ${numTapes} characters, each being 'L' (left), 'R' (right), or 'S' (stay)`
+              }
+            ],
+            errorMessage: "Transition must be an array of [next_state, write_symbols, direction]"
+          }
+        },
+        // Reject any properties that don't match the length requirement
+        additionalProperties: false,
+        errorMessage: {
+          additionalProperties: `All input symbols must be exactly ${numTapes} characters (determined from first transition). Check for inconsistent tape counts.`
         }
       };
     }

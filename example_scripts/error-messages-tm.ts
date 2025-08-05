@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 /**
  * Script to compare TM parser error messages across different approaches
- * Run with: npx tsx examples/error-messages-tm.ts
+ * Run with: npx tsx example_scripts/error-messages-tm.ts
  */
 
 import { TMParser } from '../src/parsers/TMParser'
@@ -561,6 +561,18 @@ delta:
     ;???: [reset_all_register_tapes, ;???, SLLL]
     ;^^^: [read_next_instruction, ;^^^, RSSS]  
 `
+  },
+  {
+    name: "_ should not be in input_alphabet",
+    yaml: `
+states: [q0, qA, qR]
+input_alphabet: [a, _]
+tape_alphabet_extra: [b]
+start_state: q0
+accept_state: qA
+reject_state: qR
+delta: {}
+`
   }
 ]
 
@@ -590,7 +602,7 @@ for (let i = 0; i < errorTestCases.length; i++) {
     try {
       const tm = parser.parseTM(testCase.yaml)
       if (testCase.shouldPass) {
-        console.log(`✅ PASSED - TM created successfully`)
+        console.log(`✅ PASSED - TM created successfully: ${tm}`)
       } else {
         console.log('⚠️  NO ERROR - This should have failed!')
       }
@@ -618,4 +630,4 @@ console.log('• OLD Parser: Uses better-ajv-errors visual positioning but refer
 console.log('• NEW Parser: Maps errors back to original YAML source using CST position tracking')
 console.log('• Compare the line/column references - OLD shows JSON positions, NEW shows YAML positions')
 console.log('• Both provide excellent error context, but NEW references the actual source you typed')
-console.log('\nTo run this script: npx tsx examples/error-messages-tm.ts')
+console.log('\nTo run this script: npx tsx example_scripts/error-messages-tm.ts')

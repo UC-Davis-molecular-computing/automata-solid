@@ -22,6 +22,18 @@ export interface FormattedError {
 }
 
 /**
+ * CodeMirror diagnostic interface (imported type for convenience)
+ */
+export interface Diagnostic {
+  from: number
+  to: number
+  severity: 'error' | 'warning' | 'info' | 'hint'
+  message: string
+  source?: string
+  markClass?: string
+}
+
+/**
  * Utility functions for YAML parser error formatting
  */
 export class ParserUtil {
@@ -569,6 +581,63 @@ export class ParserUtil {
     }
 
     return normalized
+  }
+
+  /**
+   * Convert FormattedError objects to CodeMirror Diagnostic objects
+   * This allows the editor to display inline error highlighting
+   */
+  static convertToDiagnostics(
+    yamlString: string,
+    formattedErrors: FormattedError[]
+  ): Diagnostic[] {
+    return formattedErrors.map(error => {
+      if (!error.position) {
+        // No position info - highlight first non-whitespace content
+        const firstNonWhitespace = yamlString.search(/\S/)
+        return {
+          from: firstNonWhitespace >= 0 ? firstNonWhitespace : 0,
+          to: Math.min(yamlString.length, firstNonWhitespace + 50),
+          severity: 'error' as const,
+          message: error.message,
+          source: 'automata-parser'
+        }
+      }
+
+      const { line, col, offset } = error.position
+      const lines = yamlString.split('\n')
+      
+      // Use the offset directly if available and valid
+      let from = offset
+      let to = offset + 1 // Default to single character
+      
+      // Try to find a more appropriate end position
+      if (line - 1 < lines.length) {
+        const lineContent = lines[line - 1]
+        const restOfLine = lineContent.substring(col - 1)
+        
+        // Match different token types
+        const tokenMatch = restOfLine.match(/^([^\s:,\[\]{}]+|[:\[\]{}])/)
+        if (tokenMatch) {
+          to = from + tokenMatch[0].length
+        } else {
+          // If we can't find a token, highlight until next whitespace or punctuation
+          const endMatch = restOfLine.match(/^[^\s:,\[\]{}]*/)
+          if (endMatch && endMatch[0].length > 0) {
+            to = from + endMatch[0].length
+          }
+        }
+      }
+      
+      return {
+        from: Math.max(0, Math.min(from, yamlString.length)),
+        to: Math.max(from + 1, Math.min(to, yamlString.length)),
+        severity: 'error' as const,
+        message: error.message,
+        source: 'automata-parser',
+        markClass: 'cm-automata-error'
+      }
+    })
   }
 
 }

@@ -1261,20 +1261,6 @@ delta:
     ;^^^: [read_next_instruction, ;^^^, RSSS]
 `
 
-    function printConfiguration(config: any, stepNum: number, description: string) {
-      console.log(`\n=== Step ${stepNum}: ${description} ===`)
-      console.log(`State: ${config.state}`)
-      console.log(`Scanned: "${config.currentScannedSymbols()}"`)
-      console.log(`Head positions: [${config.headsPos.join(', ')}]`)
-      for (let i = 0; i < config.tapes.length; i++) {
-        const tape = config.tapes[i]
-        const headPos = config.headsPos[i]
-        const tapeStr = tape.map((sym: string, idx: number) =>
-          idx === headPos ? `[${sym}]` : sym
-        ).join('')
-        console.log(`Tape ${i}: ${tapeStr} (length: ${tape.length})`)
-      }
-    }
 
     test('should track intermediate configurations during load and reset states', () => {
       const parser = new TMParser()
@@ -1285,54 +1271,6 @@ delta:
 
       // Get all configurations to examine intermediate steps
       const configs = tm.configsVisited(testInput)
-
-      console.log(`Total configurations: ${configs.length}`)
-
-      // Print first few configurations
-      for (let i = 0; i < Math.min(configs.length, 5); i++) {
-        printConfiguration(configs[i], i, configs[i].state)
-      }
-
-      // Find where we enter the load state
-      const loadStateStart = configs.findIndex(config => config.state === 'load')
-      if (loadStateStart !== -1) {
-        console.log(`\n*** LOAD STATE STARTS AT STEP ${loadStateStart} ***`)
-        printConfiguration(configs[loadStateStart], loadStateStart, 'Entering load state')
-
-        // Print next few configurations during load
-        for (let i = loadStateStart + 1; i < configs.length && i < loadStateStart + 10; i++) {
-          if (configs[i].state === 'load') {
-            printConfiguration(configs[i], i, `Load state step ${i - loadStateStart}`)
-          } else {
-            printConfiguration(configs[i], i, `Left load state -> ${configs[i].state}`)
-            break
-          }
-        }
-      }
-
-      // Find where we enter reset_all_register_tapes state
-      const resetStateStart = configs.findIndex(config => config.state === 'reset_all_register_tapes')
-      if (resetStateStart !== -1) {
-        console.log(`\n*** RESET_ALL_REGISTER_TAPES STATE STARTS AT STEP ${resetStateStart} ***`)
-        printConfiguration(configs[resetStateStart], resetStateStart, 'Entering reset_all_register_tapes state')
-
-        // Print several configurations during reset to see the extra blank issue
-        for (let i = resetStateStart; i < configs.length && i < resetStateStart + 15; i++) {
-          if (configs[i].state === 'reset_all_register_tapes') {
-            printConfiguration(configs[i], i, `Reset state step ${i - resetStateStart}`)
-
-            // Check for extra blanks on tapes 2 and 3
-            const tape2Length = configs[i].tapes[2].length
-            const tape3Length = configs[i].tapes[3].length
-            if (tape2Length !== tape3Length) {
-              console.log(`*** MISMATCH: Tape 2 length=${tape2Length}, Tape 3 length=${tape3Length} ***`)
-            }
-          } else {
-            printConfiguration(configs[i], i, `Left reset state -> ${configs[i].state}`)
-            break
-          }
-        }
-      }
 
       // Basic sanity check - make sure we don't throw an error
       expect(configs.length).toBeGreaterThan(0)
@@ -1355,17 +1293,6 @@ delta:
 
         // Check if tapes 2 and 3 have different lengths
         if (lengths[2] !== lengths[3]) {
-          console.log(`\n*** MISMATCH DETECTED AT STEP ${i} ***`)
-          printConfiguration(config, i, `Tape length mismatch`)
-          console.log(`Tape lengths: [${lengths.join(', ')}]`)
-
-          // Print the previous configuration for comparison
-          if (i > 0) {
-            console.log(`\n--- Previous configuration for comparison ---`)
-            printConfiguration(configs[i - 1], i - 1, `Previous step`)
-            console.log(`Previous tape lengths: [${tapeLengths[i - 1].join(', ')}]`)
-          }
-
           // We found the first mismatch, this is enough for the test
           break
         }
@@ -1445,12 +1372,6 @@ delta:
       const tape1AllSame = tape1Lengths.every(len => len === tape1Lengths[0])
       const tape2AllSame = tape2Lengths.every(len => len === tape2Lengths[0])
 
-      // Print diagnostic info if test fails
-      if (!tape1AllSame || !tape2AllSame) {
-        console.log('Tape 1 lengths:', tape1Lengths)
-        console.log('Tape 2 lengths:', tape2Lengths)
-        console.log('Tape 3 lengths:', tape3Lengths)
-      }
 
       // These assertions verify the fix works correctly
       expect(tape1AllSame).toBe(true)

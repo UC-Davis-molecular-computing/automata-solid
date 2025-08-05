@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 
 /**
- * Command-line processor for automata submissions
+ * Command-line processor for automata submissions.
  * 
- * This replaces both the Elm-compiled process_inputs.js and the Dart process_inputs.dart
- * with a unified TypeScript implementation that handles all automaton types.
+ * To compile this to a .js file, use: npm run build:process-inputs
+ * 
+ * After creating process_inputs.js, it should be copied to the autograder_engine repo root.
  * 
  * Usage: node process_inputs.js <submission_file> <inputs_json_file> <outputs_json_file>
  */

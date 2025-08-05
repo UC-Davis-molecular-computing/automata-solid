@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Deployment temporary directory
+automata-github-pages
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
