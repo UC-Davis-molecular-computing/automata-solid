@@ -1266,7 +1266,7 @@ ${indent}`) + "'";
     }
     function blockString({ comment, type, value }, ctx, onComment, onChompKeep) {
       const { blockQuote, commentString, lineWidth } = ctx.options;
-      if (!blockQuote || /\n[\t ]+$/.test(value) || /^\s*$/.test(value)) {
+      if (!blockQuote || /\n[\t ]+$/.test(value)) {
         return quotedString(value, ctx);
       }
       const indent = ctx.indent || (ctx.forceBlockIndent || containsDocumentMarker(value) ? "  " : "");
@@ -16240,6 +16240,11 @@ var TMParser = class {
       const parsed = doc.toJS();
       const normalizedSpec = ParserUtil.normalizeTMSpec(parsed);
       const spec = normalizedSpec;
+      if (!this.baseValidate(normalizedSpec)) {
+        const errors = this.baseValidate.errors || [];
+        const formattedErrors = ParserUtil.formatValidationErrors(yamlString, doc, errors, lineCounter);
+        return { errors: formattedErrors };
+      }
       const tapeAlphabetExtraSet = new Set(spec.tape_alphabet_extra || []);
       if (!tapeAlphabetExtraSet.has("_")) {
         tapeAlphabetExtraSet.add("_");
@@ -16252,11 +16257,6 @@ var TMParser = class {
       if (intersection.size > 0) {
         const overlapErrors = this.getAlphabetOverlapErrors(spec, Array.from(intersection), yamlString, doc, lineCounter);
         return { errors: overlapErrors };
-      }
-      if (!this.baseValidate(normalizedSpec)) {
-        const errors = this.baseValidate.errors || [];
-        const formattedErrors = ParserUtil.formatValidationErrors(yamlString, doc, errors, lineCounter);
-        return { errors: formattedErrors };
       }
       const deltaErrors = this.getDeltaValidationErrors(spec, tapeAlphabet, yamlString, doc, lineCounter);
       if (deltaErrors.length > 0) {
@@ -16323,33 +16323,6 @@ var TMParser = class {
     return [];
   }
   /**
-   * PASS 3: Validate delta structure using dynamically generated schema
-   * This provides precise error positioning for individual delta properties
-   */
-  validateDelta(spec, tapeAlphabet, originalYaml, doc, lineCounter) {
-    const firstState = Object.keys(spec.delta)[0];
-    const firstSymbols = firstState ? Object.keys(spec.delta[firstState])[0] : void 0;
-    if (!firstSymbols) {
-      throw new Error("Delta must contain at least one transition");
-    }
-    const numTapes = firstSymbols.length;
-    const deltaSchema = this.buildDeltaSchema(spec.states, tapeAlphabet, numTapes);
-    const deltaWrapper = { delta: spec.delta };
-    const wrapperSchema = {
-      type: "object",
-      properties: {
-        delta: deltaSchema
-      },
-      required: ["delta"]
-    };
-    const deltaValidate = this.ajv.compile(wrapperSchema);
-    if (!deltaValidate(deltaWrapper)) {
-      const errors = deltaValidate.errors || [];
-      const formattedErrors = ParserUtil.formatValidationErrors(originalYaml, doc, errors, lineCounter);
-      throw new Error(formattedErrors.map((e) => e.message).join("\n\n"));
-    }
-  }
-  /**
    * Get alphabet overlap errors without throwing (for linter use)
    */
   getAlphabetOverlapErrors(spec, overlappingSymbols, yamlString, doc, lineCounter) {
@@ -16362,7 +16335,8 @@ var TMParser = class {
           schemaPath: "#/properties/tape_alphabet_extra/items",
           keyword: "custom",
           data: symbol,
-          message: `Input alphabet and tape alphabet extra cannot overlap. Found overlapping symbols: ${setNotation(overlappingSymbols)}`
+          message: `Input alphabet and tape alphabet extra cannot overlap. Found overlapping symbols: ${setNotation(overlappingSymbols)}`,
+          params: {}
         });
       }
     }
@@ -16372,39 +16346,11 @@ var TMParser = class {
         schemaPath: "#/properties/tape_alphabet_extra",
         keyword: "custom",
         data: spec.tape_alphabet_extra,
-        message: `Input alphabet and tape alphabet extra cannot overlap. Found overlapping symbols: ${setNotation(overlappingSymbols)}`
+        message: `Input alphabet and tape alphabet extra cannot overlap. Found overlapping symbols: ${setNotation(overlappingSymbols)}`,
+        params: {}
       });
     }
     return ParserUtil.formatValidationErrors(yamlString, doc, ajvErrors, lineCounter);
-  }
-  /**
-   * Validate alphabet overlap and create formatted errors with line context (throws for backward compatibility)
-   */
-  validateAlphabetOverlap(spec, overlappingSymbols, yamlString, doc, lineCounter) {
-    const ajvErrors = [];
-    for (const symbol of overlappingSymbols) {
-      const symbolIndex = spec.tape_alphabet_extra.indexOf(symbol);
-      if (symbolIndex >= 0) {
-        ajvErrors.push({
-          instancePath: `/tape_alphabet_extra/${symbolIndex}`,
-          schemaPath: "#/properties/tape_alphabet_extra/items",
-          keyword: "custom",
-          data: symbol,
-          message: `Input alphabet and tape alphabet extra cannot overlap. Found overlapping symbols: ${setNotation(overlappingSymbols)}`
-        });
-      }
-    }
-    if (ajvErrors.length === 0) {
-      ajvErrors.push({
-        instancePath: "/tape_alphabet_extra",
-        schemaPath: "#/properties/tape_alphabet_extra",
-        keyword: "custom",
-        data: spec.tape_alphabet_extra,
-        message: `Input alphabet and tape alphabet extra cannot overlap. Found overlapping symbols: ${setNotation(overlappingSymbols)}`
-      });
-    }
-    const formattedErrors = ParserUtil.formatValidationErrors(yamlString, doc, ajvErrors, lineCounter);
-    throw new Error(formattedErrors.map((e) => e.message).join("\n\n"));
   }
   /**
    * Build dynamic schema for delta validation with precise error positioning
