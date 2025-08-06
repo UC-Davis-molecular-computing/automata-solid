@@ -3,6 +3,23 @@
 /**
  * Command-line processor for automata submissions.
  * 
+ * INFORMATION FLOW:
+ * 1. Python's run_autograder.py calls this script via subprocess with:
+ *    - submission_file: The student's .dfa/.nfa/.tm/.cfg/.regex file
+ *    - inputs_json_file: Test inputs to run (can be empty [] for non_input_tests)
+ *    - outputs_json_file: Where to write the results
+ * 
+ * 2. This script:
+ *    - Parses the automaton from submission_file
+ *    - Stores BOTH the parsed automaton instance (for running tests) AND
+ *      a JSON representation in completeResult (for Python analysis)
+ *    - Runs the automaton on test inputs
+ *    - Writes everything to outputs_json_file
+ * 
+ * 3. Python reads outputs_json_file and passes it to problem_specific_module.non_input_tests()
+ *    which can access the JSON automaton via process_input_results_dict['dfa'], etc.
+ *    This allows Python to check automaton structure (state counts, transitions, etc.)
+ * 
  * To compile this to a .js file, use: npm run build:process-inputs
  * 
  * After creating process_inputs.js, it should be copied to the autograder_engine repo root.
@@ -16,8 +33,10 @@ import { DFAParser } from './parsers/DFAParser';
 import { NFAParser } from './parsers/NFAParser';
 import { TMParser } from './parsers/TMParser';
 import { CFGParser } from './parsers/CFGParser';
+import { RegexParser } from './parsers/RegexParser';
 import { DFA } from './core/DFA';
 import { NFA } from './core/NFA';
+import { Regex } from './core/Regex';
 import { TM } from './core/TM';
 import { CFG } from './core/CFG';
 
@@ -40,11 +59,13 @@ interface TestResult {
 interface CompleteResult {
   results: TestResult[] | null;
   error: string | null;
-  dfa: any;
-  nfa: any;
-  regex: any;
-  tm: any;
-  cfg: any;
+  // JSON representations of automata for Python's non_input_tests to analyze structure
+  // These are any type because they're plain JSON objects, not class instances
+  dfa: any | null;
+  nfa: any | null;
+  regex: any | null;
+  tm: any | null;
+  cfg: any | null;
 }
 
 // Global result object - matches Dart implementation pattern
@@ -101,7 +122,7 @@ function main() {
   }
 }
 
-function readMachine(filename: string): DFA | NFA | TM | CFG {
+function readMachine(filename: string): DFA | NFA | TM | CFG | Regex {
   let machineText: string;
   
   try {
@@ -109,9 +130,11 @@ function readMachine(filename: string): DFA | NFA | TM | CFG {
   } catch (error) {
     const baseFilename = path.basename(filename);
     const fullFilename = path.resolve(filename);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     throw new Error(`could not read ${baseFilename}\n` +
                    `make sure submission file ends in proper extension and that it is encoded in ANSI or UTF-8 and contains no non-ASCII characters\n` +
-                   `full pathname of file searched for is ${fullFilename}`);
+                   `full pathname of file searched for is ${fullFilename}\n` +
+                   `original error: ${errorMessage}`);
   }
 
   const extension = path.extname(filename);
@@ -119,26 +142,34 @@ function readMachine(filename: string): DFA | NFA | TM | CFG {
   try {
     switch (extension) {
       case '.dfa':
-        return new DFAParser().parseDFA(machineText);
+        const dfa = new DFAParser().parseDFA(machineText);
+        // Store JSON for Python's non_input_tests to analyze (e.g., state count checks)
+        completeResult.dfa = dfaToJson(dfa);
+        return dfa;
         
       case '.nfa':
-        return new NFAParser().parseNFA(machineText);
+        const nfa = new NFAParser().parseNFA(machineText);
+        // Store JSON for Python's non_input_tests to analyze (e.g., subset construction validation)
+        completeResult.nfa = nfaToJson(nfa);
+        return nfa;
         
       case '.tm':
         const tm = new TMParser().parseTM(machineText);
-        // Store TM in complete result for downstream processing
+        // Store JSON for Python's non_input_tests to analyze (e.g., state count grading)
         completeResult.tm = tmToJson(tm);
         return tm;
         
       case '.cfg':
         const cfg = new CFGParser().parseCFG(machineText);
-        // Store CFG in complete result for downstream processing
+        // Store JSON for Python's non_input_tests to analyze (e.g., rule structure checks)
         completeResult.cfg = cfgToJson(cfg);
         return cfg;
         
       case '.regex':
-        // TODO: Implement regex parsing when needed
-        throw new Error('Regex parsing not yet implemented');
+        const regex = new RegexParser().parseRegex(machineText);
+        // Store JSON for Python's non_input_tests to analyze
+        completeResult.regex = regexToJson(regex);
+        return regex;
         
       default:
         throw new Error(`extension must be one of ${EXTENSIONS.join(', ')}, but is ${extension}`);
@@ -174,7 +205,7 @@ function readInputs(inputsFilename: string): TestResult[] {
   }));
 }
 
-function processInputs(machine: DFA | NFA | TM | CFG) {
+function processInputs(machine: DFA | NFA | TM | CFG | Regex) {
   if (!completeResult.results) {
     throw new Error('No test results to process');
   }
@@ -211,6 +242,32 @@ function processInputs(machine: DFA | NFA | TM | CFG) {
       result.error = `error: ${error instanceof Error ? error.message : String(error)}`;
     }
   }
+}
+
+function dfaToJson(dfa: DFA): any {
+  return {
+    states: dfa.states,
+    input_alphabet: dfa.inputAlphabet,
+    start_state: dfa.startState,
+    accept_states: dfa.acceptStates,
+    delta: dfa.delta
+  };
+}
+
+function nfaToJson(nfa: NFA): any {
+  return {
+    states: nfa.states,
+    input_alphabet: nfa.inputAlphabet,
+    start_state: nfa.startState,
+    accept_states: nfa.acceptStates,
+    delta: nfa.delta
+  };
+}
+
+function regexToJson(regex: Regex): any {
+  return {
+    source: regex.source
+  };
 }
 
 function cfgToJson(cfg: CFG): any {

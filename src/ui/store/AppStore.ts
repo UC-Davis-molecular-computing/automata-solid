@@ -3,10 +3,10 @@ import { createEffect, createRoot } from 'solid-js'
 import type { AppState } from '../types/AppState'
 import { AutomatonType, initialState } from '../types/AppState'
 import type { AppMessage } from '../types/Messages'
-import { LoadDefault, SaveFile, LoadFile, MinimizeDfa, RunTest, OpenFile, SaveFileAs } from '../types/Messages'
+import { LoadDefault, SaveFile, LoadFile, MinimizeDfa, RunTest, OpenFile, SaveFileAs,
+  SetRunImmediately, SetAutomatonType, SetTheme, SetInputString, SetEditorContent } from '../types/Messages'
 import { debounce } from '../utils/debounce'
 import { saveToLocalStorage, loadFromLocalStorage, getPersistableState } from '../utils/localStorage'
-// Message types are handled via discriminated union, no need to import individual interfaces
 
 // ========================================
 // HELPER FUNCTIONS (defined first so we can use them for initialization)
@@ -168,7 +168,7 @@ export const [appState, setAppState] = createStore<AppState>(createInitialState(
 // ========================================
 
 export const dispatch = (message: AppMessage): void => {
-  // Ultra-clean instanceof checks - zero boilerplate!
+  // instanceof checks for type-safe message handling
   if (message instanceof LoadDefault) {
     loadDefaultAutomaton(appState.automatonType)
   } else if (message instanceof SaveFile) {
@@ -183,6 +183,21 @@ export const dispatch = (message: AppMessage): void => {
     openFileDialog()
   } else if (message instanceof SaveFileAs) {
     saveFileAs(message.filename, message.content)
+  } else if (message instanceof SetRunImmediately) {
+    // TODO: Implement run immediately toggle
+    console.log('SetRunImmediately:', message.runImmediately)
+  } else if (message instanceof SetAutomatonType) {
+    // TODO: Implement automaton type switching
+    console.log('SetAutomatonType:', message.automatonType)
+  } else if (message instanceof SetTheme) {
+    // TODO: Implement theme switching
+    console.log('SetTheme:', message.theme)
+  } else if (message instanceof SetInputString) {
+    // TODO: Implement input string update
+    console.log('SetInputString:', message.inputString)
+  } else if (message instanceof SetEditorContent) {
+    // TODO: Implement editor content update
+    console.log('SetEditorContent:', message.editorContent)
   } else {
     // Fallback for unknown message types
     console.error('Unhandled message type:', message.constructor.name)
@@ -260,14 +275,6 @@ createRoot(() => {
   })
 })
 
-// For debugging - expose function to clear localStorage
-if (typeof window !== 'undefined') {
-  (window as any).clearAutomataStorage = () => {
-    const { clearLocalStorage } = require('../utils/localStorage')
-    clearLocalStorage()
-    console.log('localStorage cleared. Refresh the page to see default state.')
-  }
-}
 
 const runAutomatonTest = (): void => {
   // Complex logic: parse YAML, run automaton, update results

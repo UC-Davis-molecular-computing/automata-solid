@@ -1,38 +1,64 @@
 import type { AutomatonType } from './AppState'
 
-export interface AppMessage {}
+// Base interface for type checking
+export abstract class AppMessage {}
 
+
+// Option 2: Classes with explicit fields (erasableSyntaxOnly compatible)
 export class LoadDefault implements AppMessage {}
 export class SaveFile implements AppMessage {}
 export class MinimizeDfa implements AppMessage {}
 export class RunTest implements AppMessage {}
 
 export class SetRunImmediately implements AppMessage {
-  constructor(public readonly runImmediately: boolean) {}
+  readonly runImmediately: boolean
+  constructor(runImmediately: boolean) {
+    this.runImmediately = runImmediately
+  }
 }
 
 export class SetAutomatonType implements AppMessage {
-  constructor(public readonly automatonType: AutomatonType) {}
+  readonly automatonType: AutomatonType
+  constructor(automatonType: AutomatonType) {
+    this.automatonType = automatonType
+  }
 }
 
 export class LoadFile implements AppMessage {
-  constructor(public readonly content: string) {}
+  readonly content: string
+  constructor(content: string) {
+    this.content = content
+  }
 }
 
 export class OpenFile implements AppMessage {}
 
 export class SetTheme implements AppMessage {
-  constructor(public readonly theme: string) {}
+  readonly theme: string
+  constructor(theme: string) {
+    this.theme = theme
+  }
 }
 
 export class SetInputString implements AppMessage {
-  constructor(public readonly inputString: string) {}
+  readonly inputString: string
+  constructor(inputString: string) {
+    this.inputString = inputString
+  }
 }
 
 export class SetEditorContent implements AppMessage {
-  constructor(public readonly editorContent: string) {}
+  readonly editorContent: string
+  constructor(editorContent: string) {
+    this.editorContent = editorContent
+  }
 }
 
 export class SaveFileAs implements AppMessage {
-  constructor(public readonly filename: string, public readonly content: string) {}
+  readonly filename: string
+  readonly content: string
+  constructor(filename: string, content: string) {
+    this.filename = filename
+    this.content = content
+  }
 }

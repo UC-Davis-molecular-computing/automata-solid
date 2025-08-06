@@ -16958,6 +16958,226 @@ ParserUtil.normalizeCFGSpec = function(parsed) {
   return result;
 };
 
+// src/core/Regex.ts
+function escapeRegExp(string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+var Regex = class _Regex {
+  originalRegexStr;
+  pattern;
+  inputAlphabet;
+  constructor(regexStr) {
+    this.originalRegexStr = regexStr;
+    const processedStr = this.processSubexpressions(regexStr);
+    const cleanedStr = processedStr.replace(/\s+/g, "");
+    this.validateCharacters(cleanedStr);
+    const escapedStr = cleanedStr.replace(/\./g, "\\.");
+    this.pattern = new RegExp(`^(${escapedStr})$`);
+    this.inputAlphabet = this.extractInputAlphabet(cleanedStr);
+  }
+  /**
+   * Get the substitution steps for subexpressions, if any are used.
+   * Returns an array of objects with expression and remaining subexpressions.
+   */
+  getSubstitutionSteps() {
+    if (!this.originalRegexStr.includes(";")) {
+      return [];
+    }
+    return this.processSubexpressionsWithSteps(this.originalRegexStr);
+  }
+  /**
+   * Process subexpressions and return intermediate steps with remaining definitions.
+   */
+  processSubexpressionsWithSteps(regexStr) {
+    if (!regexStr.includes(";")) {
+      return [];
+    }
+    const parts = regexStr.split(";");
+    if (parts.length < 2 || parts[parts.length - 1].trim() === "") {
+      throw new Error("Invalid subexpression format: must end with semicolon before final expression");
+    }
+    const definitions = /* @__PURE__ */ new Map();
+    const steps = [];
+    for (let i = 0; i < parts.length - 1; i++) {
+      const part = parts[i].trim();
+      const equalIndex = part.indexOf("=");
+      if (equalIndex === -1) {
+        throw new Error(`Invalid subexpression definition: "${part}" (missing =)`);
+      }
+      const varName = part.substring(0, equalIndex).trim();
+      const varValue = part.substring(equalIndex + 1).trim();
+      if (!varName) {
+        throw new Error(`Invalid variable name in: "${part}"`);
+      }
+      if (!varValue) {
+        throw new Error(`Invalid variable value in: "${part}"`);
+      }
+      if (!/^[a-zA-Z][a-zA-Z0-9]*$/.test(varName)) {
+        throw new Error(`Invalid variable name "${varName}": must start with letter and contain only alphanumeric characters`);
+      }
+      definitions.set(varName, varValue);
+    }
+    const originalSubexpressions = Array.from(definitions.entries()).map(([name, value]) => `${name} = ${value}`).join("; ") + ";";
+    let finalExpression = parts[parts.length - 1].trim();
+    steps.push({
+      expression: finalExpression,
+      subexpressions: originalSubexpressions
+    });
+    const sortedVars = Array.from(definitions.keys()).sort((a, b) => b.length - a.length);
+    let changed = true;
+    let iterations = 0;
+    const maxIterations = 100;
+    while (changed && iterations < maxIterations) {
+      changed = false;
+      iterations++;
+      for (const varName of sortedVars) {
+        const varValue = definitions.get(varName);
+        const oldExpression = finalExpression;
+        const regex = new RegExp(escapeRegExp(varName), "g");
+        finalExpression = finalExpression.replace(regex, `(${varValue})`);
+        if (finalExpression !== oldExpression) {
+          changed = true;
+          const remainingDefinitions = /* @__PURE__ */ new Map();
+          for (const [name, value] of definitions.entries()) {
+            const varRegex = new RegExp(escapeRegExp(name));
+            if (varRegex.test(finalExpression)) {
+              remainingDefinitions.set(name, value);
+            }
+          }
+          const remainingSubexpressionsStr = Array.from(remainingDefinitions.entries()).map(([name, value]) => `${name} = ${value}`).join("; ") + (remainingDefinitions.size > 0 ? ";" : "");
+          steps.push({
+            expression: finalExpression.trim(),
+            subexpressions: remainingSubexpressionsStr
+          });
+        }
+      }
+    }
+    if (iterations >= maxIterations) {
+      throw new Error("Subexpression substitution exceeded maximum iterations (possible circular reference)");
+    }
+    return steps;
+  }
+  /**
+   * Process subexpressions by iteratively substituting variables.
+   * Format: "VAR1 = expr1; VAR2 = expr2; final_expression"
+   */
+  processSubexpressions(regexStr) {
+    if (!regexStr.includes(";")) {
+      return regexStr;
+    }
+    const parts = regexStr.split(";");
+    if (parts.length < 2 || parts[parts.length - 1].trim() === "") {
+      throw new Error("Invalid subexpression format: must end with semicolon before final expression");
+    }
+    const definitions = /* @__PURE__ */ new Map();
+    for (let i = 0; i < parts.length - 1; i++) {
+      const part = parts[i].trim();
+      const equalIndex = part.indexOf("=");
+      if (equalIndex === -1) {
+        throw new Error(`Invalid subexpression definition: "${part}" (missing =)`);
+      }
+      const varName = part.substring(0, equalIndex).trim();
+      const varValue = part.substring(equalIndex + 1).trim();
+      if (!varName) {
+        throw new Error(`Invalid variable name in: "${part}"`);
+      }
+      if (!varValue) {
+        throw new Error(`Invalid variable value in: "${part}"`);
+      }
+      if (!/^[a-zA-Z][a-zA-Z0-9]*$/.test(varName)) {
+        throw new Error(`Invalid variable name "${varName}": must start with letter and contain only alphanumeric characters`);
+      }
+      definitions.set(varName, varValue);
+    }
+    let finalExpression = parts[parts.length - 1].trim();
+    const sortedVars = Array.from(definitions.keys()).sort((a, b) => b.length - a.length);
+    let changed = true;
+    let iterations = 0;
+    const maxIterations = 100;
+    while (changed && iterations < maxIterations) {
+      changed = false;
+      iterations++;
+      for (const varName of sortedVars) {
+        const varValue = definitions.get(varName);
+        const oldExpression = finalExpression;
+        const regex = new RegExp(escapeRegExp(varName), "g");
+        finalExpression = finalExpression.replace(regex, `(${varValue})`);
+        if (finalExpression !== oldExpression) {
+          changed = true;
+        }
+      }
+    }
+    if (iterations >= maxIterations) {
+      throw new Error("Subexpression substitution exceeded maximum iterations (possible circular reference)");
+    }
+    return finalExpression;
+  }
+  /**
+   * Validate that the regex contains only allowed characters
+   */
+  validateCharacters(regexStr) {
+    const legalRegex = /^(\.|@|[a-zA-Z]|[0-9]|\(|\)|\+|\*|\||=|;)*$/;
+    if (!legalRegex.test(regexStr)) {
+      throw new Error(
+        `regex "${regexStr}" contains illegal characters; must contain only letters, numbers, and these symbols: @ . ( ) * + | = ;`
+      );
+    }
+  }
+  /**
+   * Extract input alphabet from regex string
+   */
+  extractInputAlphabet(regexStr) {
+    const alphabetSet = /* @__PURE__ */ new Set();
+    for (let i = 0; i < regexStr.length; i++) {
+      const ch = regexStr[i];
+      if (ch !== "*" && ch !== "+" && ch !== "|" && ch !== "(" && ch !== ")") {
+        alphabetSet.add(ch);
+      }
+    }
+    return Array.from(alphabetSet).sort();
+  }
+  /**
+   * Test if the regex accepts the given input string
+   */
+  accepts(input) {
+    return this.pattern.test(input);
+  }
+  /**
+   * Get the input alphabet extracted from the regex
+   */
+  getInputAlphabet() {
+    return [...this.inputAlphabet];
+  }
+  /**
+   * Get the original regex string (before processing)
+   */
+  toString() {
+    return this.originalRegexStr;
+  }
+  /**
+   * Static factory method to create regex from string
+   */
+  static fromString(regexStr) {
+    return new _Regex(regexStr.trim());
+  }
+};
+
+// src/parsers/RegexParser.ts
+var RegexParser = class {
+  parseRegex(input) {
+    const lines = input.split("\n");
+    const cleanedLines = lines.map((line) => {
+      const commentIndex = line.indexOf("#");
+      if (commentIndex >= 0) {
+        return line.substring(0, commentIndex);
+      }
+      return line;
+    });
+    const cleanedInput = cleanedLines.join("\n").trim();
+    return new Regex(cleanedInput);
+  }
+};
+
 // src/process_inputs.ts
 var EXTENSIONS = [".dfa", ".nfa", ".regex", ".cfg", ".tm"];
 var completeResult = {
@@ -17008,17 +17228,23 @@ function readMachine(filename) {
   } catch (error) {
     const baseFilename = path.basename(filename);
     const fullFilename = path.resolve(filename);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     throw new Error(`could not read ${baseFilename}
 make sure submission file ends in proper extension and that it is encoded in ANSI or UTF-8 and contains no non-ASCII characters
-full pathname of file searched for is ${fullFilename}`);
+full pathname of file searched for is ${fullFilename}
+original error: ${errorMessage}`);
   }
   const extension = path.extname(filename);
   try {
     switch (extension) {
       case ".dfa":
-        return new DFAParser().parseDFA(machineText);
+        const dfa = new DFAParser().parseDFA(machineText);
+        completeResult.dfa = dfaToJson(dfa);
+        return dfa;
       case ".nfa":
-        return new NFAParser().parseNFA(machineText);
+        const nfa = new NFAParser().parseNFA(machineText);
+        completeResult.nfa = nfaToJson(nfa);
+        return nfa;
       case ".tm":
         const tm = new TMParser().parseTM(machineText);
         completeResult.tm = tmToJson(tm);
@@ -17028,7 +17254,9 @@ full pathname of file searched for is ${fullFilename}`);
         completeResult.cfg = cfgToJson(cfg);
         return cfg;
       case ".regex":
-        throw new Error("Regex parsing not yet implemented");
+        const regex = new RegexParser().parseRegex(machineText);
+        completeResult.regex = regexToJson(regex);
+        return regex;
       default:
         throw new Error(`extension must be one of ${EXTENSIONS.join(", ")}, but is ${extension}`);
     }
@@ -17084,6 +17312,29 @@ function processInputs(machine) {
       result.error = `error: ${error instanceof Error ? error.message : String(error)}`;
     }
   }
+}
+function dfaToJson(dfa) {
+  return {
+    states: dfa.states,
+    input_alphabet: dfa.inputAlphabet,
+    start_state: dfa.startState,
+    accept_states: dfa.acceptStates,
+    delta: dfa.delta
+  };
+}
+function nfaToJson(nfa) {
+  return {
+    states: nfa.states,
+    input_alphabet: nfa.inputAlphabet,
+    start_state: nfa.startState,
+    accept_states: nfa.acceptStates,
+    delta: nfa.delta
+  };
+}
+function regexToJson(regex) {
+  return {
+    source: regex.source
+  };
 }
 function cfgToJson(cfg) {
   return {

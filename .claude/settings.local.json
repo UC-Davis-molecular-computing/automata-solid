@@ -5,7 +5,19 @@
       "Bash(npx tsc:*)",
       "Bash(npx tsx:*)",
       "Bash(rm:*)",
-      "Bash(npm install)"
+      "Bash(npm install)",
+      "Bash(find:*)",
+      "WebFetch(domain:www.typescriptlang.org)",
+      "Bash(npm run lint)",
+      "Bash(npx eslint:*)",
+      "Bash(npm run build:process-inputs:*)",
+      "Bash(cp:*)",
+      "Bash(chmod:*)",
+      "Bash(./test_process_inputs_simple.sh:*)",
+      "Bash(./test_with_inputs.sh:*)",
+      "Bash(./test_five_types.sh:*)",
+      "Bash(ls:*)",
+      "Bash(python3:*)"
     ],
     "deny": []
   }
