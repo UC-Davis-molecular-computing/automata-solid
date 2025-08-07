@@ -2,8 +2,10 @@ import type { Component } from 'solid-js'
 import { createEffect, For, Show, onMount } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import { NFA } from '../../core/NFA'
+import { assert } from '../../core/Utils'
 import { NFAParser } from '../../parsers/NFAParser'
-import { appState } from '../store/AppStore'
+import { appState, dispatch } from '../store/AppStore'
+import { SetComputationResult, SetParseError } from '../types/Messages'
 import './TableComponent.css'
 
 interface NavigationControls {
@@ -18,7 +20,6 @@ interface NavigationControls {
 interface NFATableComponentProps {
   onNavigationReady?: (controls: NavigationControls) => void
   onRunReady?: (runFunction: () => void) => void
-  onResultChange?: (result: { hasResult: boolean; accepted: boolean } | null) => void
 }
 
 interface NFATableComponentState {
@@ -68,12 +69,22 @@ export const NFATableComponent: Component<NFATableComponentProps> = (props) => {
         lastComputedInput: appState.inputString
       })
       
+      // Dispatch computation result to global store
+      dispatch(new SetComputationResult({
+        accepts: accepted,
+        outputString: null // NFAs don't have output strings
+      }))
+      
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error parsing NFA'
       setState({
         nfa: null,
-        error: error instanceof Error ? error.message : 'Unknown error parsing NFA',
+        error: errorMessage,
         hasResult: false
       })
+      
+      // Dispatch parse error to global store
+      dispatch(new SetParseError(errorMessage))
     }
   }
 
@@ -95,14 +106,21 @@ export const NFATableComponent: Component<NFATableComponentProps> = (props) => {
           error: null,
           hasResult: false
         })
+        
+        // Clear computation results when YAML changes in manual mode
+        dispatch(new SetParseError(null))
       }
       
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error parsing NFA'
       setState({
         nfa: null,
-        error: error instanceof Error ? error.message : 'Unknown error parsing NFA',
+        error: errorMessage,
         hasResult: false
       })
+      
+      // Dispatch parse error to global store
+      dispatch(new SetParseError(errorMessage))
     }
   })
 
@@ -119,19 +137,7 @@ export const NFATableComponent: Component<NFATableComponentProps> = (props) => {
     }
   })
 
-  // Report result changes to parent
-  createEffect(() => {
-    if (props.onResultChange) {
-      if (state.error || !state.nfa) {
-        props.onResultChange(null)
-      } else {
-        props.onResultChange({
-          hasResult: state.hasResult,
-          accepted: state.accepted
-        })
-      }
-    }
-  })
+  // Results are now dispatched to global store instead of using callbacks
 
   // Navigation functions (exported for use by parent component)
   // These are always available but include safety checks
@@ -216,7 +222,7 @@ export const NFATableComponent: Component<NFATableComponentProps> = (props) => {
   }
 
   return (
-    <div class="dfa-table-component">
+    <div class="automaton-table-component">
       <Show when={state.error}>
         <div class="error-message">
           <strong>Error:</strong>
@@ -225,44 +231,44 @@ export const NFATableComponent: Component<NFATableComponentProps> = (props) => {
       </Show>
 
       <Show when={state.nfa && !state.error}>
-        <div class="dfa-content">
-          {/* Compact Input Display */}
-          <div class="input-display">
-            <div class="input-status-line">
-              <span class="input-processed" style="font-family: Consolas, monospace">
-                {formatInputWithPosition()}
+        <div class="automaton-content">
+        {/* Compact Input Display */}
+        <div class="input-display">
+          <div class="input-status-line">
+            <span class="input-processed" style="font-family: Consolas, monospace">
+              {formatInputWithPosition()}
+            </span>
+            <Show when={state.hasResult}>
+              <span class="current-states">
+                Current states: <span class="state-set">{formatCurrentStateSet()}</span>
               </span>
-              <Show when={state.hasResult}>
-                <span class="current-states">
-                  Current states: <span class="state-set">{formatCurrentStateSet()}</span>
-                </span>
-              </Show>
-            </div>
+            </Show>
           </div>
+        </div>
 
-          {/* Transition Table */}
-          <div class="transition-table-container">
-            <table id="transition_table" class="transition-table">
-              <thead>
-                <tr id="transition_table_head">
-                  <th class="transition_header_entry">State</th>
-                  <th class="transition_header_entry" colspan={(state.nfa?.inputAlphabet.length || 0) + 1} style="text-align: left;">Transitions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <For each={state.nfa?.states || []}>
-                  {(stateName) => (
-                    <NFATransitionRow 
-                      nfa={state.nfa!}
-                      stateName={stateName}
-                      currentStates={getCurrentStateSet()}
-                      currentSymbol={getCurrentSymbol()}
-                    />
-                  )}
-                </For>
-              </tbody>
-            </table>
-          </div>
+        {/* Transition Table */}
+        <div class="transition-table-container">
+          <table id="transition_table" class="transition-table">
+            <thead>
+              <tr id="transition_table_head">
+                <th class="transition_header_entry">State</th>
+                <th class="transition_header_entry" colspan={(() => { assert(state.nfa, 'NFA should be defined'); return state.nfa.inputAlphabet.length + 1 })()} style="text-align: left;">Transitions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <For each={(() => { assert(state.nfa, 'NFA should be defined'); return state.nfa.states })()}>
+                {(stateName) => (
+                  <NFATransitionRow 
+                    nfa={(() => { assert(state.nfa, 'NFA should be defined'); return state.nfa })()}
+                    stateName={stateName}
+                    currentStates={getCurrentStateSet()}
+                    currentSymbol={getCurrentSymbol()}
+                  />
+                )}
+              </For>
+            </tbody>
+          </table>
+        </div>
         </div>
       </Show>
     </div>
@@ -291,7 +297,7 @@ const NFATransitionRow: Component<NFATransitionRowProps> = (props) => {
       <td 
         class="state-cell"
       >
-        <div class={`transition_entry_${isAcceptState() ? 'accept' : 'reject'} ${isCurrentState() ? 'current' : ''}`}>
+        <div class={`transition-table-entry state-entry ${isAcceptState() ? 'accepting' : 'rejecting'} ${isCurrentState() ? 'current' : ''}`}>
           {props.stateName}
         </div>
       </td>
@@ -346,7 +352,7 @@ const NFATransitionEntry: Component<NFATransitionEntryProps> = (props) => {
   return (
     <Show when={transitionText} fallback={<span class="no-transition">—</span>}>
       <span 
-        class={`transition-entry ${props.isCurrentTransition ? 'current' : ''}`}
+        class={`transition-table-entry transition-entry ${props.isCurrentTransition ? 'current' : ''}`}
       >
         {transitionText}
       </span>

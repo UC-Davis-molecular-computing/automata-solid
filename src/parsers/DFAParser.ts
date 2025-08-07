@@ -1,10 +1,26 @@
-import { parseDocument, LineCounter } from 'yaml'
+import { parseDocument, LineCounter, Document } from 'yaml'
 import Ajv, { type ValidateFunction } from 'ajv'
 import addErrors from 'ajv-errors'
 import { DFA } from '../core/DFA'
 import { setNotation } from '../core/Utils'
 import { ParserUtil } from './ParserUtil'
 import dfaBaseSchema from './dfa-base-schema.json'
+
+/**
+ * Interface for DFA JSON Schema property definitions
+ */
+interface DFASchemaProperty {
+  type: string;
+  properties: Record<string, {
+    type: string;
+    enum: string[];
+    errorMessage: string;
+  }>;
+  additionalProperties: boolean;
+  errorMessage: {
+    additionalProperties: string;
+  };
+}
 
 /**
  * Interface representing the YAML structure for DFA specifications
@@ -105,7 +121,7 @@ export class DFAParser {
    * in arrays, but not in object property/keys. So to validate that the keys (input states and symbols)
    * are valid, we dynamically generate a schema that explicitly lists all valid states and symbols.
    */
-  private validateDelta(spec: DFASpec, originalYaml: string, doc: any, lineCounter: LineCounter): void {
+  private validateDelta(spec: DFASpec, originalYaml: string, doc: Document, lineCounter: LineCounter): void {
     // Build dynamic schema for delta validation
     const deltaSchema = this.buildDeltaSchema(spec.states, spec.input_alphabet)
     
@@ -133,7 +149,7 @@ export class DFAParser {
    * Build dynamic schema for delta validation with precise error positioning
    */
   private buildDeltaSchema(states: string[], inputAlphabet: string[]): object {
-    const deltaProperties: Record<string, any> = {}
+    const deltaProperties: Record<string, DFASchemaProperty> = {}
     
     // Generate explicit properties for each valid state
     for (const state of states) {

@@ -2,12 +2,12 @@ import type { Component } from 'solid-js'
 import { createEffect, Show, onMount, For } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import { Regex } from '../../core/Regex'
-import { appState } from '../store/AppStore'
+import { appState, dispatch } from '../store/AppStore'
+import { SetComputationResult, SetParseError } from '../types/Messages'
 import './TableComponent.css'
 
 interface RegexComponentProps {
   onRunReady?: (runFunction: () => void) => void
-  onResultChange?: (result: { hasResult: boolean; accepted: boolean } | null) => void
 }
 
 interface RegexComponentState {
@@ -45,12 +45,22 @@ export const RegexComponent: Component<RegexComponentProps> = (props) => {
         lastComputedInput: appState.inputString
       })
       
+      // Dispatch computation result to global store
+      dispatch(new SetComputationResult({
+        accepts: accepted,
+        outputString: null // Regex doesn't have output strings
+      }))
+      
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error parsing regex'
       setState({
         regex: null,
-        error: error instanceof Error ? error.message : 'Unknown error parsing regex',
+        error: errorMessage,
         hasResult: false
       })
+      
+      // Dispatch parse error to global store
+      dispatch(new SetParseError(errorMessage))
     }
   }
 
@@ -71,14 +81,21 @@ export const RegexComponent: Component<RegexComponentProps> = (props) => {
           error: null,
           hasResult: false
         })
+        
+        // Clear parse errors when content changes in manual mode
+        dispatch(new SetParseError(null))
       }
       
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error parsing regex'
       setState({
         regex: null,
-        error: error instanceof Error ? error.message : 'Unknown error parsing regex',
+        error: errorMessage,
         hasResult: false
       })
+      
+      // Dispatch parse error to global store
+      dispatch(new SetParseError(errorMessage))
     }
   })
 
@@ -94,19 +111,7 @@ export const RegexComponent: Component<RegexComponentProps> = (props) => {
     }
   })
 
-  // Report result changes to parent
-  createEffect(() => {
-    if (props.onResultChange) {
-      if (state.error || !state.regex) {
-        props.onResultChange(null)
-      } else {
-        props.onResultChange({
-          hasResult: state.hasResult,
-          accepted: state.accepted
-        })
-      }
-    }
-  })
+  // Results are now dispatched to global store instead of using callbacks
 
   // Export run function once on mount
   onMount(() => {

@@ -75,6 +75,7 @@ export class ParserUtil {
    */
   static formatValidationErrors(
     yamlString: string, 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     doc: any, 
     errors: ErrorObject[], 
     lineCounter: LineCounter
@@ -189,6 +190,7 @@ export class ParserUtil {
   /**
    * Find the position of an error in the original YAML source using CST
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static findErrorPosition(doc: any, instancePath: string, lineCounter: LineCounter, pointToKey: boolean = false): SourcePosition | undefined {
     if (!doc.contents) return undefined
 
@@ -212,6 +214,7 @@ export class ParserUtil {
         
         if (ParserUtil.isMap(currentNode)) {
           // Find the pair with the matching key
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const pair = currentNode.items.find((item: any) => 
             item.key && ParserUtil.isScalar(item.key) && String(item.key.value) === segment
           )
@@ -242,7 +245,7 @@ export class ParserUtil {
         const { line, col } = lineCounter.linePos(offset)
         return { line, col, offset }
       }
-    } catch (error) {
+    } catch (_) {
       // Fallback: return undefined if position cannot be determined
       return undefined
     }
@@ -393,16 +396,19 @@ export class ParserUtil {
   }
 
   // Helper type guards for YAML nodes (since we can't import from yaml easily)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private static isMap(node: any): boolean {
     return node && typeof node === 'object' && node.items && Array.isArray(node.items) && 
            (node.type === 'MAP' || node.type === 'FLOW_MAP' || (!node.type && ParserUtil.hasMapStructure(node)))
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private static isSeq(node: any): boolean {
     return node && typeof node === 'object' && node.items && Array.isArray(node.items) && 
            (node.type === 'SEQ' || node.type === 'FLOW_SEQ' || (!node.type && ParserUtil.hasSeqStructure(node)))
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private static isScalar(node: any): boolean {
     return node && typeof node === 'object' && 
            (node.value !== undefined || node.type === 'PLAIN' || node.type === 'QUOTE_DOUBLE' || 
@@ -410,13 +416,17 @@ export class ParserUtil {
   }
 
   // Helper to distinguish map vs sequence structure when type is missing
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private static hasMapStructure(node: any): boolean {
     return node.items && node.items.length > 0 && 
+           // eslint-disable-next-line @typescript-eslint/no-explicit-any
            node.items.some((item: any) => item.key !== undefined)
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private static hasSeqStructure(node: any): boolean {
     return node.items && node.items.length > 0 && 
+           // eslint-disable-next-line @typescript-eslint/no-explicit-any
            node.items.every((item: any) => item.key === undefined)
   }
 

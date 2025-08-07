@@ -97,6 +97,13 @@ npx tsx examples\error-messages-nfa.ts
 - **Why this matters**: Catches type errors, unused variables, invalid prop assignments, and other issues early
 - **When to run**: After making significant code changes, before committing, or when VS Code shows TypeScript errors
 
+### 🔍 Linter Error Checking
+- **Run `npm run lint`** to check for ESLint errors and warnings
+- **Errors must be fixed** - these prevent builds and indicate serious issues (unused variables, namespace usage, etc.)
+- **Warnings can be addressed** - mostly code quality improvements (avoid `any` types, non-null assertions, etc.)
+- **When to run**: Before committing, after making significant changes, or when fixing code quality issues
+- **Fix priority**: Address errors first, then warnings for better code quality
+
 ### 📋 TypeScript Configuration Simplified
 - **Single `tsconfig.json`**: Contains all TypeScript settings for the entire project
 - **Includes**: `src/**/*` (all source files) and `vite.config.ts` (build config)

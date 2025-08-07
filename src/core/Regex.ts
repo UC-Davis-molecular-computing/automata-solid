@@ -1,3 +1,5 @@
+import { assert } from './Utils'
+
 /**
  * Helper function to escape special regex characters
  */
@@ -15,13 +17,13 @@ function escapeRegExp(string: string): string {
  * - Spaces are stripped from input
  */
 export class Regex {
-  private readonly originalRegexStr: string
+  readonly source: string
   private readonly pattern: RegExp
-  private readonly inputAlphabet: string[]
+  readonly inputAlphabet: string[]
 
   constructor(regexStr: string) {
     // Store original before any processing
-    this.originalRegexStr = regexStr
+    this.source = regexStr
     
     // Process subexpressions first (before stripping whitespace)
     const processedStr = this.processSubexpressions(regexStr)
@@ -45,11 +47,11 @@ export class Regex {
    * Returns an array of objects with expression and remaining subexpressions.
    */
   getSubstitutionSteps(): Array<{expression: string, subexpressions: string}> {
-    if (!this.originalRegexStr.includes(';')) {
+    if (!this.source.includes(';')) {
       return []
     }
     
-    return this.processSubexpressionsWithSteps(this.originalRegexStr)
+    return this.processSubexpressionsWithSteps(this.source)
   }
 
   /**
@@ -122,7 +124,8 @@ export class Regex {
       iterations++
       
       for (const varName of sortedVars) {
-        const varValue = definitions.get(varName)!
+        const varValue = definitions.get(varName)
+        assert(varValue !== undefined, `Variable "${varName}" not defined`)
         const oldExpression = finalExpression
         
         // Replace all occurrences - variables are single letters and should be substituted everywhere they appear
@@ -221,7 +224,8 @@ export class Regex {
       iterations++
       
       for (const varName of sortedVars) {
-        const varValue = definitions.get(varName)!
+        const varValue = definitions.get(varName)
+        assert(varValue !== undefined, `Variable "${varName}" not defined`)
         const oldExpression = finalExpression
         
         // Replace all occurrences - variables are single letters and should be substituted everywhere they appear
@@ -290,7 +294,7 @@ export class Regex {
    * Get the original regex string (before processing)
    */
   toString(): string {
-    return this.originalRegexStr
+    return this.source
   }
 
   /**

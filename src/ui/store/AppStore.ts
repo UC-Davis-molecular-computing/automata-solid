@@ -4,7 +4,8 @@ import type { AppState } from '../types/AppState'
 import { AutomatonType, initialState } from '../types/AppState'
 import type { AppMessage } from '../types/Messages'
 import { LoadDefault, SaveFile, LoadFile, MinimizeDfa, RunTest, OpenFile, SaveFileAs,
-  SetRunImmediately, SetAutomatonType, SetTheme, SetInputString, SetEditorContent } from '../types/Messages'
+  SetRunImmediately, SetAutomatonType, SetTheme, SetInputString, SetEditorContent,
+  SetComputationResult, SetParseError } from '../types/Messages'
 import { debounce } from '../utils/debounce'
 import { saveToLocalStorage, loadFromLocalStorage, getPersistableState } from '../utils/localStorage'
 
@@ -146,7 +147,7 @@ function createInitialState(): AppState {
       // When automaton type is restored, load its default content if no editor content is stored
       if (!stored.editorContent) {
         mergedState.editorContent = getDefaultYamlFor(stored.automatonType)
-        mergedState.inputString = ''
+        // Don't clear inputString - let it be restored from localStorage or keep default
       }
     }
     
@@ -156,7 +157,6 @@ function createInitialState(): AppState {
     return mergedState
   }
   
-  console.log('🆕 Using default state (no localStorage data found)')
   return defaultState
 }
 
@@ -187,8 +187,12 @@ export const dispatch = (message: AppMessage): void => {
     // TODO: Implement run immediately toggle
     console.log('SetRunImmediately:', message.runImmediately)
   } else if (message instanceof SetAutomatonType) {
-    // TODO: Implement automaton type switching
-    console.log('SetAutomatonType:', message.automatonType)
+    // Switch automaton type but keep existing editor content and input string
+    setAppState('automatonType', message.automatonType)
+    // Keep existing editorContent - user may be switching to view/edit different automaton types
+    // Keep existing inputString - don't clear it
+    setAppState('parseError', null)
+    setAppState('result', null)
   } else if (message instanceof SetTheme) {
     // TODO: Implement theme switching
     console.log('SetTheme:', message.theme)
@@ -198,6 +202,12 @@ export const dispatch = (message: AppMessage): void => {
   } else if (message instanceof SetEditorContent) {
     // TODO: Implement editor content update
     console.log('SetEditorContent:', message.editorContent)
+  } else if (message instanceof SetComputationResult) {
+    setAppState('result', message.result)
+    setAppState('parseError', null)
+  } else if (message instanceof SetParseError) {
+    setAppState('parseError', message.error)
+    setAppState('result', null)
   } else {
     // Fallback for unknown message types
     console.error('Unhandled message type:', message.constructor.name)
@@ -211,7 +221,7 @@ export const dispatch = (message: AppMessage): void => {
 const loadDefaultAutomaton = (type: AutomatonType): void => {
   // Complex logic that might update multiple parts of state
   setAppState('editorContent', getDefaultYamlFor(type))
-  setAppState('inputString', '')
+  // Keep existing inputString - don't clear it
   setAppState('parseError', null)
   setAppState('result', null)
 }

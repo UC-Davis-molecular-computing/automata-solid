@@ -29,9 +29,10 @@ const App: Component = () => {
   const [navigationControls, setNavigationControls] = createSignal<NavigationControls | null>(null)
   // State for run function from active automaton visualization
   const [runFunction, setRunFunction] = createSignal<(() => void) | null>(null)
-  // State for accept/reject status
-  const [computationResult, setComputationResult] = createSignal<{ hasResult: boolean; accepted: boolean; outputString?: string; hitMaxSteps?: boolean } | null>(null)
+  // Computation results are now tracked in the global store instead of local state
   
+  // Result changes are now handled via global store messages instead of callbacks
+
   // Wrapper to properly store function in signal
   const handleRunReady = (fn: (() => void) | null) => {
     // Use the updater function form to store the function
@@ -215,17 +216,17 @@ const App: Component = () => {
               </button>
             </Show>
           </div>
-          <Show when={computationResult()}>
+          <Show when={!appState.parseError && appState.result}>
             <div class="acceptance-status">
-              <Show when={computationResult()!.hasResult}>
-                <Show when={appState.automatonType === AutomatonType.Tm && computationResult()!.hitMaxSteps} fallback={
+              <Show when={appState.result}>
+                <Show when={appState.automatonType === AutomatonType.Tm && appState.result?.error === 'MAX_STEPS_REACHED'} fallback={
                   <>
-                    <span class={computationResult()!.accepted ? 'accepted' : 'rejected'}>
-                      {computationResult()!.accepted ? 'accept' : 'reject'}
+                    <span class={appState.result?.accepts ? 'accepted' : 'rejected'}>
+                      {appState.result?.accepts ? 'accept' : 'reject'}
                     </span>
-                    <Show when={appState.automatonType === AutomatonType.Tm && computationResult()!.outputString !== undefined}>
+                    <Show when={appState.automatonType === AutomatonType.Tm && appState.result?.outputString !== undefined}>
                       <span title="This is the string on the last tape, starting at the tape head, until the first _ to the right of there." class="tm-output">
-                        string output: <span class="output-string">{computationResult()!.outputString || 'ε'}</span>
+                        string output: <span class="output-string">{appState.result?.outputString || 'ε'}</span>
                       </span>
                     </Show>
                   </>
@@ -233,7 +234,7 @@ const App: Component = () => {
                   <span class="max-steps-reached">MAX_STEPS={TM.MAX_STEPS.toLocaleString()} limit reached</span>
                 </Show>
               </Show>
-              <Show when={!computationResult()!.hasResult}>
+              <Show when={!appState.result}>
                 <span>Click Run to see result</span>
               </Show>
             </div>
@@ -258,33 +259,28 @@ const App: Component = () => {
                   <DFATableComponent 
                     onNavigationReady={setNavigationControls}
                     onRunReady={handleRunReady}
-                    onResultChange={setComputationResult}
                   />
                 </Show>
                 <Show when={appState.automatonType === AutomatonType.Nfa}>
                   <NFATableComponent 
                     onNavigationReady={setNavigationControls}
                     onRunReady={handleRunReady}
-                    onResultChange={setComputationResult}
                   />
                 </Show>
                 <Show when={appState.automatonType === AutomatonType.Tm}>
                   <TMComponent 
                     onNavigationReady={setNavigationControls}
                     onRunReady={handleRunReady}
-                    onResultChange={setComputationResult}
                   />
                 </Show>
                 <Show when={appState.automatonType === AutomatonType.Regex}>
                   <RegexComponent 
                     onRunReady={handleRunReady}
-                    onResultChange={setComputationResult}
                   />
                 </Show>
                 <Show when={appState.automatonType === AutomatonType.Cfg}>
                   <CFGComponent 
                     onRunReady={handleRunReady}
-                    onResultChange={setComputationResult}
                   />
                 </Show>
                 <Show when={appState.automatonType !== AutomatonType.Dfa && 

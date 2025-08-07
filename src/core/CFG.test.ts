@@ -1,5 +1,6 @@
 import { describe, test, expect } from 'vitest'
 import { CFG, Rule, Row, Chart, TreeNode, EPSILON } from './CFG'
+import { assert } from './Utils'
 
 describe('CFG', () => {
   describe('Rule', () => {
@@ -360,9 +361,10 @@ describe('CFG', () => {
       
       const tree = cfg.parseTree('a')
       expect(tree).not.toBeNull()
-      expect(tree!.symbol).toBe('S')
-      expect(tree!.children.length).toBe(1)
-      expect(tree!.children[0].symbol).toBe('a')
+      assert(tree !== null, 'Parse tree should not be null')
+      expect(tree.symbol).toBe('S')
+      expect(tree.children.length).toBe(1)
+      expect(tree.children[0].symbol).toBe('a')
     })
 
     test('two terminals parse tree', () => {
@@ -371,10 +373,11 @@ describe('CFG', () => {
       
       const tree = cfg.parseTree('ab')
       expect(tree).not.toBeNull()
-      expect(tree!.symbol).toBe('S')
-      expect(tree!.children.length).toBe(2)
-      expect(tree!.children[0].symbol).toBe('a')
-      expect(tree!.children[1].symbol).toBe('b')
+      assert(tree !== null, 'Parse tree should not be null')
+      expect(tree.symbol).toBe('S')
+      expect(tree.children.length).toBe(2)
+      expect(tree.children[0].symbol).toBe('a')
+      expect(tree.children[1].symbol).toBe('b')
     })
 
     test('epsilon parse tree', () => {
@@ -387,9 +390,10 @@ describe('CFG', () => {
       
       const tree = cfg.parseTree('')
       expect(tree).not.toBeNull()
-      expect(tree!.symbol).toBe('S')
-      expect(tree!.children.length).toBe(1)
-      expect(tree!.children[0].symbol).toBe(EPSILON)
+      assert(tree !== null, 'Parse tree should not be null')
+      expect(tree.symbol).toBe('S')
+      expect(tree.children.length).toBe(1)
+      expect(tree.children[0].symbol).toBe(EPSILON)
     })
 
     test('balanced parentheses parse tree', () => {
@@ -402,13 +406,14 @@ describe('CFG', () => {
       
       const tree = cfg.parseTree('()')
       expect(tree).not.toBeNull()
-      expect(tree!.symbol).toBe('S')
-      expect(tree!.children.length).toBe(3)
-      expect(tree!.children[0].symbol).toBe('(')
-      expect(tree!.children[1].symbol).toBe('A')
-      expect(tree!.children[2].symbol).toBe(')')
-      expect(tree!.children[1].children.length).toBe(1)
-      expect(tree!.children[1].children[0].symbol).toBe(EPSILON)
+      assert(tree !== null, 'Parse tree should not be null')
+      expect(tree.symbol).toBe('S')
+      expect(tree.children.length).toBe(3)
+      expect(tree.children[0].symbol).toBe('(')
+      expect(tree.children[1].symbol).toBe('A')
+      expect(tree.children[2].symbol).toBe(')')
+      expect(tree.children[1].children.length).toBe(1)
+      expect(tree.children[1].children[0].symbol).toBe(EPSILON)
     })
 
     test('rejected string returns null parse tree', () => {

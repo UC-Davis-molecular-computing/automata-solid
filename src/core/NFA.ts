@@ -1,4 +1,4 @@
-import { setNotation, checkAgainstInputAlphabet, deltaKey } from './Utils'
+import { setNotation, checkAgainstInputAlphabet, deltaKey, assert } from './Utils'
 
 /**
  * Represents a nondeterministic finite automaton, with accept states for
@@ -15,7 +15,7 @@ export class NFA {
   // Internal flattened representation: Record<string, string[]> 
   // Keys: "state,symbol" or "state," for epsilon transitions
   // Values: array of target states
-  private readonly delta: Record<string, string[]>
+  readonly delta: Record<string, string[]>
 
   constructor(
     states: string[],
@@ -145,7 +145,8 @@ export class NFA {
     const queue: string[] = Array.from(statesList)
     
     while (queue.length > 0) {
-      const state = queue.shift()!
+      const state = queue.shift()
+      assert(state !== undefined, 'State should not be undefined')
       if (!statesVisited.has(state)) {
         statesVisited.add(state)
         

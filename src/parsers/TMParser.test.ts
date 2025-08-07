@@ -126,11 +126,8 @@ delta:
     test('palindrome TM has correct number of transitions', () => {
       const tm = parser.parseTM(palindromeTMYaml)
       
-      // Count transitions
-      let totalTransitions = 0
-      for (const state in tm.delta) {
-        totalTransitions += Object.keys(tm.delta[state]).length
-      }
+      // Count transitions in flattened delta
+      const totalTransitions = Object.keys(tm.delta).length
       
       expect(totalTransitions).toBe(26) // Total transitions in the TM
     })

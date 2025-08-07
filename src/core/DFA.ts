@@ -9,11 +9,11 @@
 import { setNotation, checkAgainstInputAlphabet, deltaKey } from './Utils'
 
 export class DFA {
-  private states: string[]
-  private inputAlphabet: string[]
-  private startState: string
-  private acceptStates: string[]
-  private delta: Record<string, string> // Flattened: "state,symbol" -> target_state
+  readonly states: string[]
+  readonly inputAlphabet: string[]
+  readonly startState: string
+  readonly acceptStates: string[]
+  readonly delta: Record<string, string> // Flattened: "state,symbol" -> target_state
 
   constructor(
     states: string[], 
@@ -105,26 +105,6 @@ ${missingTransitions.map(pair => pair.join(',')).join('\n')}`)
     this.delta = flatDelta
   }
 
-  /**
-   * Returns the states of this DFA.
-   */
-  getStates(): string[] {
-    return [...this.states]
-  }
-
-  /**
-   * Returns the input alphabet of this DFA.
-   */
-  getInputAlphabet(): string[] {
-    return [...this.inputAlphabet]
-  }
-
-  /**
-   * Returns the accept states of this DFA.
-   */
-  getAcceptStates(): string[] {
-    return [...this.acceptStates]
-  }
 
   /**
    * Tests whether the DFA accepts the given input string.

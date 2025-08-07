@@ -2,6 +2,13 @@
  * Utility functions shared across different automaton types (DFA, NFA, TM, etc.)
  */
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function assert(condition: any, msg?: string): asserts condition {
+  if (!condition) {
+    throw new Error(msg);
+  }
+}
+
 /**
  * Format an array of items as set notation string
  * @param items Array of strings to format
@@ -36,7 +43,7 @@ export function checkAgainstInputAlphabet(inputAlphabet: string[], x: string): v
 /**
  * Create a flattened key for delta function lookups
  * @param state Source state
- * @param symbol Input symbol
+ * @param symbol Input symbol(s) (multiple if using multitape TM)
  * @returns Flattened key string "state,symbol"
  */
 export function deltaKey(state: string, symbol: string): string {

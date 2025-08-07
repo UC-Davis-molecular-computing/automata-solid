@@ -166,7 +166,7 @@ delta:
     1: q2
 `
       const dfa = parser.parseDFA(numericStateName)
-      expect(dfa.getStates()).toContain('123')
+      expect(dfa.states).toContain('123')
       expect(dfa.accepts('0')).toBe(true) // q0 -> 123 (accept)
     })
 
@@ -207,7 +207,7 @@ delta:
       // This doesn't throw because YAML converts 00 -> 0 before our parser sees it
       // User can avoid this by quoting: input_alphabet: ["00", "1"]
       const dfa = parser.parseDFA(yamlWithLeadingZeros)
-      expect(dfa.getInputAlphabet()).toEqual(['0', '1']) // Not ['00', '1'] as might be expected
+      expect(dfa.inputAlphabet).toEqual(['0', '1']) // Not ['00', '1'] as might be expected
     })
 
     test('KNOWN ISSUE: YAML octal-like number conversion creates duplicate detection', () => {
@@ -245,7 +245,7 @@ delta:
     1: q2
 `
       const dfa = parser.parseDFA(validStateName)
-      expect(dfa.getStates()).toContain('0valid')
+      expect(dfa.states).toContain('0valid')
       expect(dfa.accepts('0')).toBe(true) // q0 -> 0valid (accept)
     })
   })

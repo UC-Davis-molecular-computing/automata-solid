@@ -13,6 +13,7 @@
     "test:watch": "vitest --watch",
     "test:ui": "vitest --ui",
     "lint": "eslint src/**/*.{ts,tsx}",
+    "lint:errors": "eslint src/**/*.{ts,tsx} --quiet",
     "lint:fix": "eslint src/**/*.{ts,tsx} --fix"
   },
   "dependencies": {

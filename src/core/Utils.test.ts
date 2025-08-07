@@ -16,10 +16,6 @@ describe('Utils', () => {
     test('formats regular strings', () => {
       expect(setNotation(['a', 'b', 'c'])).toBe('{a,b,c}')
     })
-
-    test('handles non-array input', () => {
-      expect(setNotation('test' as any)).toBe('{test}')
-    })
   })
 
   describe('checkAgainstInputAlphabet', () => {

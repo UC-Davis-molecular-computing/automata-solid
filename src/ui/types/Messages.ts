@@ -62,3 +62,22 @@ export class SaveFileAs implements AppMessage {
     this.content = content
   }
 }
+
+// Computation result messages
+export class SetComputationResult implements AppMessage {
+  readonly result: {
+    accepts: boolean
+    outputString?: string | null
+    error?: string
+  }
+  constructor(result: { accepts: boolean; outputString?: string | null; error?: string }) {
+    this.result = result
+  }
+}
+
+export class SetParseError implements AppMessage {
+  readonly error: string | null
+  constructor(error: string | null) {
+    this.error = error
+  }
+}

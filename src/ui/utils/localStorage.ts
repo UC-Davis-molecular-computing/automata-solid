@@ -17,18 +17,22 @@ export type PersistableState = Omit<AppState, TransientFields>
 
 // Helper function to extract only persistable fields from AppState
 export function getPersistableState(state: AppState): PersistableState {
-  const { parseError, result, ...persistable } = state
+  // Destructure and rename to underscore prefix to avoid linter "unused variable" errors
+  // We need to use the exact property names for destructuring, but don't need the values
+  const { parseError: _parseError, result: _result, ...persistable } = state
   return persistable
 }
 
 // Simple helper to filter out transient fields from stored data
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function getValidStoredFields(stored: any): Partial<PersistableState> {
   if (!stored || typeof stored !== 'object') {
     return {}
   }
   
   // Remove transient fields - everything else is automatically included
-  const { parseError, result, version, timestamp, ...validFields } = stored
+  // Destructure and rename to underscore prefix to avoid linter "unused variable" errors
+  const { parseError: _parseError, result: _result, version: _version, timestamp: _timestamp, ...validFields } = stored
   
   // Basic type safety for critical fields only
   if ('splitPercentage' in validFields) {

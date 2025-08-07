@@ -56,16 +56,56 @@ interface TestResult {
   error?: string;
 }
 
+// JSON representation interfaces for Python interop
+interface DFAJson {
+  states: string[];
+  input_alphabet: string[];
+  start_state: string;
+  accept_states: string[];
+  delta: Record<string, string>;
+}
+
+interface NFAJson {
+  states: string[];
+  input_alphabet: string[];
+  start_state: string;
+  accept_states: string[];
+  delta: Record<string, string[]>;
+}
+
+interface RegexJson {
+  source: string;
+}
+
+interface TMJson {
+  states: string[];
+  input_alphabet: string[];
+  tape_alphabet: string[];
+  start_state: string;
+  accept_state: string;
+  reject_state: string;
+  delta: Record<string, [string, string, string]>;
+}
+
+interface CFGJson {
+  variables: string[];
+  terminals: string[];
+  start_symbol: string;
+  rules: Array<{
+    in_symbol: string;
+    out_symbols: string;
+  }>;
+}
+
 interface CompleteResult {
   results: TestResult[] | null;
   error: string | null;
   // JSON representations of automata for Python's non_input_tests to analyze structure
-  // These are any type because they're plain JSON objects, not class instances
-  dfa: any | null;
-  nfa: any | null;
-  regex: any | null;
-  tm: any | null;
-  cfg: any | null;
+  dfa: DFAJson | null;
+  nfa: NFAJson | null;
+  regex: RegexJson | null;
+  tm: TMJson | null;
+  cfg: CFGJson | null;
 }
 
 // Global result object - matches Dart implementation pattern
@@ -244,7 +284,7 @@ function processInputs(machine: DFA | NFA | TM | CFG | Regex) {
   }
 }
 
-function dfaToJson(dfa: DFA): any {
+function dfaToJson(dfa: DFA): DFAJson {
   return {
     states: dfa.states,
     input_alphabet: dfa.inputAlphabet,
@@ -254,7 +294,7 @@ function dfaToJson(dfa: DFA): any {
   };
 }
 
-function nfaToJson(nfa: NFA): any {
+function nfaToJson(nfa: NFA): NFAJson {
   return {
     states: nfa.states,
     input_alphabet: nfa.inputAlphabet,
@@ -264,13 +304,13 @@ function nfaToJson(nfa: NFA): any {
   };
 }
 
-function regexToJson(regex: Regex): any {
+function regexToJson(regex: Regex): RegexJson {
   return {
     source: regex.source
   };
 }
 
-function cfgToJson(cfg: CFG): any {
+function cfgToJson(cfg: CFG): CFGJson {
   return {
     start_symbol: cfg.startSymbol,
     variables: cfg.variables,
@@ -282,7 +322,7 @@ function cfgToJson(cfg: CFG): any {
   };
 }
 
-function tmToJson(tm: TM): any {
+function tmToJson(tm: TM): TMJson {
   return {
     states: tm.states,
     input_alphabet: tm.inputAlphabet,

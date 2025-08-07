@@ -1,4 +1,4 @@
-import { setNotation, checkAgainstInputAlphabet, WILDCARD, wildcardMatch, wildcardMaskedOutput, wildcardIntersect } from './Utils'
+import { setNotation, checkAgainstInputAlphabet, deltaKey, WILDCARD, wildcardMatch, wildcardMaskedOutput, wildcardIntersect, assert } from './Utils'
 
 /**
  * Represents a difference between configurations for memory-efficient navigation.
@@ -156,21 +156,23 @@ export class TMConfiguration {
 
     const scannedSymbols = this.currentScannedSymbols()
     
-    // Look up transition with wildcard support
-    const stateTransitions = this.tm.delta[this.state]
-    let action: string[] | undefined
+    // Look up transition with wildcard support in flattened delta
+    let action: [string, string, string] | undefined
     let matchedPattern: string | undefined
 
-    if (stateTransitions) {
-      // First try exact match (non-wildcard transitions have precedence)
-      if (this.tm.nonWildcardInputSymbols.get(this.state)?.has(scannedSymbols)) {
-        action = stateTransitions[scannedSymbols]
-        matchedPattern = scannedSymbols
-      } else {
-        // Try wildcard matching
-        for (const pattern of Object.keys(stateTransitions)) {
+    // First try exact match (non-wildcard transitions have precedence)
+    const exactKey = deltaKey(this.state, scannedSymbols)
+    if (this.tm.nonWildcardInputSymbols.get(this.state)?.has(scannedSymbols)) {
+      action = this.tm.delta[exactKey]
+      matchedPattern = scannedSymbols
+    } else {
+      // Try wildcard matching - find all patterns for this state
+      const statePrefix = `${this.state},`
+      for (const [key, transition] of Object.entries(this.tm.delta)) {
+        if (key.startsWith(statePrefix)) {
+          const pattern = key.slice(statePrefix.length)
           if (pattern.includes(WILDCARD) && wildcardMatch(scannedSymbols, pattern)) {
-            action = stateTransitions[pattern]
+            action = transition
             matchedPattern = pattern
             break
           }
@@ -278,21 +280,23 @@ export class TMConfiguration {
     const oldState = this.state
     const scannedSymbols = this.currentScannedSymbols()
     
-    // Look up transition with wildcard support
-    const stateTransitions = this.tm.delta[this.state]
-    let action: string[] | undefined
+    // Look up transition with wildcard support in flattened delta
+    let action: [string, string, string] | undefined
     let matchedPattern: string | undefined
-    
-    if (stateTransitions) {
-      // First try exact match (non-wildcard transitions have precedence)
-      if (this.tm.nonWildcardInputSymbols.get(this.state)?.has(scannedSymbols)) {
-        action = stateTransitions[scannedSymbols]
-        matchedPattern = scannedSymbols
-      } else {
-        // Try wildcard matching
-        for (const pattern of Object.keys(stateTransitions)) {
+
+    // First try exact match (non-wildcard transitions have precedence)
+    const exactKey = deltaKey(this.state, scannedSymbols)
+    if (this.tm.nonWildcardInputSymbols.get(this.state)?.has(scannedSymbols)) {
+      action = this.tm.delta[exactKey]
+      matchedPattern = scannedSymbols
+    } else {
+      // Try wildcard matching - find all patterns for this state
+      const statePrefix = `${this.state},`
+      for (const [key, transition] of Object.entries(this.tm.delta)) {
+        if (key.startsWith(statePrefix)) {
+          const pattern = key.slice(statePrefix.length)
           if (pattern.includes(WILDCARD) && wildcardMatch(scannedSymbols, pattern)) {
-            action = stateTransitions[pattern]
+            action = transition
             matchedPattern = pattern
             break
           }
@@ -527,8 +531,8 @@ export class TM {
   readonly rejectState: string
   readonly numTapes: number
   
-  // Transition function: delta[state][symbols] = [nextState, newSymbols, moveDirections]
-  readonly delta: Record<string, Record<string, string[]>>
+  // Transition function: delta["state,symbols"] = [nextState, newSymbols, moveDirections]
+  readonly delta: Record<string, [string, string, string]>
   
   // For performance: track non-wildcard transitions for fast exact matching
   readonly nonWildcardInputSymbols: Map<string, Set<string>> = new Map()
@@ -644,7 +648,9 @@ export class TM {
 
         // Track non-wildcard symbols for performance
         if (!symbols.includes(WILDCARD)) {
-          this.nonWildcardInputSymbols.get(state)!.add(symbols)
+          const symbolSet = this.nonWildcardInputSymbols.get(state)
+          assert(symbolSet, `Symbol set should exist for state "${state}"`)
+          symbolSet.add(symbols)
         }
 
         for (let i = 0; i < symbols.length; i++) {
@@ -703,7 +709,16 @@ export class TM {
     this.startState = startState
     this.acceptState = acceptState
     this.rejectState = rejectState
-    this.delta = delta
+    
+    // Flatten the nested delta format to match DFA/NFA pattern
+    const flatDelta: Record<string, [string, string, string]> = {}
+    for (const [state, symbolMap] of Object.entries(delta)) {
+      for (const [symbols, transition] of Object.entries(symbolMap)) {
+        const key = deltaKey(state, symbols)
+        flatDelta[key] = [transition[0], transition[1], transition[2]]
+      }
+    }
+    this.delta = flatDelta
 
     // Check for overlapping wildcard transitions (must be after setting this.delta)
     this.validateWildcardOverlaps()
@@ -713,8 +728,26 @@ export class TM {
    * Validate that wildcard transitions don't overlap ambiguously
    */
   private validateWildcardOverlaps(): void {
-    for (const [state, symbolMap] of Object.entries(this.delta)) {
-      const wildcardPatterns = Object.keys(symbolMap).filter(pattern => pattern.includes(WILDCARD))
+    // Group transitions by state from flattened delta
+    const stateTransitions = new Map<string, string[]>()
+    for (const key of Object.keys(this.delta)) {
+      const commaIndex = key.indexOf(',')
+      if (commaIndex === -1) continue
+      
+      const state = key.substring(0, commaIndex)
+      const symbols = key.substring(commaIndex + 1)
+      
+      if (!stateTransitions.has(state)) {
+        stateTransitions.set(state, [])
+      }
+      const transitions = stateTransitions.get(state)
+      assert(transitions, `Transitions should exist for state "${state}"`)
+      transitions.push(symbols)
+    }
+    
+    // Check each state for overlapping wildcard patterns
+    for (const [state, patterns] of stateTransitions.entries()) {
+      const wildcardPatterns = patterns.filter(pattern => pattern.includes(WILDCARD))
       
       // Check each pair of wildcard patterns for overlaps
       for (let i = 0; i < wildcardPatterns.length; i++) {
@@ -729,8 +762,8 @@ export class TM {
             if (!this.nonWildcardInputSymbols.get(state)?.has(overlapString)) {
               throw new Error(
                 `Overlapping wildcard transitions:\n` +
-                `  ${state}, ${pattern1} -> ${this.delta[state][pattern1].join(', ')}\n` +
-                `  ${state}, ${pattern2} -> ${this.delta[state][pattern2].join(', ')}\n` +
+                `  ${state}, ${pattern1} -> ${this.delta[deltaKey(state, pattern1)].join(', ')}\n` +
+                `  ${state}, ${pattern2} -> ${this.delta[deltaKey(state, pattern2)].join(', ')}\n` +
                 `Both match symbol sequence "${overlapString}", but there is no more specific ` +
                 `non-wildcard transition on state ${state} for "${overlapString}".`
               )
@@ -849,9 +882,9 @@ export class TM {
    * Get string representation of a single transition.
    */
   transitionStr(state: string, symbols: string): string | null {
-    const stateTransitions = this.delta[state]
-    if (stateTransitions && stateTransitions[symbols]) {
-      const action = stateTransitions[symbols]
+    const key = deltaKey(state, symbols)
+    const action = this.delta[key]
+    if (action) {
       return `${symbols} → ${action.join(' , ')}`
     }
     return null
@@ -890,14 +923,9 @@ export class TM {
       }
     }
     
-    for (const state of this.states) {
-      const stateTransitions = this.delta[state]
-      if (stateTransitions) {
-        for (const [symbols, action] of Object.entries(stateTransitions)) {
-          const stateSymbol = `${state},${symbols}`.padStart(maxWidth)
-          lines.push(`${stateSymbol} → ${action.join(',')}`)
-        }
-      }
+    for (const [key, action] of Object.entries(this.delta)) {
+      const stateSymbol = key.padStart(maxWidth)
+      lines.push(`${stateSymbol} → ${action.join(',')}`)
     }
     
     return lines.join('\n')
@@ -939,25 +967,20 @@ export class TM {
     }
 
     // Check delta functions are equal
-    for (const state of this.states) {
-      const thisTransitions = this.delta[state] || {}
-      const otherTransitions = other.delta[state] || {}
+    const thisKeys = Object.keys(this.delta)
+    const otherKeys = Object.keys(other.delta)
+    
+    if (thisKeys.length !== otherKeys.length) return false
+    
+    for (const key of thisKeys) {
+      const thisAction = this.delta[key]
+      const otherAction = other.delta[key]
       
-      const thisKeys = Object.keys(thisTransitions)
-      const otherKeys = Object.keys(otherTransitions)
+      if (!otherAction) return false
+      if (thisAction.length !== otherAction.length) return false
       
-      if (thisKeys.length !== otherKeys.length) return false
-      
-      for (const symbols of thisKeys) {
-        const thisAction = thisTransitions[symbols]
-        const otherAction = otherTransitions[symbols]
-        
-        if (!otherAction) return false
-        if (thisAction.length !== otherAction.length) return false
-        
-        for (let i = 0; i < thisAction.length; i++) {
-          if (thisAction[i] !== otherAction[i]) return false
-        }
+      for (let i = 0; i < thisAction.length; i++) {
+        if (thisAction[i] !== otherAction[i]) return false
       }
     }
 

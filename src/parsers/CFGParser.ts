@@ -70,7 +70,7 @@ export class CFGParser {
     }
 
     // Normalize the parsed data
-    const normalizedSpec = ParserUtil.normalizeCFGSpec(parsed)
+    const normalizedSpec = normalizeCFGSpec(parsed)
 
     // Validate basic structure
     this.validateBasicStructure(normalizedSpec, yamlString, doc, lineCounter)
@@ -82,6 +82,7 @@ export class CFGParser {
   /**
    * Validate the basic structure of the CFG specification
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private validateBasicStructure(spec: CFGSpec, originalYaml: string, doc: any, lineCounter: LineCounter): void {
     const variables = Object.keys(spec)
     
@@ -213,15 +214,9 @@ export class CFGParser {
   }
 }
 
-// Add utility methods to ParserUtil for CFG-specific normalization
-declare module './ParserUtil' {
-  namespace ParserUtil {
-    function normalizeCFGSpec(parsed: any): CFGSpec
-  }
-}
-
-// Extend ParserUtil with CFG-specific methods
-ParserUtil.normalizeCFGSpec = function(parsed: any): CFGSpec {
+// CFG-specific normalization function
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function normalizeCFGSpec(parsed: any): CFGSpec {
   const result: CFGSpec = {}
   
   for (const [key, value] of Object.entries(parsed)) {

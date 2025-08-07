@@ -3,8 +3,9 @@ import { createEffect, For, Show, onMount } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import { TM, TMConfiguration, ConfigDiff } from '../../core/TM'
 import { TMParser } from '../../parsers/TMParser'
-import { wildcardMatch, WILDCARD } from '../../core/Utils'
-import { appState } from '../store/AppStore'
+import { wildcardMatch, WILDCARD, assert } from '../../core/Utils'
+import { appState, dispatch } from '../store/AppStore'
+import { SetComputationResult, SetParseError } from '../types/Messages'
 import './TableComponent.css' // Reuse existing CSS
 
 interface NavigationControls {
@@ -19,7 +20,6 @@ interface NavigationControls {
 interface TMComponentProps {
   onNavigationReady?: (controls: NavigationControls) => void
   onRunReady?: (runFunction: () => void) => void
-  onResultChange?: (result: { hasResult: boolean; accepted: boolean; outputString?: string; hitMaxSteps?: boolean } | null) => void
 }
 
 interface TMComponentState {
@@ -86,71 +86,76 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
         hitMaxSteps
       })
       
+      // Dispatch computation result to global store
+      dispatch(new SetComputationResult({
+        accepts: accepted,
+        outputString: outputString,
+        error: hitMaxSteps ? 'MAX_STEPS_REACHED' : undefined
+      }))
+      
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error parsing TM'
       setState({
         tm: null,
-        error: error instanceof Error ? error.message : 'Unknown error parsing TM',
+        error: errorMessage,
         hasResult: false
       })
+      
+      // Dispatch parse error to global store
+      dispatch(new SetParseError(errorMessage))
     }
   }
 
-  // Parse TM and conditionally process input based on runImmediately setting
+  // Parse TM and process input based on settings
   createEffect(() => {
+    // Depend on both editorContent and inputString for reactivity
+    const editorContent = appState.editorContent
+    const inputString = appState.inputString
+    const runImmediately = appState.runImmediately
+    
     // Always try to parse the TM for validation
     try {
       const parser = new TMParser()
-      const tm = parser.parseTM(appState.editorContent)
+      const tm = parser.parseTM(editorContent)
       
-      if (appState.runImmediately) {
+      if (runImmediately) {
         // Run computation immediately
         runComputation()
       } else {
-        // Just parse and show structure, but don't compute results
+        // Just parse and show structure with initial configuration
+        // This will update whenever either editorContent OR inputString changes
+        const initialConfig = tm.initialConfig(inputString)
         setState({
           tm,
           error: null,
-          hasResult: false
+          hasResult: false,
+          initialConfig,
+          currentConfig: initialConfig.copy(),
+          currentStep: 0,
+          lastComputedInput: ''
         })
+        
+        // Clear computation results when YAML changes in manual mode
+        dispatch(new SetParseError(null))
       }
       
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error parsing TM'
       setState({
         tm: null,
-        error: error instanceof Error ? error.message : 'Unknown error parsing TM',
-        hasResult: false
-      })
-    }
-  })
-
-  // Reset computation results when test input changes in manual mode
-  createEffect(() => {
-    const currentInput = appState.inputString
-    if (!appState.runImmediately && state.tm && state.hasResult && 
-        currentInput !== state.lastComputedInput) {
-      setState({
+        error: errorMessage,
         hasResult: false,
-        currentStep: 0
+        currentConfig: null,
+        initialConfig: null
       })
+      
+      // Dispatch parse error to global store
+      dispatch(new SetParseError(errorMessage))
     }
   })
 
 
-  // Report result changes to parent
-  createEffect(() => {
-    if (props.onResultChange) {
-      if (state.error || !state.tm) {
-        props.onResultChange(null)
-      } else {
-        props.onResultChange({
-          hasResult: state.hasResult,
-          accepted: state.accepted,
-          outputString: state.outputString,
-          hitMaxSteps: state.hitMaxSteps
-        })
-      }
-    }
-  })
+  // Results are now dispatched to global store instead of using callbacks
 
   // Navigation functions using ConfigDiff approach
   const moveConfigToStep = (newStep: number) => {
@@ -230,7 +235,7 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
 
   // Helper functions for rendering
   const getCurrentConfig = () => {
-    if (!state.hasResult || !state.currentConfig) return null
+    // Return current config regardless of hasResult status
     return state.currentConfig
   }
 
@@ -240,7 +245,7 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
   }
 
   return (
-    <div class="dfa-table-component">
+    <div class="automaton-table-component">
       <Show when={state.error}>
         <div class="error-message">
           <strong>Error:</strong>
@@ -249,49 +254,58 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
       </Show>
 
       <Show when={state.tm && !state.error}>
-        <div class="dfa-content">
-          {/* Tape Display */}
-          <Show when={state.hasResult}>
-            <div class="tm-tapes-container">
-              <h3>Tapes <span class="tm-step-counter">Step {state.currentStep + 1}/{state.diffs.length + 1}</span></h3>
-              <table class="tm-tapes-table">
-                <tbody>
-                  <For each={Array.from({ length: state.tm!.numTapes }, (_, i) => i)}>
-                    {(tapeIndex) => (
-                      <TMTapeRow 
-                        config={getCurrentConfig()!}
-                        tapeIndex={tapeIndex}
-                      />
-                    )}
-                  </For>
-                </tbody>
-              </table>
-            </div>
-          </Show>
-
-          {/* Transition Table */}
-          <div class="transition-table-container">
-            <table class="transition-table">
-              <thead>
-                <tr>
-                  <th class="transition_header_entry">State</th>
-                  <th class="transition_header_entry">Transitions</th>
-                </tr>
-              </thead>
+        <div class="automaton-content">
+        {/* Tape Display - TM specific */}
+        <Show when={state.currentConfig}>
+          <div class="tm-tapes-container">
+            <h3>Tapes <span class="tm-step-counter">{state.hasResult ? `Step ${state.currentStep + 1}/${state.diffs.length + 1}` : 'Initial State'}</span></h3>
+            <table class="tm-tapes-table">
               <tbody>
-                <For each={state.tm?.states || []}>
-                  {(stateName) => (
-                    <TMTransitionRow 
-                      tm={state.tm!}
-                      stateName={stateName}
-                      currentState={getCurrentState()}
-                      currentConfig={getCurrentConfig()}
+                <For each={Array.from({ length: (() => { assert(state.tm, 'TM should be defined'); return state.tm.numTapes })() }, (_, i) => i)}>
+                  {(tapeIndex) => (
+                    <TMTapeRow 
+                      getTape={() => {
+                        const cfg = getCurrentConfig()
+                        assert(cfg, 'Config should be defined when currentConfig exists')
+                        return cfg.tapes[tapeIndex] || []
+                      }}
+                      getHeadPosition={() => {
+                        const cfg = getCurrentConfig()
+                        assert(cfg, 'Config should be defined when currentConfig exists')
+                        return cfg.headsPos[tapeIndex] || 0
+                      }}
+                      tapeIndex={tapeIndex}
                     />
                   )}
                 </For>
               </tbody>
             </table>
           </div>
+        </Show>
+
+        {/* Transition Table - Generic styling */}
+        <div class="transition-table-container">
+          <table class="transition-table">
+            <thead>
+              <tr>
+                <th class="transition_header_entry">State</th>
+                <th class="transition_header_entry">Transitions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <For each={(() => { assert(state.tm, 'TM should be defined'); return state.tm.states })()}>
+                {(stateName) => (
+                  <TMTransitionRow 
+                    tm={(() => { assert(state.tm, 'TM should be defined'); return state.tm })()}
+                    stateName={stateName}
+                    currentState={getCurrentState()}
+                    currentConfig={getCurrentConfig()}
+                  />
+                )}
+              </For>
+            </tbody>
+          </table>
+        </div>
         </div>
       </Show>
     </div>
@@ -311,33 +325,34 @@ const TMTransitionRow: Component<TMTransitionRowProps> = (props) => {
   const isAcceptState = () => props.stateName === props.tm.acceptState
   const isRejectState = () => props.stateName === props.tm.rejectState
 
-  const getStateClass = () => {
-    if (isAcceptState()) return 'accept'
-    if (isRejectState()) return 'reject'
-    return '' // No special styling for regular states
+  const getStateModifierClass = () => {
+    if (isAcceptState()) return 'accepting'
+    if (isRejectState()) return 'rejecting'
+    return '' // No modifier class for regular states
   }
 
   const getTransitions = () => {
-    const transitions = props.tm.delta[props.stateName]
-    if (!transitions) return []
-    
-    return Object.entries(transitions).map(([symbols, action]) => ({
-      symbols,
-      action,
-      display: `${symbols} → ${action.join(' , ')}`
-    }))
+    const statePrefix = `${props.stateName},`
+    return Object.entries(props.tm.delta)
+      .filter(([key]) => key.startsWith(statePrefix))
+      .map(([key, action]) => {
+        const symbols = key.slice(statePrefix.length)
+        return {
+          symbols,
+          action,
+          display: `${symbols} → ${action.join(',')}`
+        }
+      })
   }
 
   const isCurrentTransition = (symbols: string) => {
     if (!isCurrentState() || !props.currentConfig) return false
     
     const scannedSymbols = props.currentConfig.currentScannedSymbols()
-    const stateTransitions = props.tm.delta[props.stateName]
     
-    if (!stateTransitions) return false
-    
-    // Check if exact match exists (has priority over wildcards)
-    const hasExactMatch = stateTransitions.hasOwnProperty(scannedSymbols)
+    // Check if exact match exists (has priority over wildcards) using flattened delta
+    const exactKey = `${props.stateName},${scannedSymbols}`
+    const hasExactMatch = props.tm.delta.hasOwnProperty(exactKey)
     
     if (symbols === scannedSymbols) {
       // Exact match - always highlight
@@ -353,7 +368,7 @@ const TMTransitionRow: Component<TMTransitionRowProps> = (props) => {
   return (
     <tr>
       <td class="state-cell">
-        <div class={`transition_entry_${getStateClass()} ${isCurrentState() ? 'current' : ''}`}>
+        <div class={`transition-table-entry state-entry ${getStateModifierClass()} ${isCurrentState() ? 'current' : ''}`}>
           {props.stateName}
         </div>
       </td>
@@ -364,7 +379,7 @@ const TMTransitionRow: Component<TMTransitionRowProps> = (props) => {
               <tr>
                 <For each={getTransitions()}>
                   {(transition) => (
-                    <td class={`transition-entry ${isCurrentTransition(transition.symbols) ? 'current' : ''}`}>
+                    <td class={`transition-table-entry transition-entry ${isCurrentTransition(transition.symbols) ? 'current' : ''}`}>
                       {transition.display}
                     </td>
                   )}
@@ -380,19 +395,17 @@ const TMTransitionRow: Component<TMTransitionRowProps> = (props) => {
 
 // Component for displaying a single tape row
 interface TMTapeRowProps {
-  config: TMConfiguration
+  getTape: () => string[]
+  getHeadPosition: () => number
   tapeIndex: number
 }
 
 const TMTapeRow: Component<TMTapeRowProps> = (props) => {
-  const getTape = () => props.config.tapes[props.tapeIndex] || []
-  const getHeadPosition = () => props.config.headsPos[props.tapeIndex] || 0
-
   return (
     <tr data-toggle="tooltip" title={`TM tape ${props.tapeIndex + 1}`}>
-      <For each={getTape()}>
+      <For each={props.getTape()}>
         {(symbol, index) => (
-          <td class={`tape_cell ${index() === getHeadPosition() ? 'current' : ''}`}>
+          <td class={`tape_cell ${index() === props.getHeadPosition() ? 'current' : ''}`}>
             {symbol}
           </td>
         )}

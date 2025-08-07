@@ -1,6 +1,7 @@
 import { describe, test, expect } from 'vitest'
 import { TM, TMConfiguration, ConfigDiff } from './TM'
 import { TMParser } from '../parsers/TMParser'
+import { deltaKey } from './Utils'
 
 describe('TM', () => {
 
@@ -327,8 +328,8 @@ describe('TM', () => {
       expect(config.currentScannedSymbols()).toBe('0_')
 
       // Debug: check if transition exists
-      const stateTransitions = doubleTM.delta[config.state]
-      const action = stateTransitions ? stateTransitions[config.currentScannedSymbols()] : undefined
+      const key = deltaKey(config.state, config.currentScannedSymbols())
+      const action = doubleTM.delta[key]
       expect(action).toBeDefined() // Should find the q0,0_ transition
       expect(action).toEqual(['q1', '0$', 'SR'])
 
@@ -1288,7 +1289,7 @@ delta:
 
       for (let i = 0; i < configs.length; i++) {
         const config = configs[i]
-        const lengths = config.tapes.map((tape: any[]) => tape.length)
+        const lengths = config.tapes.map((tape) => tape.length)
         tapeLengths.push(lengths)
 
         // Check if tapes 2 and 3 have different lengths

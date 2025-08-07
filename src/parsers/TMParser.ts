@@ -1,10 +1,35 @@
-import { parseDocument, LineCounter } from 'yaml'
+import { parseDocument, LineCounter, Document } from 'yaml'
 import Ajv, { type ValidateFunction } from 'ajv'
 import addErrors from 'ajv-errors'
 import { TM } from '../core/TM'
 import { setNotation } from '../core/Utils'
-import { ParserUtil } from './ParserUtil'
+import { ParserUtil, type FormattedError } from './ParserUtil'
 import tmBaseSchema from './tm-base-schema.json'
+
+/**
+ * Interface for TM JSON Schema property definitions
+ */
+interface TMSchemaProperty {
+  type: string;
+  patternProperties: Record<string, {
+    type: string;
+    minItems: number;
+    maxItems: number;
+    items: Array<{
+      type: string;
+      enum?: string[];
+      minLength?: number;
+      maxLength?: number;
+      pattern?: string;
+      errorMessage: string;
+    }>;
+    errorMessage: string;
+  }>;
+  additionalProperties: boolean;
+  errorMessage: {
+    additionalProperties: string;
+  };
+}
 
 /**
  * Interface representing the YAML structure for TM specifications
@@ -49,10 +74,11 @@ export class TMParser {
    */
   parseTM(yamlString: string): TM {
     const result = this.validateTM(yamlString)
-    if (result.errors.length > 0) {
+    if (!result.tm) {
+      console.assert(result.errors.length > 0, 'Expected validation errors when tm is not defined')
       throw new Error(result.errors.map(e => e.message).join('\n\n'))
     }
-    return result.tm!
+    return result.tm
   }
 
   /**
@@ -60,7 +86,7 @@ export class TMParser {
    * @param yamlString - YAML specification of the TM
    * @returns Object with either TM instance or structured errors
    */
-  validateTM(yamlString: string): { tm?: TM; errors: any[] } {
+  validateTM(yamlString: string): { tm?: TM; errors: FormattedError[] } {
     try {
       // Create LineCounter for position tracking
       const lineCounter = new LineCounter()
@@ -161,7 +187,7 @@ export class TMParser {
   /**
    * Get delta validation errors without throwing (for linter use)
    */
-  private getDeltaValidationErrors(spec: TMSpec, tapeAlphabet: string[], originalYaml: string, doc: any, lineCounter: LineCounter): any[] {
+  private getDeltaValidationErrors(spec: TMSpec, tapeAlphabet: string[], originalYaml: string, doc: Document, lineCounter: LineCounter): FormattedError[] {
     // Determine number of tapes from first transition
     const firstState = Object.keys(spec.delta)[0]
     const firstSymbols = firstState ? Object.keys(spec.delta[firstState])[0] : undefined
@@ -202,7 +228,7 @@ export class TMParser {
   /**
    * Get alphabet overlap errors without throwing (for linter use)
    */
-  private getAlphabetOverlapErrors(spec: TMSpec, overlappingSymbols: string[], yamlString: string, doc: any, lineCounter: LineCounter): any[] {
+  private getAlphabetOverlapErrors(spec: TMSpec, overlappingSymbols: string[], yamlString: string, doc: Document, lineCounter: LineCounter): FormattedError[] {
     // Create AJV-style errors for the overlapping symbols to use with formatValidationErrors
     const ajvErrors = []
     
@@ -241,7 +267,7 @@ export class TMParser {
    * Build dynamic schema for delta validation with precise error positioning
    */
   private buildDeltaSchema(states: string[], tapeAlphabet: string[], numTapes: number): object {
-    const deltaProperties: Record<string, any> = {}
+    const deltaProperties: Record<string, TMSchemaProperty> = {}
     
     // Generate explicit properties for each valid state
     for (const state of states) {

@@ -17,7 +17,16 @@
       "Bash(./test_with_inputs.sh:*)",
       "Bash(./test_five_types.sh:*)",
       "Bash(ls:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(git push:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git remote get-url:*)",
+      "Bash(git remote set-url:*)",
+      "Bash(/tmp/check_repos.sh:*)",
+      "Bash(git reset:*)",
+      "Bash(npm run lint:*)",
+      "Bash(grep:*)"
     ],
     "deny": []
   }

@@ -2,8 +2,10 @@ import type { Component } from 'solid-js'
 import { createEffect, For, Show, onMount } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import { DFA } from '../../core/DFA'
+import { assert } from '../../core/Utils'
 import { DFAParser } from '../../parsers/DFAParser'
-import { appState } from '../store/AppStore'
+import { appState, dispatch } from '../store/AppStore'
+import { SetComputationResult, SetParseError } from '../types/Messages'
 import './TableComponent.css'
 
 interface NavigationControls {
@@ -18,7 +20,6 @@ interface NavigationControls {
 interface DFATableComponentProps {
   onNavigationReady?: (controls: NavigationControls) => void
   onRunReady?: (runFunction: () => void) => void
-  onResultChange?: (result: { hasResult: boolean; accepted: boolean } | null) => void
 }
 
 interface DFATableComponentState {
@@ -68,12 +69,22 @@ export const DFATableComponent: Component<DFATableComponentProps> = (props) => {
         lastComputedInput: appState.inputString
       })
       
+      // Dispatch computation result to global store
+      dispatch(new SetComputationResult({
+        accepts: accepted,
+        outputString: null // DFAs don't have output strings
+      }))
+      
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error parsing DFA'
       setState({
         dfa: null,
-        error: error instanceof Error ? error.message : 'Unknown error parsing DFA',
+        error: errorMessage,
         hasResult: false
       })
+      
+      // Dispatch parse error to global store
+      dispatch(new SetParseError(errorMessage))
     }
   }
 
@@ -95,14 +106,21 @@ export const DFATableComponent: Component<DFATableComponentProps> = (props) => {
           error: null,
           hasResult: false
         })
+        
+        // Clear computation results when YAML changes in manual mode
+        dispatch(new SetParseError(null))
       }
       
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error parsing DFA'
       setState({
         dfa: null,
-        error: error instanceof Error ? error.message : 'Unknown error parsing DFA',
+        error: errorMessage,
         hasResult: false
       })
+      
+      // Dispatch parse error to global store
+      dispatch(new SetParseError(errorMessage))
     }
   })
 
@@ -119,19 +137,7 @@ export const DFATableComponent: Component<DFATableComponentProps> = (props) => {
       }
     })
 
-    // Report result changes to parent
-    createEffect(() => {
-      if (props.onResultChange) {
-        if (state.error || !state.dfa) {
-          props.onResultChange(null)
-        } else {
-          props.onResultChange({
-            hasResult: state.hasResult,
-            accepted: state.accepted
-          })
-        }
-      }
-    })
+    // Results are now dispatched to global store instead of using callbacks
 
   // Effect to handle manual run test triggers  
   // We'll need a different approach since appState.result is not the right trigger
@@ -214,7 +220,7 @@ export const DFATableComponent: Component<DFATableComponentProps> = (props) => {
   }
 
   return (
-    <div class="dfa-table-component">
+    <div class="automaton-table-component">
       <Show when={state.error}>
         <div class="error-message">
           <strong>Error:</strong>
@@ -223,39 +229,39 @@ export const DFATableComponent: Component<DFATableComponentProps> = (props) => {
       </Show>
 
       <Show when={state.dfa && !state.error}>
-        <div class="dfa-content">
-          {/* Compact Input Display */}
-          <div class="input-display">
-            <div class="input-status-line">
-              <span class="input-processed" style="font-family: Consolas, monospace">
-                {formatInputWithPosition()}
-              </span>
-            </div>
+        <div class="automaton-content">
+        {/* Compact Input Display */}
+        <div class="input-display">
+          <div class="input-status-line">
+            <span class="input-processed" style="font-family: Consolas, monospace">
+              {formatInputWithPosition()}
+            </span>
           </div>
+        </div>
 
-          {/* Transition Table */}
-          <div class="transition-table-container">
-            <table id="transition_table" class="transition-table">
-              <thead>
-                <tr id="transition_table_head">
-                  <th class="transition_header_entry">State</th>
-                  <th class="transition_header_entry" colspan={state.dfa?.getInputAlphabet().length || 1} style="text-align: left;">Transitions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <For each={state.dfa?.getStates() || []}>
-                  {(stateName) => (
-                    <TransitionRow 
-                      dfa={state.dfa!}
-                      stateName={stateName}
-                      currentState={getCurrentState()}
-                      currentSymbol={getCurrentSymbol()}
-                    />
-                  )}
-                </For>
-              </tbody>
-            </table>
-          </div>
+        {/* Transition Table */}
+        <div class="transition-table-container">
+          <table id="transition_table" class="transition-table">
+            <thead>
+              <tr id="transition_table_head">
+                <th class="transition_header_entry">State</th>
+                <th class="transition_header_entry" colspan={(() => { assert(state.dfa, 'DFA should be defined'); return state.dfa.inputAlphabet.length })()} style="text-align: left;">Transitions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <For each={(() => { assert(state.dfa, 'DFA should be defined'); return state.dfa.states })()}>
+                {(stateName) => (
+                  <TransitionRow 
+                    dfa={(() => { assert(state.dfa, 'DFA should be defined'); return state.dfa })()}
+                    stateName={stateName}
+                    currentState={getCurrentState()}
+                    currentSymbol={getCurrentSymbol()}
+                  />
+                )}
+              </For>
+            </tbody>
+          </table>
+        </div>
         </div>
       </Show>
     </div>
@@ -273,7 +279,7 @@ interface TransitionRowProps {
 const TransitionRow: Component<TransitionRowProps> = (props) => {
   const isCurrentState = () => props.stateName === props.currentState
   const isAcceptState = () => {
-    return props.dfa.getAcceptStates().includes(props.stateName)
+    return props.dfa.acceptStates.includes(props.stateName)
   }
 
   return (
@@ -284,13 +290,13 @@ const TransitionRow: Component<TransitionRowProps> = (props) => {
       <td 
         class="state-cell"
       >
-        <div class={`transition_entry_${isAcceptState() ? 'accept' : 'reject'} ${isCurrentState() ? 'current' : ''}`}>
+        <div class={`transition-table-entry state-entry ${isAcceptState() ? 'accepting' : 'rejecting'} ${isCurrentState() ? 'current' : ''}`}>
           {props.stateName}
         </div>
       </td>
       
       {/* Individual Transition Cells */}
-      <For each={props.dfa.getInputAlphabet()}>
+      <For each={props.dfa.inputAlphabet}>
         {(symbol) => (
           <td class="transition-cell">
             <TransitionEntry
@@ -325,7 +331,7 @@ const TransitionEntry: Component<TransitionEntryProps> = (props) => {
 
   return (
     <span 
-      class={`transition-entry ${props.isCurrentTransition ? 'current' : ''}`}
+      class={`transition-table-entry transition-entry ${props.isCurrentTransition ? 'current' : ''}`}
     >
       {getTransitionText()}
     </span>

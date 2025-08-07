@@ -2,7 +2,7 @@ import type { Component } from 'solid-js'
 import { Menubar } from '@kobalte/core/menubar'
 import { AutomatonType } from '../types/AppState'
 import { appState, dispatch, setAppState } from '../store/AppStore'
-import { LoadDefault, SaveFile, MinimizeDfa, OpenFile } from '../types/Messages'
+import { LoadDefault, SaveFile, MinimizeDfa, OpenFile, SetAutomatonType } from '../types/Messages'
 import './MenuBar.css'
 
 const themes = [
@@ -64,7 +64,7 @@ export const MenuBar: Component = () => {
               <Menubar.RadioItem 
                 class="menu-item"
                 value={AutomatonType.Dfa} 
-                onSelect={() => setAppState('automatonType', AutomatonType.Dfa)}
+                onSelect={() => dispatch(new SetAutomatonType(AutomatonType.Dfa))}
               >
                 <span class={appState.automatonType === AutomatonType.Dfa ? "selected-item" : ""}>
                   DFA
@@ -73,7 +73,7 @@ export const MenuBar: Component = () => {
               <Menubar.RadioItem 
                 class="menu-item"
                 value={AutomatonType.Nfa} 
-                onSelect={() => setAppState('automatonType', AutomatonType.Nfa)}
+                onSelect={() => dispatch(new SetAutomatonType(AutomatonType.Nfa))}
               >
                 <span class={appState.automatonType === AutomatonType.Nfa ? "selected-item" : ""}>
                   NFA
@@ -82,7 +82,7 @@ export const MenuBar: Component = () => {
               <Menubar.RadioItem 
                 class="menu-item"
                 value={AutomatonType.Regex} 
-                onSelect={() => setAppState('automatonType', AutomatonType.Regex)}
+                onSelect={() => dispatch(new SetAutomatonType(AutomatonType.Regex))}
               >
                 <span class={appState.automatonType === AutomatonType.Regex ? "selected-item" : ""}>
                   Regex
@@ -91,7 +91,7 @@ export const MenuBar: Component = () => {
               <Menubar.RadioItem 
                 class="menu-item"
                 value={AutomatonType.Cfg} 
-                onSelect={() => setAppState('automatonType', AutomatonType.Cfg)}
+                onSelect={() => dispatch(new SetAutomatonType(AutomatonType.Cfg))}
               >
                 <span class={appState.automatonType === AutomatonType.Cfg ? "selected-item" : ""}>
                   CFG
@@ -100,7 +100,7 @@ export const MenuBar: Component = () => {
               <Menubar.RadioItem 
                 class="menu-item"
                 value={AutomatonType.Tm} 
-                onSelect={() => setAppState('automatonType', AutomatonType.Tm)}
+                onSelect={() => dispatch(new SetAutomatonType(AutomatonType.Tm))}
               >
                 <span class={appState.automatonType === AutomatonType.Tm ? "selected-item" : ""}>
                   TM

@@ -3,12 +3,12 @@ import { createEffect, Show, onMount } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import { CFG } from '../../core/CFG'
 import { CFGParser } from '../../parsers/CFGParser'
-import { appState } from '../store/AppStore'
+import { appState, dispatch } from '../store/AppStore'
+import { SetComputationResult, SetParseError } from '../types/Messages'
 import './TableComponent.css'
 
 interface CFGComponentProps {
   onRunReady?: (runFunction: () => void) => void
-  onResultChange?: (result: { hasResult: boolean; accepted: boolean } | null) => void
 }
 
 interface CFGComponentState {
@@ -51,12 +51,22 @@ export const CFGComponent: Component<CFGComponentProps> = (props) => {
         lastComputedInput: appState.inputString
       })
       
+      // Dispatch computation result to global store
+      dispatch(new SetComputationResult({
+        accepts: accepted,
+        outputString: parseTree // CFGs can have parse tree output
+      }))
+      
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error parsing CFG'
       setState({
         cfg: null,
-        error: error instanceof Error ? error.message : 'Unknown error parsing CFG',
+        error: errorMessage,
         hasResult: false
       })
+      
+      // Dispatch parse error to global store
+      dispatch(new SetParseError(errorMessage))
     }
   }
 
@@ -78,14 +88,21 @@ export const CFGComponent: Component<CFGComponentProps> = (props) => {
           error: null,
           hasResult: false
         })
+        
+        // Clear parse errors when content changes in manual mode
+        dispatch(new SetParseError(null))
       }
       
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error parsing CFG'
       setState({
         cfg: null,
-        error: error instanceof Error ? error.message : 'Unknown error parsing CFG',
+        error: errorMessage,
         hasResult: false
       })
+      
+      // Dispatch parse error to global store
+      dispatch(new SetParseError(errorMessage))
     }
   })
 
@@ -101,19 +118,7 @@ export const CFGComponent: Component<CFGComponentProps> = (props) => {
     }
   })
 
-  // Report result changes to parent
-  createEffect(() => {
-    if (props.onResultChange) {
-      if (state.error || !state.cfg) {
-        props.onResultChange(null)
-      } else {
-        props.onResultChange({
-          hasResult: state.hasResult,
-          accepted: state.accepted
-        })
-      }
-    }
-  })
+  // Results are now dispatched to global store instead of using callbacks
 
   // Export run function once on mount
   onMount(() => {

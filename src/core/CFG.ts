@@ -1,5 +1,150 @@
 
+import { assert } from './Utils'
+
 export const EPSILON = 'ε'
+
+
+/**
+ * Represents a context-free grammar
+ */
+export class CFG {
+  readonly terminals: string[]
+  readonly variables: string[]
+  readonly symbols: string[]
+  readonly rules: Rule[]
+  readonly startSymbol: string
+
+  private mapInputSymbolToRules: Map<string, Rule[]> = new Map()
+  readonly variablesSet: Set<string>
+  readonly terminalsSet: Set<string>
+  private nullables: Set<string> = new Set()
+
+  constructor(terminals: string[], variables: string[], rules: Rule[], startSymbol: string) {
+    this.terminals = [...terminals]
+    this.variables = [...variables]
+    this.rules = [...rules]
+    this.startSymbol = startSymbol
+
+    this.init()
+    this.symbols = [...this.terminals, ...this.variables]
+    this.variablesSet = new Set(this.variables)
+    this.terminalsSet = new Set(this.terminals)
+  }
+
+  private init(): void {
+    // Validate that terminals and variables don't intersect
+    const terminalSet = new Set(this.terminals)
+    const variableSet = new Set(this.variables)
+    const intersection = new Set([...terminalSet].filter(x => variableSet.has(x)))
+    
+    if (intersection.size > 0) {
+      throw new Error(
+        `terminals and variables cannot intersect:\n` +
+        `  terminals: ${this.terminals}\n  variables: ${this.variables}`
+      )
+    }
+
+    // Validate that start symbol is in variables
+    if (!this.variables.includes(this.startSymbol)) {
+      throw new Error(
+        `variables must contain start_symbol:\n` +
+        `    start_symbol: ${this.startSymbol} variables: ${this.variables}`
+      )
+    }
+
+    // Set CFG reference for all rules
+    for (const rule of this.rules) {
+      rule.cfg = this
+    }
+
+    // Build mapping from input symbols to rules
+    this.mapInputSymbolToRules.clear()
+    for (const rule of this.rules) {
+      if (!this.mapInputSymbolToRules.has(rule.inputSymbol)) {
+        this.mapInputSymbolToRules.set(rule.inputSymbol, [])
+      }
+      const rulesList = this.mapInputSymbolToRules.get(rule.inputSymbol)
+      assert(rulesList, `Rule list should exist for symbol "${rule.inputSymbol}"`)
+      rulesList.push(rule)
+    }
+
+    this.findNullables()
+  }
+
+  private findNullables(): void {
+    this.nullables.clear()
+    let sizeChanged = true
+    
+    while (sizeChanged) {
+      const startSize = this.nullables.size
+      
+      for (const rule of this.rules) {
+        if (rule.isEpsilon()) {
+          this.nullables.add(rule.inputSymbol)
+        } else if (rule.outputString.split('').every(symbol => this.nullables.has(symbol))) {
+          this.nullables.add(rule.inputSymbol)
+        }
+      }
+      
+      sizeChanged = (this.nullables.size > startSize)
+    }
+  }
+
+  accepts(input: string): boolean {
+    const parser = new EarleyParser(this, input)
+    return parser.accepts()
+  }
+
+  parseTree(input: string): TreeNode | null {
+    const parser = new EarleyParser(this, input)
+    return parser.parseTree()
+  }
+
+  /**
+   * Returns true if symbol can derive the empty string
+   */
+  isNullable(symbol: string): boolean {
+    return this.nullables.has(symbol)
+  }
+
+  getRulesWithInput(symbol: string): Rule[] {
+    return this.mapInputSymbolToRules.get(symbol) || []
+  }
+
+  toString(_options?: { nice?: boolean }): string {
+    return this.rules.map(rule => rule.toString()).join('\n')
+  }
+
+  equals(other: CFG): boolean {
+    if (this.startSymbol !== other.startSymbol) return false
+    if (this.terminals.length !== other.terminals.length) return false
+    if (this.variables.length !== other.variables.length) return false
+    if (this.rules.length !== other.rules.length) return false
+
+    const thisTerminals = new Set(this.terminals)
+    const otherTerminals = new Set(other.terminals)
+    if (thisTerminals.size !== otherTerminals.size ||
+        !Array.from(thisTerminals).every(t => otherTerminals.has(t))) {
+      return false
+    }
+
+    const thisVariables = new Set(this.variables)
+    const otherVariables = new Set(other.variables)
+    if (thisVariables.size !== otherVariables.size ||
+        !Array.from(thisVariables).every(v => otherVariables.has(v))) {
+      return false
+    }
+
+    const thisRules = new Set(this.rules.map(r => `${r.inputSymbol}->${r.outputString}`))
+    const otherRules = new Set(other.rules.map(r => `${r.inputSymbol}->${r.outputString}`))
+    if (thisRules.size !== otherRules.size ||
+        !Array.from(thisRules).every(r => otherRules.has(r))) {
+      return false
+    }
+
+    return true
+  }
+}
 
 /**
  * Represents a production rule for a CFG.
@@ -377,145 +522,5 @@ export class EarleyParser {
     subtrees.reverse()
     
     return new TreeNode(rootRow.rule.inputSymbol, { children: subtrees })
-  }
-}
-
-/**
- * Represents a context-free grammar
- */
-export class CFG {
-  readonly terminals: string[]
-  readonly variables: string[]
-  readonly symbols: string[]
-  readonly rules: Rule[]
-  readonly startSymbol: string
-
-  private mapInputSymbolToRules: Map<string, Rule[]> = new Map()
-  readonly variablesSet: Set<string>
-  readonly terminalsSet: Set<string>
-  private nullables: Set<string> = new Set()
-
-  constructor(terminals: string[], variables: string[], rules: Rule[], startSymbol: string) {
-    this.terminals = [...terminals]
-    this.variables = [...variables]
-    this.rules = [...rules]
-    this.startSymbol = startSymbol
-
-    this.init()
-    this.symbols = [...this.terminals, ...this.variables]
-    this.variablesSet = new Set(this.variables)
-    this.terminalsSet = new Set(this.terminals)
-  }
-
-  private init(): void {
-    // Validate that terminals and variables don't intersect
-    const terminalSet = new Set(this.terminals)
-    const variableSet = new Set(this.variables)
-    const intersection = new Set([...terminalSet].filter(x => variableSet.has(x)))
-    
-    if (intersection.size > 0) {
-      throw new Error(
-        `terminals and variables cannot intersect:\n` +
-        `  terminals: ${this.terminals}\n  variables: ${this.variables}`
-      )
-    }
-
-    // Validate that start symbol is in variables
-    if (!this.variables.includes(this.startSymbol)) {
-      throw new Error(
-        `variables must contain start_symbol:\n` +
-        `    start_symbol: ${this.startSymbol} variables: ${this.variables}`
-      )
-    }
-
-    // Set CFG reference for all rules
-    for (const rule of this.rules) {
-      rule.cfg = this
-    }
-
-    // Build mapping from input symbols to rules
-    this.mapInputSymbolToRules.clear()
-    for (const rule of this.rules) {
-      if (!this.mapInputSymbolToRules.has(rule.inputSymbol)) {
-        this.mapInputSymbolToRules.set(rule.inputSymbol, [])
-      }
-      this.mapInputSymbolToRules.get(rule.inputSymbol)!.push(rule)
-    }
-
-    this.findNullables()
-  }
-
-  private findNullables(): void {
-    this.nullables.clear()
-    let sizeChanged = true
-    
-    while (sizeChanged) {
-      const startSize = this.nullables.size
-      
-      for (const rule of this.rules) {
-        if (rule.isEpsilon()) {
-          this.nullables.add(rule.inputSymbol)
-        } else if (rule.outputString.split('').every(symbol => this.nullables.has(symbol))) {
-          this.nullables.add(rule.inputSymbol)
-        }
-      }
-      
-      sizeChanged = (this.nullables.size > startSize)
-    }
-  }
-
-  accepts(input: string): boolean {
-    const parser = new EarleyParser(this, input)
-    return parser.accepts()
-  }
-
-  parseTree(input: string): TreeNode | null {
-    const parser = new EarleyParser(this, input)
-    return parser.parseTree()
-  }
-
-  /**
-   * Returns true if symbol can derive the empty string
-   */
-  isNullable(symbol: string): boolean {
-    return this.nullables.has(symbol)
-  }
-
-  getRulesWithInput(symbol: string): Rule[] {
-    return this.mapInputSymbolToRules.get(symbol) || []
-  }
-
-  toString(_options?: { nice?: boolean }): string {
-    return this.rules.map(rule => rule.toString()).join('\n')
-  }
-
-  equals(other: CFG): boolean {
-    if (this.startSymbol !== other.startSymbol) return false
-    if (this.terminals.length !== other.terminals.length) return false
-    if (this.variables.length !== other.variables.length) return false
-    if (this.rules.length !== other.rules.length) return false
-
-    const thisTerminals = new Set(this.terminals)
-    const otherTerminals = new Set(other.terminals)
-    if (thisTerminals.size !== otherTerminals.size ||
-        !Array.from(thisTerminals).every(t => otherTerminals.has(t))) {
-      return false
-    }
-
-    const thisVariables = new Set(this.variables)
-    const otherVariables = new Set(other.variables)
-    if (thisVariables.size !== otherVariables.size ||
-        !Array.from(thisVariables).every(v => otherVariables.has(v))) {
-      return false
-    }
-
-    const thisRules = new Set(this.rules.map(r => `${r.inputSymbol}->${r.outputString}`))
-    const otherRules = new Set(other.rules.map(r => `${r.inputSymbol}->${r.outputString}`))
-    if (thisRules.size !== otherRules.size ||
-        !Array.from(thisRules).every(r => otherRules.has(r))) {
-      return false
-    }
-
-    return true
   }
 }

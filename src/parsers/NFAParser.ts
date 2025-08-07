@@ -1,10 +1,34 @@
-import { parseDocument, LineCounter } from 'yaml'
+import { parseDocument, LineCounter, Document } from 'yaml'
 import Ajv, { type ValidateFunction } from 'ajv'
 import addErrors from 'ajv-errors'
 import { NFA } from '../core/NFA'
 import { setNotation } from '../core/Utils'
 import { ParserUtil } from './ParserUtil'
 import nfaBaseSchema from './nfa-base-schema.json'
+
+/**
+ * Interface for JSON Schema property definitions (NFA version)
+ */
+interface NFASchemaProperty {
+  type: string;
+  properties: Record<string, {
+    oneOf: Array<{
+      type: string;
+      enum?: string[];
+      items?: {
+        type: string;
+        enum: string[];
+        errorMessage: string;
+      };
+      errorMessage: string | { type: string };
+    }>;
+    errorMessage: string;
+  }>;
+  additionalProperties: boolean;
+  errorMessage: {
+    additionalProperties: string;
+  };
+}
 
 /**
  * Interface representing the YAML structure for NFA specifications
@@ -102,7 +126,7 @@ export class NFAParser {
    * PASS 2: Validate delta structure using dynamically generated schema
    * This provides precise error positioning for individual delta properties
    */
-  private validateDelta(spec: NFASpec, originalYaml: string, doc: any, lineCounter: LineCounter): void {
+  private validateDelta(spec: NFASpec, originalYaml: string, doc: Document, lineCounter: LineCounter): void {
     // Build dynamic schema for delta validation
     const deltaSchema = this.buildDeltaSchema(spec.states, spec.input_alphabet)
     
@@ -133,7 +157,7 @@ export class NFAParser {
     // Create enum for valid symbols (input alphabet + epsilon)
     const validSymbols = [...inputAlphabet, '']
     
-    const deltaProperties: Record<string, any> = {}
+    const deltaProperties: Record<string, NFASchemaProperty> = {}
     
     // Generate explicit properties for each valid state
     for (const state of states) {
