@@ -1,5 +1,6 @@
 import { describe, test, expect } from 'vitest'
 import { Regex } from './Regex'
+import { RegexParser } from '../parsers/RegexParser'
 
 describe('Regex', () => {
   describe('Basic regex functionality', () => {
@@ -8,6 +9,27 @@ describe('Regex', () => {
     test('constructor validates illegal characters', () => {
       expect(() => new Regex('#00101|01*(01|10)+'))
         .toThrow(/illegal characters/)
+    })
+
+    test('RegexParser should handle comments in default regex format', () => {
+      // This is the exact default regex content from AppStore.ts that's causing the error
+      const defaultRegexWithComments = `# Matches any binary string containing the substring 010
+B = (0|1)*;  # subexpression matching any binary string
+B 010 B`
+      
+      // RegexParser should handle comment stripping and not throw an error
+      const parser = new RegexParser()
+      expect(() => parser.parseRegex(defaultRegexWithComments)).not.toThrow()
+      
+      // The resulting regex should work correctly
+      const regex = parser.parseRegex(defaultRegexWithComments)
+      expect(regex.accepts('010')).toBe(true)
+      expect(regex.accepts('1010')).toBe(true)
+      expect(regex.accepts('01010')).toBe(true)
+      expect(regex.accepts('111')).toBe(false)
+      expect(regex.accepts('0011001')).toBe(false)
+      expect(regex.accepts('001100110')).toBe(false)
+      expect(regex.accepts('00110010')).toBe(true)
     })
 
     test('rejects empty string', () => {

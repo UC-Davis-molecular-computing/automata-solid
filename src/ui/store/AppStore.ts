@@ -69,7 +69,7 @@ delta:
 
     case AutomatonType.Regex:
       return `# Matches any binary string containing the substring 010
-B = (0|1)*  # subexpression matching any binary string
+B = (0|1)*;  # subexpression matching any binary string
 B 010 B`
 
     case AutomatonType.Cfg:

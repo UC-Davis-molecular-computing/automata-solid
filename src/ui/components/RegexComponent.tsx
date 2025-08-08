@@ -2,6 +2,7 @@ import type { Component } from 'solid-js'
 import { createEffect, Show, onMount, For } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import { Regex } from '../../core/Regex'
+import { RegexParser } from '../../parsers/RegexParser'
 import { appState, dispatch } from '../store/AppStore'
 import { SetComputationResult, SetParseError } from '../types/Messages'
 import './TableComponent.css'
@@ -31,8 +32,9 @@ export const RegexComponent: Component<RegexComponentProps> = (props) => {
   // Function to run the computation
   const runComputation = () => {
     try {
-      // Create the regex from the editor content
-      const regex = new Regex(appState.editorContent)
+      // Parse the regex from the editor content (handles comment stripping)
+      const parser = new RegexParser()
+      const regex = parser.parseRegex(appState.editorContent)
       
       // Test the input string
       const accepted = regex.accepts(appState.inputString)
@@ -68,7 +70,8 @@ export const RegexComponent: Component<RegexComponentProps> = (props) => {
   createEffect(() => {
     // Always try to parse the regex for validation
     try {
-      const regex = new Regex(appState.editorContent)
+      const parser = new RegexParser()
+      const regex = parser.parseRegex(appState.editorContent)
       
       if (appState.runImmediately) {
         // Run computation immediately

@@ -15,6 +15,8 @@ function escapeRegExp(string: string): string {
  * - Matches whole string, not substring
  * - Supports subexpressions via variable substitution
  * - Spaces are stripped from input
+ * - Comments (# to end of line) must be stripped before passing to constructor
+ *   (Use RegexParser.parseRegex() for input that may contain comments)
  */
 export class Regex {
   readonly source: string
@@ -26,6 +28,7 @@ export class Regex {
     this.source = regexStr
     
     // Process subexpressions first (before stripping whitespace)
+    // NOTE: This constructor expects regexStr to have comments already stripped
     const processedStr = this.processSubexpressions(regexStr)
     
     // Strip all whitespace after processing subexpressions
