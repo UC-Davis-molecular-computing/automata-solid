@@ -1,5 +1,5 @@
 
-import { assert } from './Utils'
+import { assert, checkAgainstInputAlphabet } from './Utils'
 
 export const EPSILON = 'ε'
 
@@ -91,11 +91,17 @@ export class CFG {
   }
 
   accepts(input: string): boolean {
+    // Validate input against terminal alphabet, similar to DFA
+    checkAgainstInputAlphabet(this.terminals, input)
+    
     const parser = new EarleyParser(this, input)
     return parser.accepts()
   }
 
   parseTree(input: string): TreeNode | null {
+    // Validate input against terminal alphabet, similar to DFA
+    checkAgainstInputAlphabet(this.terminals, input)
+    
     const parser = new EarleyParser(this, input)
     return parser.parseTree()
   }

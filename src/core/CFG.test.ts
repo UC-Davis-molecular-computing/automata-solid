@@ -127,7 +127,8 @@ describe('CFG', () => {
       
       expect(cfg.accepts('a')).toBe(true)
       expect(cfg.accepts('')).toBe(false)
-      expect(cfg.accepts('b')).toBe(false)
+      // 'b' should throw error since it's not in terminal alphabet
+      expect(() => cfg.accepts('b')).toThrow(/symbol 'b' not contained in alphabet/)
       expect(cfg.accepts('aa')).toBe(false)
     })
 
@@ -351,6 +352,35 @@ describe('CFG', () => {
       expect(cfg.isNullable('E')).toBe(false)
       expect(cfg.isNullable('F')).toBe(true)
       expect(cfg.isNullable('G')).toBe(false)
+    })
+  })
+
+  describe('Input Alphabet Validation', () => {
+    test('should throw error when input contains symbols not in terminal alphabet', () => {
+      // CFG for balanced parentheses - terminals are ( and )
+      const rules = [
+        new Rule('S', '(S)'),
+        new Rule('S', 'SS'),
+        new Rule('S', '')
+      ]
+      const cfg = new CFG(['(', ')'], ['S'], rules, 'S')
+      
+      // Input '010' contains symbols not in terminal alphabet {(, )}
+      expect(() => cfg.accepts('010')).toThrow(/symbol '[01]' not contained in alphabet/)
+    })
+    
+    test('should accept valid input with symbols in terminal alphabet', () => {
+      const rules = [
+        new Rule('S', '(S)'),
+        new Rule('S', 'SS'), 
+        new Rule('S', '')
+      ]
+      const cfg = new CFG(['(', ')'], ['S'], rules, 'S')
+      
+      // These inputs only use symbols from terminal alphabet
+      expect(cfg.accepts('()')).toBe(true)
+      expect(cfg.accepts('(())')).toBe(true)
+      expect(cfg.accepts('')).toBe(true)
     })
   })
 
