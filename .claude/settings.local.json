@@ -26,7 +26,8 @@
       "Bash(/tmp/check_repos.sh:*)",
       "Bash(git reset:*)",
       "Bash(npm run lint:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(curl:*)"
     ],
     "deny": []
   }

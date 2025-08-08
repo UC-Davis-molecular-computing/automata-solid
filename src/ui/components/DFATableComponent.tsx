@@ -93,9 +93,9 @@ export const DFATableComponent: Component<DFATableComponentProps> = (props) => {
     // Always try to parse the DFA for validation
     try {
       const parser = new DFAParser()
-      const dfa = parser.parseDFA(appState.editorContent)
+      const dfa = parser.parseDFA(appState.editorContent) // Use local variable
       
-      if (appState.runImmediately) {
+      if (appState.runImmediately) { // Use local variable
         // Run computation immediately
         runComputation()
       } else {
@@ -124,20 +124,20 @@ export const DFATableComponent: Component<DFATableComponentProps> = (props) => {
     }
   })
 
-    // Reset computation results when test input changes in manual mode
-    createEffect(() => {
-      // Only reset if the input string actually changed since last computation
-      const currentInput = appState.inputString
-      if (!appState.runImmediately && state.dfa && state.hasResult && 
-          currentInput !== state.lastComputedInput) {
-        setState({
-          hasResult: false,
-          currentPosition: 0
-        })
-      }
-    })
+  // Reset computation results when test input changes in manual mode
+  createEffect(() => {
+    // Only reset if the input string actually changed since last computation
+    const currentInput = appState.inputString
+    if (!appState.runImmediately && state.dfa && state.hasResult && 
+        currentInput !== state.lastComputedInput) {
+      setState({
+        hasResult: false,
+        currentPosition: 0
+      })
+    }
+  })
 
-    // Results are now dispatched to global store instead of using callbacks
+  // Results are now dispatched to global store instead of using callbacks
 
   // Effect to handle manual run test triggers  
   // We'll need a different approach since appState.result is not the right trigger

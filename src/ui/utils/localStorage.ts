@@ -72,17 +72,14 @@ export function loadFromLocalStorage(): Partial<PersistableState> | null {
     if (!stored) return null
     
     const parsed = JSON.parse(stored)
-    console.log('📂 Loaded from localStorage:', parsed)
     
     // Basic validation
     if (typeof parsed !== 'object' || parsed === null) {
-      console.warn('Invalid localStorage data format, ignoring')
       return null
     }
     
     // Version check (for future migrations)
     if (parsed.version && parsed.version !== CURRENT_VERSION) {
-      console.log(`Version mismatch: stored ${parsed.version}, current ${CURRENT_VERSION}`)
       // For now, we'll still use the data, but in the future we could migrate here
     }
     
@@ -103,7 +100,6 @@ export function loadFromLocalStorage(): Partial<PersistableState> | null {
 export function clearLocalStorage(): void {
   try {
     localStorage.removeItem(STORAGE_KEYS.APP_STATE)
-    console.log('🗑️ Cleared localStorage')
   } catch (error) {
     console.warn('Failed to clear localStorage:', error)
   }

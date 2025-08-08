@@ -188,11 +188,8 @@ export const dispatch = (message: AppMessage): void => {
     console.log('SetRunImmediately:', message.runImmediately)
   } else if (message instanceof SetAutomatonType) {
     // Switch automaton type but keep existing editor content and input string
+    // Let the reactive system handle parsing and computation for the new automaton type
     setAppState('automatonType', message.automatonType)
-    // Keep existing editorContent - user may be switching to view/edit different automaton types
-    // Keep existing inputString - don't clear it
-    setAppState('parseError', null)
-    setAppState('result', null)
   } else if (message instanceof SetTheme) {
     // TODO: Implement theme switching
     console.log('SetTheme:', message.theme)
@@ -219,11 +216,9 @@ export const dispatch = (message: AppMessage): void => {
 // ========================================
 
 const loadDefaultAutomaton = (type: AutomatonType): void => {
-  // Complex logic that might update multiple parts of state
+  // Load default YAML content for the given automaton type
+  // Let the reactive system handle parsing, validation, and computation
   setAppState('editorContent', getDefaultYamlFor(type))
-  // Keep existing inputString - don't clear it
-  setAppState('parseError', null)
-  setAppState('result', null)
 }
 
 const saveAutomatonToFile = (): void => {
