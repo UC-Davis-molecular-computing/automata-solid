@@ -2,6 +2,8 @@
  * Application state types for SolidJS Elm Architecture implementation
  */
 
+import type { Automaton } from '../../core/Automaton'
+
 export const AutomatonType = {
   Dfa: 'dfa',
   Nfa: 'nfa', 
@@ -27,11 +29,14 @@ export interface AppState {
   inputString: string
   editorContent: string
   
+  // Parsed automaton (null if parsing failed)
+  automaton: Automaton | null
+  
   // Results
   parseError: string | null
   result: {
     accepts: boolean
-    outputString?: string | null
+    outputString?: string
     error?: string
   } | null
 }
@@ -44,6 +49,7 @@ export const initialState: AppState = {
   runImmediately: true,
   inputString: '',
   editorContent: '',
+  automaton: null,
   parseError: null,
   result: null
 }

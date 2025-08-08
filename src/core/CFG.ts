@@ -1,5 +1,6 @@
 
 import { assert, checkAgainstInputAlphabet } from './Utils'
+import type { Automaton } from './Automaton'
 
 export const EPSILON = 'ε'
 
@@ -7,7 +8,7 @@ export const EPSILON = 'ε'
 /**
  * Represents a context-free grammar
  */
-export class CFG {
+export class CFG implements Automaton {
   readonly terminals: string[]
   readonly variables: string[]
   readonly symbols: string[]

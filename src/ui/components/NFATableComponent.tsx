@@ -72,7 +72,7 @@ export const NFATableComponent: Component<NFATableComponentProps> = (props) => {
       // Dispatch computation result to global store
       dispatch(new SetComputationResult({
         accepts: accepted,
-        outputString: null // NFAs don't have output strings
+        outputString: undefined // NFAs don't have output strings
       }))
       
     } catch (error) {

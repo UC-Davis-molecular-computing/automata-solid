@@ -1,4 +1,5 @@
 import { setNotation, checkAgainstInputAlphabet, deltaKey, assert } from './Utils'
+import type { Automaton } from './Automaton'
 
 /**
  * Represents a nondeterministic finite automaton, with accept states for
@@ -6,7 +7,7 @@ import { setNotation, checkAgainstInputAlphabet, deltaKey, assert } from './Util
  * 
  * Based on the Dart NFA implementation from automata-dart/lib/src/NFA.dart
  */
-export class NFA {
+export class NFA implements Automaton {
   readonly states: string[]
   readonly inputAlphabet: string[]
   readonly startState: string

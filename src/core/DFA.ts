@@ -7,8 +7,9 @@
  */
 
 import { setNotation, checkAgainstInputAlphabet, deltaKey } from './Utils'
+import type { Automaton } from './Automaton'
 
-export class DFA {
+export class DFA implements Automaton {
   readonly states: string[]
   readonly inputAlphabet: string[]
   readonly startState: string

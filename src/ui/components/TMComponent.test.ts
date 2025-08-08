@@ -40,6 +40,7 @@ delta:
         // Required AppState fields
         theme: 'monokai',
         splitPercentage: 0.5,
+        automaton: null,
         parseError: null,
         result: null
       }

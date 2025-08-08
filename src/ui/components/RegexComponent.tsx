@@ -50,7 +50,7 @@ export const RegexComponent: Component<RegexComponentProps> = (props) => {
       // Dispatch computation result to global store
       dispatch(new SetComputationResult({
         accepts: accepted,
-        outputString: null // Regex doesn't have output strings
+        outputString: undefined // Regex doesn't have output strings
       }))
       
     } catch (error) {

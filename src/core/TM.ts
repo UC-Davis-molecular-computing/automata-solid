@@ -1,4 +1,5 @@
 import { setNotation, checkAgainstInputAlphabet, deltaKey, WILDCARD, wildcardMatch, wildcardMaskedOutput, wildcardIntersect, assert } from './Utils'
+import type { Automaton } from './Automaton'
 
 /**
  * Represents a difference between configurations for memory-efficient navigation.
@@ -516,7 +517,7 @@ export class TMConfiguration {
 /**
  * Represents a Turing machine with one-way infinite tapes.
  */
-export class TM {
+export class TM implements Automaton {
   // Maximum number of steps to run TM
   static readonly MAX_STEPS = 10**6
   

@@ -8,6 +8,11 @@ import { LoadDefault, SaveFile, LoadFile, MinimizeDfa, RunTest, OpenFile, SaveFi
   SetComputationResult, SetParseError } from '../types/Messages'
 import { debounce } from '../utils/debounce'
 import { saveToLocalStorage, loadFromLocalStorage, getPersistableState } from '../utils/localStorage'
+import { DFAParser } from '../../parsers/DFAParser'
+import { NFAParser } from '../../parsers/NFAParser'
+import { TMParser } from '../../parsers/TMParser'
+import { CFGParser } from '../../parsers/CFGParser'
+import { RegexParser } from '../../parsers/RegexParser'
 
 // ========================================
 // HELPER FUNCTIONS (defined first so we can use them for initialization)
@@ -280,13 +285,112 @@ createRoot(() => {
   })
 })
 
+// ========================================
+// CENTRALIZED AUTOMATON PARSING 
+// ========================================
+
+// Create effect to parse automaton when editorContent or automatonType changes
+createRoot(() => {
+  createEffect(() => {
+    try {
+      let automaton = null
+      
+      // Parse based on automaton type
+      switch (appState.automatonType) {
+        case AutomatonType.Dfa:
+          const dfaParser = new DFAParser()
+          automaton = dfaParser.parseDFA(appState.editorContent)
+          break
+        case AutomatonType.Nfa:
+          const nfaParser = new NFAParser()
+          automaton = nfaParser.parseNFA(appState.editorContent)
+          break
+        case AutomatonType.Tm:
+          const tmParser = new TMParser()
+          automaton = tmParser.parseTM(appState.editorContent)
+          break
+        case AutomatonType.Cfg:
+          const cfgParser = new CFGParser()
+          automaton = cfgParser.parseCFG(appState.editorContent)
+          break
+        case AutomatonType.Regex:
+          const regexParser = new RegexParser()
+          automaton = regexParser.parseRegex(appState.editorContent)
+          break
+        default:
+          throw new Error(`Unknown automaton type: ${appState.automatonType}`)
+      }
+      
+      // Successfully parsed - store automaton and clear errors
+      setAppState('automaton', automaton)
+      setAppState('parseError', null)
+      
+    } catch (error) {
+      // Parsing failed - clear automaton and store error
+      const errorMessage = error instanceof Error ? error.message : 'Unknown parsing error'
+      setAppState('automaton', null)
+      setAppState('parseError', errorMessage)
+      setAppState('result', null) // Clear results when parsing fails
+    }
+  })
+})
+
+// ========================================
+// CENTRALIZED COMPUTATION (when runImmediately is enabled)
+// ========================================
+
+// Create effect to run computation when automaton, inputString, or runImmediately changes
+createRoot(() => {
+  createEffect(() => {
+    if (appState.automaton && appState.runImmediately) {
+      try {
+        // All automata have the accepts method from the Automaton interface
+        const accepts = appState.automaton.accepts(appState.inputString)
+        
+        // Handle type-specific output generation
+        let outputString: string | undefined = undefined
+        switch (appState.automatonType) {
+          case AutomatonType.Tm:
+            // TM needs type assertion for output string generation
+            const tm = appState.automaton as import('../../core/TM').TM
+            const finalConfig = tm.getConfigDiffsAndFinalConfig(appState.inputString).finalConfig
+            outputString = finalConfig.outputString()
+            break
+          case AutomatonType.Cfg:
+            // CFG needs type assertion for parse tree generation
+            const cfg = appState.automaton as import('../../core/CFG').CFG
+            if (accepts) {
+              outputString = cfg.parseTree(appState.inputString)?.toTreeString()
+            }
+            break
+          case AutomatonType.Dfa:
+          case AutomatonType.Nfa:
+          case AutomatonType.Regex:
+            // These don't generate output strings
+            break
+          default:
+            throw new Error(`Unknown automaton type: ${appState.automatonType}`)
+        }
+        
+        // Store computation result
+        setAppState('result', { accepts, outputString })
+        
+      } catch (error) {
+        // Computation failed
+        const errorMessage = error instanceof Error ? error.message : 'Unknown computation error'
+        setAppState('result', { accepts: false, error: errorMessage })
+      }
+    }
+  })
+})
+
 
 const runAutomatonTest = (): void => {
   // Complex logic: parse YAML, run automaton, update results
   try {
     // TODO: Parse YAML and test input
     const accepts = Math.random() > 0.5 // Placeholder
-    const outputString = Math.random() > 0.7 ? 'sample output' : null // Placeholder for TM output
+    const outputString = Math.random() > 0.7 ? 'sample output' : undefined // Placeholder for TM output
     setAppState('result', {
       accepts,
       outputString,

@@ -1,4 +1,5 @@
 import { assert } from './Utils'
+import type { Automaton } from './Automaton'
 
 /**
  * Helper function to escape special regex characters
@@ -18,7 +19,7 @@ function escapeRegExp(string: string): string {
  * - Comments (# to end of line) must be stripped before passing to constructor
  *   (Use RegexParser.parseRegex() for input that may contain comments)
  */
-export class Regex {
+export class Regex implements Automaton {
   readonly source: string
   private readonly pattern: RegExp
   readonly inputAlphabet: string[]

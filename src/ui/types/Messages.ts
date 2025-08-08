@@ -67,10 +67,10 @@ export class SaveFileAs implements AppMessage {
 export class SetComputationResult implements AppMessage {
   readonly result: {
     accepts: boolean
-    outputString?: string | null
+    outputString?: string
     error?: string
   }
-  constructor(result: { accepts: boolean; outputString?: string | null; error?: string }) {
+  constructor(result: { accepts: boolean; outputString?: string; error?: string }) {
     this.result = result
   }
 }

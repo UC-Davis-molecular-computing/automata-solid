@@ -40,7 +40,7 @@ export const CFGComponent: Component<CFGComponentProps> = (props) => {
       
       // Test the input string
       const accepted = cfg.accepts(appState.inputString)
-      const parseTree = accepted ? cfg.parseTree(appState.inputString)?.toTreeString() || null : null
+      const parseTree = accepted ? cfg.parseTree(appState.inputString)?.toTreeString() || undefined : undefined
       
       setState({
         cfg,

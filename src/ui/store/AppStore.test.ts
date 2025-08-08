@@ -10,6 +10,7 @@ function createMockAppStore() {
     automatonType: AutomatonType.Dfa,
     editorContent: 'initial dfa content',
     inputString: 'test123',
+    automaton: null,
     parseError: null,
     result: null,
     // Add required AppState fields
