@@ -10,7 +10,8 @@ const STORAGE_KEYS = {
 const CURRENT_VERSION = '1.0.0'
 
 // Fields that should NOT be persisted (everything else is automatically saved)
-type TransientFields = 'parseError' | 'result'
+// automaton is excluded because: 1) it can be reconstructed from editorContent, 2) some automatons have circular references
+type TransientFields = 'parseError' | 'result' | 'automaton'
 
 // Automatically computed: all AppState fields except transient ones
 export type PersistableState = Omit<AppState, TransientFields>
@@ -19,7 +20,7 @@ export type PersistableState = Omit<AppState, TransientFields>
 export function getPersistableState(state: AppState): PersistableState {
   // Destructure and rename to underscore prefix to avoid linter "unused variable" errors
   // We need to use the exact property names for destructuring, but don't need the values
-  const { parseError: _parseError, result: _result, ...persistable } = state
+  const { parseError: _parseError, result: _result, automaton: _automaton, ...persistable } = state
   return persistable
 }
 
@@ -32,7 +33,7 @@ function getValidStoredFields(stored: any): Partial<PersistableState> {
   
   // Remove transient fields - everything else is automatically included
   // Destructure and rename to underscore prefix to avoid linter "unused variable" errors
-  const { parseError: _parseError, result: _result, version: _version, timestamp: _timestamp, ...validFields } = stored
+  const { parseError: _parseError, result: _result, automaton: _automaton, version: _version, timestamp: _timestamp, ...validFields } = stored
   
   // Basic type safety for critical fields only
   if ('splitPercentage' in validFields) {

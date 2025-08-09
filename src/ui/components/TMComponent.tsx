@@ -2,7 +2,6 @@ import type { Component } from 'solid-js'
 import { createEffect, For, Show, onMount } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import { TM, TMConfiguration, ConfigDiff } from '../../core/TM'
-import { TMParser } from '../../parsers/TMParser'
 import { wildcardMatch, WILDCARD, assert } from '../../core/Utils'
 import { appState, dispatch } from '../store/AppStore'
 import { SetComputationResult, SetParseError } from '../types/Messages'
@@ -18,13 +17,12 @@ interface NavigationControls {
 }
 
 interface TMComponentProps {
+  tm: TM
   onNavigationReady?: (controls: NavigationControls) => void
   onRunReady?: (runFunction: () => void) => void
 }
 
 interface TMComponentState {
-  tm: TM | null
-  error: string | null
   currentStep: number
   diffs: ConfigDiff[]
   initialConfig: TMConfiguration | null
@@ -40,8 +38,6 @@ interface TMComponentState {
 export const TMComponent: Component<TMComponentProps> = (props) => {
   // Local component state
   const [state, setState] = createStore<TMComponentState>({
-    tm: null,
-    error: null,
     currentStep: 0,
     diffs: [],
     initialConfig: null,
@@ -57,14 +53,10 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
   // Function to run the computation
   const runComputation = () => {
     try {
-      // Parse the TM from YAML
-      const parser = new TMParser()
-      const tm = parser.parseTM(appState.editorContent)
-      
       // Process the test input using memory-efficient ConfigDiff approach
-      const { diffs, finalConfig } = tm.getConfigDiffsAndFinalConfig(appState.inputString)
-      const initialConfig = tm.initialConfig(appState.inputString)
-      const accepted = finalConfig.state === tm.acceptState
+      const { diffs, finalConfig } = props.tm.getConfigDiffsAndFinalConfig(appState.inputString)
+      const initialConfig = props.tm.initialConfig(appState.inputString)
+      const accepted = finalConfig.state === props.tm.acceptState
       const outputString = finalConfig.outputString()
       
       // Check if we hit the MAX_STEPS limit
@@ -72,8 +64,6 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
       const hitMaxSteps = diffs.length === TM.MAX_STEPS && !finalConfig.isHalting()
       
       setState({
-        tm,
-        error: null,
         currentStep: 0,
         diffs,
         initialConfig,
@@ -94,63 +84,31 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
       }))
       
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error parsing TM'
-      setState({
-        tm: null,
-        error: errorMessage,
-        hasResult: false
-      })
-      
-      // Dispatch parse error to global store
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error during computation'
       dispatch(new SetParseError(errorMessage))
     }
   }
 
-  // Parse TM and process input based on settings
+  // Handle computation and initial state based on settings
   createEffect(() => {
     // Depend on both editorContent and inputString for reactivity
-    const editorContent = appState.editorContent
     const inputString = appState.inputString
     const runImmediately = appState.runImmediately
     
-    // Always try to parse the TM for validation
-    try {
-      const parser = new TMParser()
-      const tm = parser.parseTM(editorContent)
-      
-      if (runImmediately) {
-        // Run computation immediately
-        runComputation()
-      } else {
-        // Just parse and show structure with initial configuration
-        // This will update whenever either editorContent OR inputString changes
-        const initialConfig = tm.initialConfig(inputString)
-        setState({
-          tm,
-          error: null,
-          hasResult: false,
-          initialConfig,
-          currentConfig: initialConfig.copy(),
-          currentStep: 0,
-          lastComputedInput: ''
-        })
-        
-        // Clear computation results when YAML changes in manual mode
-        dispatch(new SetParseError(null))
-      }
-      
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error parsing TM'
+    if (runImmediately) {
+      // Run computation immediately
+      runComputation()
+    } else {
+      // Just show initial configuration without running computation
+      // This will update whenever either editorContent OR inputString changes
+      const initialConfig = props.tm.initialConfig(inputString)
       setState({
-        tm: null,
-        error: errorMessage,
         hasResult: false,
-        currentConfig: null,
-        initialConfig: null
+        initialConfig,
+        currentConfig: initialConfig.copy(),
+        currentStep: 0,
+        lastComputedInput: ''
       })
-      
-      // Dispatch parse error to global store
-      dispatch(new SetParseError(errorMessage))
     }
   })
 
@@ -188,19 +146,19 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
   }
 
   const goForward = () => {
-    if (!state.tm || state.error || !state.hasResult) return
+    if (!state.hasResult) return
     const newStep = Math.min(state.currentStep + 1, state.diffs.length)
     moveConfigToStep(newStep)
   }
 
   const goBackward = () => {
-    if (!state.tm || state.error || !state.hasResult) return
+    if (!state.hasResult) return
     const newStep = Math.max(state.currentStep - 1, 0)
     moveConfigToStep(newStep)
   }
 
   const goToBeginning = () => {
-    if (!state.tm || state.error || !state.hasResult || !state.initialConfig) return
+    if (!state.hasResult || !state.initialConfig) return
     setState({
       currentStep: 0,
       currentConfig: state.initialConfig.copy()
@@ -208,7 +166,7 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
   }
 
   const goToEnd = () => {
-    if (!state.tm || state.error || !state.hasResult || !state.finalConfig) return
+    if (!state.hasResult || !state.finalConfig) return
     setState({
       currentStep: state.diffs.length,
       currentConfig: state.finalConfig.copy()
@@ -223,8 +181,8 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
         goBackward,
         goToBeginning,
         goToEnd,
-        canGoForward: () => !!(state.tm && !state.error && state.hasResult && state.currentStep < state.diffs.length),
-        canGoBackward: () => !!(state.tm && !state.error && state.hasResult && state.currentStep > 0)
+        canGoForward: () => state.hasResult && state.currentStep < state.diffs.length,
+        canGoBackward: () => state.hasResult && state.currentStep > 0
       })
     }
     
@@ -246,22 +204,14 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
 
   return (
     <div class="automaton-table-component">
-      <Show when={state.error}>
-        <div class="error-message">
-          <strong>Error:</strong>
-          <pre class="error-text">{state.error}</pre>
-        </div>
-      </Show>
-
-      <Show when={state.tm && !state.error}>
-        <div class="automaton-content">
+      <div class="automaton-content">
         {/* Tape Display - TM specific */}
         <Show when={state.currentConfig}>
           <div class="tm-tapes-container">
             <h3>Tapes <span class="tm-step-counter">{state.hasResult ? `Step ${state.currentStep + 1}/${state.diffs.length + 1}` : 'Initial State'}</span></h3>
             <table class="tm-tapes-table">
               <tbody>
-                <For each={Array.from({ length: (() => { assert(state.tm, 'TM should be defined'); return state.tm.numTapes })() }, (_, i) => i)}>
+                <For each={Array.from({ length: props.tm.numTapes }, (_, i) => i)}>
                   {(tapeIndex) => (
                     <TMTapeRow 
                       getTape={() => {
@@ -293,10 +243,10 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
               </tr>
             </thead>
             <tbody>
-              <For each={(() => { assert(state.tm, 'TM should be defined'); return state.tm.states })()}>
+              <For each={props.tm.states}>
                 {(stateName) => (
                   <TMTransitionRow 
-                    tm={(() => { assert(state.tm, 'TM should be defined'); return state.tm })()}
+                    tm={props.tm}
                     stateName={stateName}
                     currentState={getCurrentState()}
                     currentConfig={getCurrentConfig()}
@@ -306,8 +256,7 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
             </tbody>
           </table>
         </div>
-        </div>
-      </Show>
+      </div>
     </div>
   )
 }

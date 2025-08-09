@@ -1,8 +1,7 @@
 import type { Component } from 'solid-js'
-import { createEffect, For, Show, onMount } from 'solid-js'
+import { createEffect, For, onMount } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import type { DFA } from '../../core/DFA'
-import { assert } from '../../core/Utils'
 import { appState, dispatch, setAppState } from '../store/AppStore'
 import { SetComputationResult, SetParseError } from '../types/Messages'
 import './TableComponent.css'
@@ -16,43 +15,39 @@ interface NavigationControls {
   canGoBackward: () => boolean
 }
 
-interface DFATableComponentProps {
+interface DFAComponentProps {
+  dfa: DFA
   onNavigationReady?: (controls: NavigationControls) => void
   onRunReady?: (runFunction: () => void) => void
 }
 
-interface DFATableComponentState {
+interface DFAComponentState {
   currentPosition: number
   statesVisited: string[]
 }
 
-export const DFATableComponent: Component<DFATableComponentProps> = (props) => {
+export const DFAComponent: Component<DFAComponentProps> = (props) => {
   // Local component state (only DFA-specific state)
-  const [state, setState] = createStore<DFATableComponentState>({
+  const [state, setState] = createStore<DFAComponentState>({
     currentPosition: 0,
     statesVisited: [],
   })
 
   // Derived values from AppState (single source of truth)
-  const dfa = () => appState.automaton as DFA | null
   const hasResult = () => appState.result !== null
   const inputSymbols = () => Array.from(appState.inputString)
-  const hasError = () => appState.parseError !== null
 
   // Function to run the computation (for manual mode only)
   const runComputation = () => {
-    const currentDFA = dfa()
-    if (!currentDFA) return
-    
     try {
-      const statesVisited = currentDFA.statesVisited(appState.inputString)
+      const statesVisited = props.dfa.statesVisited(appState.inputString)
       setState({
         currentPosition: 0,
         statesVisited,
       })
       // Computation result is handled by centralized logic in AppStore
       dispatch(new SetComputationResult({
-        accepts: currentDFA.accepts(appState.inputString),
+        accepts: props.dfa.accepts(appState.inputString),
         outputString: undefined // DFAs don't have output strings
       }))
     } catch (error) {
@@ -61,12 +56,11 @@ export const DFATableComponent: Component<DFATableComponentProps> = (props) => {
     }
   }
 
-  // Update statesVisited when DFA or result changes (for both manual and immediate modes)
+  // Update statesVisited when result changes (for both manual and immediate modes)
   createEffect(() => {
-    const currentDFA = dfa()
-    if (currentDFA && hasResult()) {
+    if (hasResult()) {
       try {
-        const statesVisited = currentDFA.statesVisited(appState.inputString)
+        const statesVisited = props.dfa.statesVisited(appState.inputString)
         setState({
           currentPosition: 0,
           statesVisited,
@@ -86,7 +80,7 @@ export const DFATableComponent: Component<DFATableComponentProps> = (props) => {
     const currentInput = appState.inputString
     
     // Only clear results if input actually changed and we're in manual mode
-    if (!appState.runImmediately && dfa() && hasResult() && 
+    if (!appState.runImmediately && hasResult() && 
         prevInput !== undefined && prevInput !== currentInput) {
       setState({
         currentPosition: 0
@@ -97,20 +91,10 @@ export const DFATableComponent: Component<DFATableComponentProps> = (props) => {
     return currentInput
   })
 
-  // Update run function availability when DFA parsing state changes
-  createEffect(() => {
+  // Export run function once on mount (DFA is guaranteed to be valid)
+  onMount(() => {
     if (props.onRunReady) {
-      // Only provide a run function if DFA is successfully parsed
-      const currentDFA = dfa()
-      if (currentDFA !== null) {
-        // If we have a valid DFA, we can run computations
-        props.onRunReady(runComputation)
-      } else {
-        // If no DFA is available, provide a no-op function
-        props.onRunReady(() => {
-          console.log('Cannot run computation: DFA not parsed')
-        })
-      }
+      props.onRunReady(runComputation)
     }
   })
 
@@ -121,30 +105,29 @@ export const DFATableComponent: Component<DFATableComponentProps> = (props) => {
   // For now, let's remove this and add a more direct approach
 
   // Navigation functions (exported for use by parent component)
-  // These are always available but include safety checks
   const goForward = () => {
-    if (!dfa() || hasError() || !hasResult()) return // Safety guard
+    if (!hasResult()) return
     setState({
       currentPosition: Math.min(state.currentPosition + 1, inputSymbols().length)
     })
   }
 
   const goBackward = () => {
-    if (!dfa() || hasError() || !hasResult()) return // Safety guard
+    if (!hasResult()) return
     setState({
       currentPosition: Math.max(state.currentPosition - 1, 0)
     })
   }
 
   const goToBeginning = () => {
-    if (!dfa() || hasError() || !hasResult()) return // Safety guard
+    if (!hasResult()) return
     setState({
       currentPosition: 0
     })
   }
 
   const goToEnd = () => {
-    if (!dfa() || hasError() || !hasResult()) return // Safety guard
+    if (!hasResult()) return
     setState({
       currentPosition: inputSymbols().length
     })
@@ -158,9 +141,8 @@ export const DFATableComponent: Component<DFATableComponentProps> = (props) => {
         goBackward, 
         goToBeginning,
         goToEnd,
-        // These check both DFA validity, hasResult AND position
-        canGoForward: () => !!(dfa() && !hasError() && hasResult() && state.currentPosition < inputSymbols().length),
-        canGoBackward: () => !!(dfa() && !hasError() && hasResult() && state.currentPosition > 0)
+        canGoForward: () => hasResult() && state.currentPosition < inputSymbols().length,
+        canGoBackward: () => hasResult() && state.currentPosition > 0
       })
     }
   })
@@ -193,15 +175,7 @@ export const DFATableComponent: Component<DFATableComponentProps> = (props) => {
 
   return (
     <div class="automaton-table-component">
-      <Show when={appState.parseError}>
-        <div class="error-message">
-          <strong>Error:</strong>
-          <pre class="error-text">{appState.parseError}</pre>
-        </div>
-      </Show>
-
-      <Show when={dfa() && !hasError()}>
-        <div class="automaton-content">
+      <div class="automaton-content">
         {/* Compact Input Display */}
         <div class="input-display">
           <div class="input-status-line">
@@ -217,14 +191,14 @@ export const DFATableComponent: Component<DFATableComponentProps> = (props) => {
             <thead>
               <tr id="transition_table_head">
                 <th class="transition_header_entry">State</th>
-                <th class="transition_header_entry" colspan={(() => { assert(dfa(), 'DFA should be defined'); return dfa()!.inputAlphabet.length })()} style="text-align: left;">Transitions</th>
+                <th class="transition_header_entry" colspan={props.dfa.inputAlphabet.length} style="text-align: left;">Transitions</th>
               </tr>
             </thead>
             <tbody>
-              <For each={(() => { assert(dfa(), 'DFA should be defined'); return dfa()!.states })()}>
+              <For each={props.dfa.states}>
                 {(stateName) => (
                   <TransitionRow 
-                    dfa={(() => { assert(dfa(), 'DFA should be defined'); return dfa()! })()}
+                    dfa={props.dfa}
                     stateName={stateName}
                     currentState={getCurrentState()}
                     currentSymbol={getCurrentSymbol()}
@@ -234,8 +208,7 @@ export const DFATableComponent: Component<DFATableComponentProps> = (props) => {
             </tbody>
           </table>
         </div>
-        </div>
-      </Show>
+      </div>
     </div>
   )
 }

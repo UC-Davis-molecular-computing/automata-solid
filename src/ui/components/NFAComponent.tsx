@@ -2,8 +2,6 @@ import type { Component } from 'solid-js'
 import { createEffect, For, Show, onMount } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import { NFA } from '../../core/NFA'
-import { assert } from '../../core/Utils'
-import { NFAParser } from '../../parsers/NFAParser'
 import { appState, dispatch } from '../store/AppStore'
 import { SetComputationResult, SetParseError } from '../types/Messages'
 import './TableComponent.css'
@@ -17,14 +15,13 @@ interface NavigationControls {
   canGoBackward: () => boolean
 }
 
-interface NFATableComponentProps {
+interface NFAComponentProps {
+  nfa: NFA
   onNavigationReady?: (controls: NavigationControls) => void
   onRunReady?: (runFunction: () => void) => void
 }
 
-interface NFATableComponentState {
-  nfa: NFA | null
-  error: string | null
+interface NFAComponentState {
   currentPosition: number
   stateSetsVisited: string[][] // Array of state sets (NFA can be in multiple states)
   inputSymbols: string[]
@@ -33,11 +30,9 @@ interface NFATableComponentState {
   lastComputedInput: string // Track the input string that was last computed
 }
 
-export const NFATableComponent: Component<NFATableComponentProps> = (props) => {
+export const NFAComponent: Component<NFAComponentProps> = (props) => {
   // Local component state
-  const [state, setState] = createStore<NFATableComponentState>({
-    nfa: null,
-    error: null,
+  const [state, setState] = createStore<NFAComponentState>({
     currentPosition: 0,
     stateSetsVisited: [],
     inputSymbols: [],
@@ -49,18 +44,12 @@ export const NFATableComponent: Component<NFATableComponentProps> = (props) => {
   // Function to run the computation
   const runComputation = () => {
     try {
-      // Parse the NFA from YAML
-      const parser = new NFAParser()
-      const nfa = parser.parseNFA(appState.editorContent)
-      
       // Process the test input
-      const stateSetsVisited = nfa.stateSetsVisited(appState.inputString)
+      const stateSetsVisited = props.nfa.stateSetsVisited(appState.inputString)
       const inputSymbols = Array.from(appState.inputString)
-      const accepted = nfa.accepts(appState.inputString)
+      const accepted = props.nfa.accepts(appState.inputString)
       
       setState({
-        nfa,
-        error: null,
         currentPosition: 0,
         stateSetsVisited,
         inputSymbols,
@@ -76,51 +65,15 @@ export const NFATableComponent: Component<NFATableComponentProps> = (props) => {
       }))
       
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error parsing NFA'
-      setState({
-        nfa: null,
-        error: errorMessage,
-        hasResult: false
-      })
-      
-      // Dispatch parse error to global store
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error during computation'
       dispatch(new SetParseError(errorMessage))
     }
   }
 
-  // Parse NFA and conditionally process input based on runImmediately setting
+  // Run computation immediately if enabled
   createEffect(() => {
-    // Always try to parse the NFA for validation
-    try {
-      const parser = new NFAParser()
-      const nfa = parser.parseNFA(appState.editorContent)
-      
-      if (appState.runImmediately) {
-        // Run computation immediately
-        runComputation()
-      } else {
-        // Just parse and show structure, but don't compute results
-        // Reset hasResult when YAML content changes
-        setState({
-          nfa,
-          error: null,
-          hasResult: false
-        })
-        
-        // Clear computation results when YAML changes in manual mode
-        dispatch(new SetParseError(null))
-      }
-      
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error parsing NFA'
-      setState({
-        nfa: null,
-        error: errorMessage,
-        hasResult: false
-      })
-      
-      // Dispatch parse error to global store
-      dispatch(new SetParseError(errorMessage))
+    if (appState.runImmediately) {
+      runComputation()
     }
   })
 
@@ -128,7 +81,7 @@ export const NFATableComponent: Component<NFATableComponentProps> = (props) => {
   createEffect(() => {
     // Only reset if the input string actually changed since last computation
     const currentInput = appState.inputString
-    if (!appState.runImmediately && state.nfa && state.hasResult && 
+    if (!appState.runImmediately && state.hasResult && 
         currentInput !== state.lastComputedInput) {
       setState({
         hasResult: false,
@@ -140,30 +93,29 @@ export const NFATableComponent: Component<NFATableComponentProps> = (props) => {
   // Results are now dispatched to global store instead of using callbacks
 
   // Navigation functions (exported for use by parent component)
-  // These are always available but include safety checks
   const goForward = () => {
-    if (!state.nfa || state.error || !state.hasResult) return // Safety guard
+    if (!state.hasResult) return
     setState({
       currentPosition: Math.min(state.currentPosition + 1, state.inputSymbols.length)
     })
   }
 
   const goBackward = () => {
-    if (!state.nfa || state.error || !state.hasResult) return // Safety guard
+    if (!state.hasResult) return
     setState({
       currentPosition: Math.max(state.currentPosition - 1, 0)
     })
   }
 
   const goToBeginning = () => {
-    if (!state.nfa || state.error || !state.hasResult) return // Safety guard
+    if (!state.hasResult) return
     setState({
       currentPosition: 0
     })
   }
 
   const goToEnd = () => {
-    if (!state.nfa || state.error || !state.hasResult) return // Safety guard
+    if (!state.hasResult) return
     setState({
       currentPosition: state.inputSymbols.length
     })
@@ -177,9 +129,8 @@ export const NFATableComponent: Component<NFATableComponentProps> = (props) => {
         goBackward, 
         goToBeginning,
         goToEnd,
-        // These check both NFA validity, hasResult AND position
-        canGoForward: () => !!(state.nfa && !state.error && state.hasResult && state.currentPosition < state.inputSymbols.length),
-        canGoBackward: () => !!(state.nfa && !state.error && state.hasResult && state.currentPosition > 0)
+        canGoForward: () => state.hasResult && state.currentPosition < state.inputSymbols.length,
+        canGoBackward: () => state.hasResult && state.currentPosition > 0
       })
     }
     
@@ -223,15 +174,7 @@ export const NFATableComponent: Component<NFATableComponentProps> = (props) => {
 
   return (
     <div class="automaton-table-component">
-      <Show when={state.error}>
-        <div class="error-message">
-          <strong>Error:</strong>
-          <pre class="error-text">{state.error}</pre>
-        </div>
-      </Show>
-
-      <Show when={state.nfa && !state.error}>
-        <div class="automaton-content">
+      <div class="automaton-content">
         {/* Compact Input Display */}
         <div class="input-display">
           <div class="input-status-line">
@@ -252,14 +195,14 @@ export const NFATableComponent: Component<NFATableComponentProps> = (props) => {
             <thead>
               <tr id="transition_table_head">
                 <th class="transition_header_entry">State</th>
-                <th class="transition_header_entry" colspan={(() => { assert(state.nfa, 'NFA should be defined'); return state.nfa.inputAlphabet.length + 1 })()} style="text-align: left;">Transitions</th>
+                <th class="transition_header_entry" colspan={props.nfa.inputAlphabet.length + 1} style="text-align: left;">Transitions</th>
               </tr>
             </thead>
             <tbody>
-              <For each={(() => { assert(state.nfa, 'NFA should be defined'); return state.nfa.states })()}>
+              <For each={props.nfa.states}>
                 {(stateName) => (
                   <NFATransitionRow 
-                    nfa={(() => { assert(state.nfa, 'NFA should be defined'); return state.nfa })()}
+                    nfa={props.nfa}
                     stateName={stateName}
                     currentStates={getCurrentStateSet()}
                     currentSymbol={getCurrentSymbol()}
@@ -269,8 +212,7 @@ export const NFATableComponent: Component<NFATableComponentProps> = (props) => {
             </tbody>
           </table>
         </div>
-        </div>
-      </Show>
+      </div>
     </div>
   )
 }

@@ -4,12 +4,16 @@ import Resizable from '@corvu/resizable'
 import { MenuBar } from './components/MenuBar'
 import { ModelIndicator } from './components/ModelIndicator'
 import { CodeEditor } from './components/CodeEditor'
-import { DFATableComponent } from './components/DFATableComponent'
-import { NFATableComponent } from './components/NFATableComponent'
+import { DFAComponent } from './components/DFAComponent'
+import { NFAComponent } from './components/NFAComponent'
 import { TMComponent } from './components/TMComponent'
 import { RegexComponent } from './components/RegexComponent'
 import { CFGComponent } from './components/CFGComponent'
 import { TM } from '../core/TM'
+import { DFA } from '../core/DFA'
+import { NFA } from '../core/NFA'
+import { Regex } from '../core/Regex'
+import { CFG } from '../core/CFG'
 import { appState, setAppState, dispatch } from './store/AppStore'
 import { AutomatonType } from './types/AppState'
 import { LoadDefault, SaveFile, OpenFile } from './types/Messages'
@@ -255,31 +259,44 @@ const App: Component = () => {
             
             <Resizable.Panel minSize={0.01}>
               <div class="results-section">
-                <Show when={appState.automatonType === AutomatonType.Dfa}>
-                  <DFATableComponent 
+                {/* Centralized Error Display */}
+                <Show when={appState.parseError}>
+                  <div class="error-message">
+                    <strong>Error:</strong>
+                    <pre class="error-text">{appState.parseError}</pre>
+                  </div>
+                </Show>
+                
+                <Show when={appState.automatonType === AutomatonType.Dfa && appState.automaton && appState.automaton.constructor.name === 'DFA'}>
+                  <DFAComponent 
+                    dfa={appState.automaton as DFA}
                     onNavigationReady={setNavigationControls}
                     onRunReady={handleRunReady}
                   />
                 </Show>
-                <Show when={appState.automatonType === AutomatonType.Nfa}>
-                  <NFATableComponent 
+                <Show when={appState.automatonType === AutomatonType.Nfa && appState.automaton && appState.automaton.constructor.name === 'NFA'}>
+                  <NFAComponent 
+                    nfa={appState.automaton as NFA}
                     onNavigationReady={setNavigationControls}
                     onRunReady={handleRunReady}
                   />
                 </Show>
-                <Show when={appState.automatonType === AutomatonType.Tm}>
+                <Show when={appState.automatonType === AutomatonType.Tm && appState.automaton && appState.automaton.constructor.name === 'TM'}>
                   <TMComponent 
+                    tm={appState.automaton as TM}
                     onNavigationReady={setNavigationControls}
                     onRunReady={handleRunReady}
                   />
                 </Show>
-                <Show when={appState.automatonType === AutomatonType.Regex}>
+                <Show when={appState.automatonType === AutomatonType.Regex && appState.automaton && appState.automaton.constructor.name === 'Regex'}>
                   <RegexComponent 
+                    regex={appState.automaton as Regex}
                     onRunReady={handleRunReady}
                   />
                 </Show>
-                <Show when={appState.automatonType === AutomatonType.Cfg}>
+                <Show when={appState.automatonType === AutomatonType.Cfg && appState.automaton && appState.automaton.constructor.name === 'CFG'}>
                   <CFGComponent 
+                    cfg={appState.automaton as CFG}
                     onRunReady={handleRunReady}
                   />
                 </Show>
