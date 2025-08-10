@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { createRoot } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import { AutomatonType, type AppState } from '../types/AppState'
-import { SetAutomatonType, LoadDefault } from '../types/Messages'
+import { LoadDefault } from '../types/Messages'
 
 // Mock the store implementation to test the logic
 function createMockAppStore() {
@@ -20,16 +20,13 @@ function createMockAppStore() {
   const [appState, setAppState] = createStore<AppState>(initialState)
   
   // Mock the dispatch logic we're testing
-  const dispatch = (message: LoadDefault | SetAutomatonType) => {
+  const dispatch = (message: LoadDefault) => {
     if (message instanceof LoadDefault) {
       // This is the loadDefaultAutomaton logic
       setAppState('editorContent', `default ${appState.automatonType.toLowerCase()} content`)
       // Should NOT clear inputString - this was the bug
       setAppState('parseError', undefined)
       setAppState('result', undefined)
-    } else if (message instanceof SetAutomatonType) {
-      // This is the SetAutomatonType logic - NOW FIXED to not change editorContent
-      setAppState('automatonType', message.automatonType)
       // Should NOT change editorContent when switching models
       // Should NOT clear inputString - preserve it
       setAppState('parseError', undefined)
@@ -79,7 +76,7 @@ describe('AppStore inputString preservation', () => {
       expect(initialContent).toBe('initial dfa content')
       
       // Switch to TM
-      mockStore.dispatch(new SetAutomatonType(AutomatonType.Tm))
+      mockStore.setAppState('automatonType', AutomatonType.Tm)
       
       // inputString should be preserved, editorContent should NOT change
       expect(mockStore.appState.inputString).toBe('preserveMe')
@@ -87,7 +84,7 @@ describe('AppStore inputString preservation', () => {
       expect(mockStore.appState.editorContent).toBe(initialContent) // Content should stay the same!
       
       // Switch to NFA  
-      mockStore.dispatch(new SetAutomatonType(AutomatonType.Nfa))
+      mockStore.setAppState('automatonType', AutomatonType.Nfa)
       
       // inputString should still be preserved, editorContent should still NOT change
       expect(mockStore.appState.inputString).toBe('preserveMe')
@@ -108,7 +105,7 @@ describe('AppStore inputString preservation', () => {
       expect(mockStore.appState.inputString).toBe('changed')
       
       // Should persist across automaton type changes
-      mockStore.dispatch(new SetAutomatonType(AutomatonType.Tm))
+      mockStore.setAppState('automatonType', AutomatonType.Tm)
       expect(mockStore.appState.inputString).toBe('changed')
     })
   })

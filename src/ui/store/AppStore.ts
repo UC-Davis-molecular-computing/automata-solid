@@ -4,7 +4,6 @@ import type { AppState } from '../types/AppState'
 import { AutomatonType, initialState } from '../types/AppState'
 import type { AppMessage } from '../types/Messages'
 import { LoadDefault, SaveFile, LoadFile, MinimizeDfa, RunTest, OpenFile, SaveFileAs,
-  SetRunImmediately, SetAutomatonType, SetTheme, SetInputString, SetEditorContent,
   SetComputationResult, SetParseError } from '../types/Messages'
 import { debounce } from '../utils/debounce'
 import { saveToLocalStorage, loadFromLocalStorage, getPersistableState } from '../utils/localStorage'
@@ -188,22 +187,6 @@ export const dispatch = (message: AppMessage): void => {
     openFileDialog()
   } else if (message instanceof SaveFileAs) {
     saveFileAs(message.filename, message.content)
-  } else if (message instanceof SetRunImmediately) {
-    // TODO: Implement run immediately toggle
-    console.log('SetRunImmediately:', message.runImmediately)
-  } else if (message instanceof SetAutomatonType) {
-    // Switch automaton type but keep existing editor content and input string
-    // Let the reactive system handle parsing and computation for the new automaton type
-    setAppState('automatonType', message.automatonType)
-  } else if (message instanceof SetTheme) {
-    // TODO: Implement theme switching
-    console.log('SetTheme:', message.theme)
-  } else if (message instanceof SetInputString) {
-    // TODO: Implement input string update
-    console.log('SetInputString:', message.inputString)
-  } else if (message instanceof SetEditorContent) {
-    // TODO: Implement editor content update
-    console.log('SetEditorContent:', message.editorContent)
   } else if (message instanceof SetComputationResult) {
     setAppState('result', message.result)
     setAppState('parseError', undefined)

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { createRoot } from 'solid-js'
 import { AutomatonType } from '../types/AppState'
-import { SetAutomatonType, LoadDefault } from '../types/Messages'
+import { LoadDefault } from '../types/Messages'
 import { appState, setAppState, dispatch } from './AppStore'
 
 describe('AppStore Integration Tests - inputString preservation', () => {
@@ -37,7 +37,7 @@ describe('AppStore Integration Tests - inputString preservation', () => {
       const initialContent = appState.editorContent
       
       // Switch to TM
-      dispatch(new SetAutomatonType(AutomatonType.Tm))
+      setAppState('automatonType', AutomatonType.Tm)
       
       // inputString should be preserved, content should NOT change
       expect(appState.inputString).toBe('preserveMe')
@@ -45,7 +45,7 @@ describe('AppStore Integration Tests - inputString preservation', () => {
       expect(appState.editorContent).toBe(initialContent) // Content should stay the same!
       
       // Switch to NFA
-      dispatch(new SetAutomatonType(AutomatonType.Nfa))
+      setAppState('automatonType', AutomatonType.Nfa)
       
       // inputString should still be preserved
       expect(appState.inputString).toBe('preserveMe')
@@ -63,7 +63,7 @@ describe('AppStore Integration Tests - inputString preservation', () => {
       expect(appState.automatonType).toBe(AutomatonType.Dfa)
       
       // Now change to TM (this is what the user is doing)
-      dispatch(new SetAutomatonType(AutomatonType.Tm))
+      setAppState('automatonType', AutomatonType.Tm)
       
       // Input string should still be there!
       expect(appState.inputString).toBe('abc123')
