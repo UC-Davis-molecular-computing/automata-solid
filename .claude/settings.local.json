@@ -30,7 +30,8 @@
       "Bash(curl:*)",
       "Bash(npm run build:*)",
       "Bash(mv:*)",
-      "Bash(git config:*)"
+      "Bash(git config:*)",
+      "Bash(time npx tsc --noEmit)"
     ],
     "deny": []
   }

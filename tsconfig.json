@@ -5,6 +5,10 @@
     "module": "ESNext",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "skipLibCheck": true,
+    
+    /* Performance optimizations */
+    "incremental": true,
+    "tsBuildInfoFile": ".tsbuildinfo",
 
     /* Bundler mode */
     "moduleResolution": "bundler",
@@ -24,6 +28,6 @@
     "noUncheckedSideEffectImports": true,
     "erasableSyntaxOnly": true,
   },
-  "include": ["src/**/*", "vite.config.ts", "example_scripts/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["src/**/*", "vite.config.ts"],
+  "exclude": ["node_modules", "dist", "example_scripts"]
 }
