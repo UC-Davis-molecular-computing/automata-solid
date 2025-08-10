@@ -2,18 +2,10 @@ import type { Component } from 'solid-js'
 import { createEffect, For, Show, onMount } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import { NFA } from '../../core/NFA'
-import { appState, dispatch } from '../store/AppStore'
+import { appState, dispatch, setAppState } from '../store/AppStore'
 import { SetComputationResult, SetParseError } from '../types/Messages'
+import type { NavigationControls } from '../types/NavigationControls'
 import './TableComponent.css'
-
-interface NavigationControls {
-  goForward: () => void
-  goBackward: () => void
-  goToBeginning: () => void
-  goToEnd: () => void
-  canGoForward: () => boolean
-  canGoBackward: () => boolean
-}
 
 interface NFAComponentProps {
   nfa: NFA
@@ -24,104 +16,115 @@ interface NFAComponentProps {
 interface NFAComponentState {
   currentPosition: number
   stateSetsVisited: string[][] // Array of state sets (NFA can be in multiple states)
-  inputSymbols: string[]
-  accepted: boolean
-  hasResult: boolean // Whether computation has been run and result should be shown
-  lastComputedInput: string // Track the input string that was last computed
 }
 
 export const NFAComponent: Component<NFAComponentProps> = (props) => {
-  // Local component state
+  // Local component state (only NFA-specific state)
   const [state, setState] = createStore<NFAComponentState>({
     currentPosition: 0,
-    stateSetsVisited: [],
-    inputSymbols: [],
-    accepted: false,
-    hasResult: false,
-    lastComputedInput: ''
+    stateSetsVisited: []
   })
+  
+  // Derived values from AppState (single source of truth)
+  const hasResult = () => appState.result !== null
 
-  // Function to run the computation
+  // Function to run the computation (for manual mode only)
   const runComputation = () => {
     try {
-      // Process the test input
       const stateSetsVisited = props.nfa.stateSetsVisited(appState.inputString)
-      const inputSymbols = Array.from(appState.inputString)
-      const accepted = props.nfa.accepts(appState.inputString)
-      
       setState({
         currentPosition: 0,
-        stateSetsVisited,
-        inputSymbols,
-        accepted,
-        hasResult: true,
-        lastComputedInput: appState.inputString
+        stateSetsVisited
       })
-      
-      // Dispatch computation result to global store
+      // Computation result is handled by centralized logic in AppStore
       dispatch(new SetComputationResult({
-        accepts: accepted,
+        accepts: props.nfa.accepts(appState.inputString),
         outputString: undefined // NFAs don't have output strings
       }))
-      
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error during computation'
       dispatch(new SetParseError(errorMessage))
     }
   }
 
-  // Run computation immediately if enabled
+  // Update stateSetsVisited when result changes (for both manual and immediate modes)
   createEffect(() => {
-    if (appState.runImmediately) {
-      runComputation()
+    if (hasResult()) {
+      try {
+        const stateSetsVisited = props.nfa.stateSetsVisited(appState.inputString)
+        setState({
+          currentPosition: 0,
+          stateSetsVisited
+        })
+      } catch {
+        // If we can't compute states visited, reset
+        setState({
+          currentPosition: 0,
+          stateSetsVisited: []
+        })
+      }
     }
   })
 
-  // Reset computation results when test input changes in manual mode
-  createEffect(() => {
-    // Only reset if the input string actually changed since last computation
+  // Clear results and reset position when inputString changes in manual mode  
+  createEffect((prevInput) => {
     const currentInput = appState.inputString
-    if (!appState.runImmediately && state.hasResult && 
-        currentInput !== state.lastComputedInput) {
+    
+    // Only clear results if input actually changed and we're in manual mode
+    if (!appState.runImmediately && hasResult() && 
+        prevInput !== undefined && prevInput !== currentInput) {
       setState({
-        hasResult: false,
         currentPosition: 0
       })
+      setAppState('result', null)
+    }
+    
+    return currentInput
+  })
+
+  // Export run function once on mount (NFA is guaranteed to be valid)
+  onMount(() => {
+    if (props.onRunReady) {
+      props.onRunReady(runComputation)
     }
   })
 
   // Results are now dispatched to global store instead of using callbacks
 
+  // Effect to handle manual run test triggers  
+  // We'll need a different approach since appState.result is not the right trigger
+  // For now, let's remove this and add a more direct approach
+
   // Navigation functions (exported for use by parent component)
   const goForward = () => {
-    if (!state.hasResult) return
+    if (!hasResult()) return
     setState({
-      currentPosition: Math.min(state.currentPosition + 1, state.inputSymbols.length)
+      currentPosition: Math.min(state.currentPosition + 1, appState.inputString.length)
     })
   }
 
   const goBackward = () => {
-    if (!state.hasResult) return
+    if (!hasResult()) return
     setState({
       currentPosition: Math.max(state.currentPosition - 1, 0)
     })
   }
 
   const goToBeginning = () => {
-    if (!state.hasResult) return
+    if (!hasResult()) return
     setState({
       currentPosition: 0
     })
   }
 
   const goToEnd = () => {
-    if (!state.hasResult) return
+    if (!hasResult()) return
     setState({
-      currentPosition: state.inputSymbols.length
+      currentPosition: appState.inputString.length
     })
   }
 
-  // Export navigation functions and run function once on mount - functions are stable
+  // Export navigation functions once on mount - functions are stable
   onMount(() => {
     if (props.onNavigationReady) {
       props.onNavigationReady({
@@ -129,38 +132,33 @@ export const NFAComponent: Component<NFAComponentProps> = (props) => {
         goBackward, 
         goToBeginning,
         goToEnd,
-        canGoForward: () => state.hasResult && state.currentPosition < state.inputSymbols.length,
-        canGoBackward: () => state.hasResult && state.currentPosition > 0
+        canGoForward: () => hasResult() && state.currentPosition < appState.inputString.length,
+        canGoBackward: () => hasResult() && state.currentPosition > 0
       })
-    }
-    
-    // Export run function for manual mode
-    if (props.onRunReady) {
-      props.onRunReady(runComputation)
     }
   })
 
   // Helper functions for rendering
   const getCurrentStateSet = () => {
-    if (!state.hasResult || !state.stateSetsVisited.length) return []
+    if (!hasResult() || !state.stateSetsVisited.length) return []
     return state.stateSetsVisited[state.currentPosition] || []
   }
 
   const getCurrentSymbol = () => {
-    if (!state.hasResult || !state.inputSymbols.length) return null
-    return state.currentPosition < state.inputSymbols.length 
-      ? state.inputSymbols[state.currentPosition] 
+    if (!hasResult() || !appState.inputString.length) return null
+    return state.currentPosition < appState.inputString.length 
+      ? appState.inputString[state.currentPosition] 
       : null
   }
 
   // Format input string with position indicator
   const formatInputWithPosition = () => {
-    if (!state.hasResult) {
+    if (!hasResult()) {
       // When computation hasn't been run, just show the input string without position indicator
       return appState.inputString || '(empty)'
     }
-    const processed = state.inputSymbols.slice(0, state.currentPosition).join('')
-    const remaining = state.inputSymbols.slice(state.currentPosition).join('')
+    const processed = appState.inputString.slice(0, state.currentPosition)
+    const remaining = appState.inputString.slice(state.currentPosition)
     return `${processed}^${remaining}`
   }
 
@@ -181,7 +179,7 @@ export const NFAComponent: Component<NFAComponentProps> = (props) => {
             <span class="input-processed" style="font-family: Consolas, monospace">
               {formatInputWithPosition()}
             </span>
-            <Show when={state.hasResult}>
+            <Show when={hasResult()}>
               <span class="current-states">
                 Current states: <span class="state-set">{formatCurrentStateSet()}</span>
               </span>

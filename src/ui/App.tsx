@@ -17,16 +17,8 @@ import { CFG } from '../core/CFG'
 import { appState, setAppState, dispatch } from './store/AppStore'
 import { AutomatonType } from './types/AppState'
 import { LoadDefault, SaveFile, OpenFile } from './types/Messages'
+import type { NavigationControls } from './types/NavigationControls'
 import './App.css'
-
-interface NavigationControls {
-  goForward: () => void
-  goBackward: () => void
-  goToBeginning: () => void
-  goToEnd: () => void
-  canGoForward: () => boolean
-  canGoBackward: () => boolean
-}
 
 const App: Component = () => {
   // State for navigation controls from active automaton visualization

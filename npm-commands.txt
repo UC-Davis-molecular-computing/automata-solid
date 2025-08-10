@@ -1,0 +1,20 @@
+See package.json for custom `npm run <command>` commands
+
+test compilation errors:
+npx tsc --noEmit
+
+run linter:
+npm run lint
+
+run linter only for errors, not warnings:
+npm run lint:errors
+
+run unit tests:
+npm run test:run
+
+run dev server:
+npm run dev
+
+build into dist directory:
+npm run build
+

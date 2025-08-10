@@ -4,16 +4,8 @@ import { createStore } from 'solid-js/store'
 import type { DFA } from '../../core/DFA'
 import { appState, dispatch, setAppState } from '../store/AppStore'
 import { SetComputationResult, SetParseError } from '../types/Messages'
+import type { NavigationControls } from '../types/NavigationControls'
 import './TableComponent.css'
-
-interface NavigationControls {
-  goForward: () => void
-  goBackward: () => void
-  goToBeginning: () => void
-  goToEnd: () => void
-  canGoForward: () => boolean
-  canGoBackward: () => boolean
-}
 
 interface DFAComponentProps {
   dfa: DFA
@@ -35,7 +27,6 @@ export const DFAComponent: Component<DFAComponentProps> = (props) => {
 
   // Derived values from AppState (single source of truth)
   const hasResult = () => appState.result !== null
-  const inputSymbols = () => Array.from(appState.inputString)
 
   // Function to run the computation (for manual mode only)
   const runComputation = () => {
@@ -108,7 +99,7 @@ export const DFAComponent: Component<DFAComponentProps> = (props) => {
   const goForward = () => {
     if (!hasResult()) return
     setState({
-      currentPosition: Math.min(state.currentPosition + 1, inputSymbols().length)
+      currentPosition: Math.min(state.currentPosition + 1, appState.inputString.length)
     })
   }
 
@@ -129,7 +120,7 @@ export const DFAComponent: Component<DFAComponentProps> = (props) => {
   const goToEnd = () => {
     if (!hasResult()) return
     setState({
-      currentPosition: inputSymbols().length
+      currentPosition: appState.inputString.length
     })
   }
 
@@ -141,7 +132,7 @@ export const DFAComponent: Component<DFAComponentProps> = (props) => {
         goBackward, 
         goToBeginning,
         goToEnd,
-        canGoForward: () => hasResult() && state.currentPosition < inputSymbols().length,
+        canGoForward: () => hasResult() && state.currentPosition < appState.inputString.length,
         canGoBackward: () => hasResult() && state.currentPosition > 0
       })
     }
@@ -155,9 +146,9 @@ export const DFAComponent: Component<DFAComponentProps> = (props) => {
   }
 
   const getCurrentSymbol = () => {
-    if (!hasResult() || !inputSymbols().length) return null
-    return state.currentPosition < inputSymbols().length 
-      ? inputSymbols()[state.currentPosition] 
+    if (!hasResult() || !appState.inputString.length) return null
+    return state.currentPosition < appState.inputString.length 
+      ? appState.inputString[state.currentPosition] 
       : null
   }
 
@@ -168,8 +159,8 @@ export const DFAComponent: Component<DFAComponentProps> = (props) => {
       // When computation hasn't been run, just show the input string without position indicator
       return appState.inputString || '(empty)'
     }
-    const processed = inputSymbols().slice(0, state.currentPosition).join('')
-    const remaining = inputSymbols().slice(state.currentPosition).join('')
+    const processed = appState.inputString.slice(0, state.currentPosition)
+    const remaining = appState.inputString.slice(state.currentPosition)
     return `${processed}^${remaining}`
   }
 

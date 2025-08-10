@@ -3,18 +3,10 @@ import { createEffect, For, Show, onMount } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import { TM, TMConfiguration, ConfigDiff } from '../../core/TM'
 import { wildcardMatch, WILDCARD, assert } from '../../core/Utils'
-import { appState, dispatch } from '../store/AppStore'
+import { appState, dispatch, setAppState } from '../store/AppStore'
 import { SetComputationResult, SetParseError } from '../types/Messages'
+import type { NavigationControls } from '../types/NavigationControls'
 import './TableComponent.css' // Reuse existing CSS
-
-interface NavigationControls {
-  goForward: () => void
-  goBackward: () => void
-  goToBeginning: () => void
-  goToEnd: () => void
-  canGoForward: () => boolean
-  canGoBackward: () => boolean
-}
 
 interface TMComponentProps {
   tm: TM
@@ -28,27 +20,20 @@ interface TMComponentState {
   initialConfig: TMConfiguration | null
   finalConfig: TMConfiguration | null
   currentConfig: TMConfiguration | null
-  accepted: boolean
-  hasResult: boolean
-  lastComputedInput: string
-  outputString: string
-  hitMaxSteps: boolean
 }
 
 export const TMComponent: Component<TMComponentProps> = (props) => {
-  // Local component state
+  // Local component state (only TM-specific state)
   const [state, setState] = createStore<TMComponentState>({
     currentStep: 0,
     diffs: [],
     initialConfig: null,
     finalConfig: null,
-    currentConfig: null,
-    accepted: false,
-    hasResult: false,
-    lastComputedInput: '',
-    outputString: '',
-    hitMaxSteps: false
+    currentConfig: null
   })
+  
+  // Derived values from AppState (single source of truth)
+  const hasResult = () => appState.result !== null
 
   // Function to run the computation
   const runComputation = () => {
@@ -68,12 +53,7 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
         diffs,
         initialConfig,
         finalConfig,
-        currentConfig: initialConfig.copy(),
-        accepted,
-        hasResult: true,
-        lastComputedInput: appState.inputString,
-        outputString,
-        hitMaxSteps
+        currentConfig: initialConfig.copy()
       })
       
       // Dispatch computation result to global store
@@ -103,13 +83,29 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
       // This will update whenever either editorContent OR inputString changes
       const initialConfig = props.tm.initialConfig(inputString)
       setState({
-        hasResult: false,
         initialConfig,
         currentConfig: initialConfig.copy(),
         currentStep: 0,
-        lastComputedInput: ''
+        diffs: [],
+        finalConfig: null
       })
     }
+  })
+
+  // Clear results and reset state when inputString changes in manual mode  
+  createEffect((prevInput) => {
+    const currentInput = appState.inputString
+    
+    // Only clear results if input actually changed and we're in manual mode
+    if (!appState.runImmediately && hasResult() && 
+        prevInput !== undefined && prevInput !== currentInput) {
+      setState({
+        currentStep: 0
+      })
+      setAppState('result', null)
+    }
+    
+    return currentInput
   })
 
 
@@ -146,19 +142,19 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
   }
 
   const goForward = () => {
-    if (!state.hasResult) return
+    if (!hasResult()) return
     const newStep = Math.min(state.currentStep + 1, state.diffs.length)
     moveConfigToStep(newStep)
   }
 
   const goBackward = () => {
-    if (!state.hasResult) return
+    if (!hasResult()) return
     const newStep = Math.max(state.currentStep - 1, 0)
     moveConfigToStep(newStep)
   }
 
   const goToBeginning = () => {
-    if (!state.hasResult || !state.initialConfig) return
+    if (!hasResult() || !state.initialConfig) return
     setState({
       currentStep: 0,
       currentConfig: state.initialConfig.copy()
@@ -166,7 +162,7 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
   }
 
   const goToEnd = () => {
-    if (!state.hasResult || !state.finalConfig) return
+    if (!hasResult() || !state.finalConfig) return
     setState({
       currentStep: state.diffs.length,
       currentConfig: state.finalConfig.copy()
@@ -181,8 +177,8 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
         goBackward,
         goToBeginning,
         goToEnd,
-        canGoForward: () => state.hasResult && state.currentStep < state.diffs.length,
-        canGoBackward: () => state.hasResult && state.currentStep > 0
+        canGoForward: () => hasResult() && state.currentStep < state.diffs.length,
+        canGoBackward: () => hasResult() && state.currentStep > 0
       })
     }
     
@@ -208,7 +204,7 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
         {/* Tape Display - TM specific */}
         <Show when={state.currentConfig}>
           <div class="tm-tapes-container">
-            <h3>Tapes <span class="tm-step-counter">{state.hasResult ? `Step ${state.currentStep + 1}/${state.diffs.length + 1}` : 'Initial State'}</span></h3>
+            <h3>Tapes <span class="tm-step-counter">{hasResult() ? `Step ${state.currentStep + 1}/${state.diffs.length + 1}` : 'Initial State'}</span></h3>
             <table class="tm-tapes-table">
               <tbody>
                 <For each={Array.from({ length: props.tm.numTapes }, (_, i) => i)}>
