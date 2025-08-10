@@ -29,7 +29,8 @@
       "Bash(grep:*)",
       "Bash(curl:*)",
       "Bash(npm run build:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(git config:*)"
     ],
     "deny": []
   }
