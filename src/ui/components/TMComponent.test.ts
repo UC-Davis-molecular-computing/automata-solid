@@ -40,9 +40,7 @@ delta:
         // Required AppState fields
         theme: 'monokai',
         splitPercentage: 0.5,
-        automaton: null,
-        parseError: null,
-        result: null
+        // automaton, parseError, result are undefined by default (omitted)
       }
       
       const [appState, setAppState] = createStore<AppState>(initialState)

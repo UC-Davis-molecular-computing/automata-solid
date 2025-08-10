@@ -17,23 +17,21 @@ interface TMComponentProps {
 interface TMComponentState {
   currentStep: number
   diffs: ConfigDiff[]
-  initialConfig: TMConfiguration | null
-  finalConfig: TMConfiguration | null
-  currentConfig: TMConfiguration | null
+  initialConfig?: TMConfiguration
+  finalConfig?: TMConfiguration
+  currentConfig?: TMConfiguration
 }
 
 export const TMComponent: Component<TMComponentProps> = (props) => {
   // Local component state (only TM-specific state)
   const [state, setState] = createStore<TMComponentState>({
     currentStep: 0,
-    diffs: [],
-    initialConfig: null,
-    finalConfig: null,
-    currentConfig: null
+    diffs: []
+    // initialConfig, finalConfig, currentConfig are undefined by default
   })
   
   // Derived values from AppState (single source of truth)
-  const hasResult = () => appState.result !== null
+  const hasResult = () => appState.result !== undefined
 
   // Function to run the computation
   const runComputation = () => {
@@ -87,7 +85,7 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
         currentConfig: initialConfig.copy(),
         currentStep: 0,
         diffs: [],
-        finalConfig: null
+        finalConfig: undefined
       })
     }
   })
@@ -102,7 +100,7 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
       setState({
         currentStep: 0
       })
-      setAppState('result', null)
+      setAppState('result', undefined)
     }
     
     return currentInput
@@ -262,7 +260,7 @@ interface TMTransitionRowProps {
   tm: TM
   stateName: string
   currentState: string
-  currentConfig: TMConfiguration | null
+  currentConfig?: TMConfiguration
 }
 
 const TMTransitionRow: Component<TMTransitionRowProps> = (props) => {

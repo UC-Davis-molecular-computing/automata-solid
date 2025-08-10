@@ -882,13 +882,13 @@ export class TM implements Automaton {
   /**
    * Get string representation of a single transition.
    */
-  transitionStr(state: string, symbols: string): string | null {
+  transitionStr(state: string, symbols: string): string | undefined {
     const key = deltaKey(state, symbols)
     const action = this.delta[key]
     if (action) {
       return `${symbols} → ${action.join(' , ')}`
     }
-    return null
+    return undefined
   }
 
   /**

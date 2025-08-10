@@ -76,8 +76,8 @@ export class SetComputationResult implements AppMessage {
 }
 
 export class SetParseError implements AppMessage {
-  readonly error: string | null
-  constructor(error: string | null) {
+  readonly error?: string
+  constructor(error?: string) {
     this.error = error
   }
 }

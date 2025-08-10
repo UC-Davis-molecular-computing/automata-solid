@@ -22,15 +22,15 @@ import './App.css'
 
 const App: Component = () => {
   // State for navigation controls from active automaton visualization
-  const [navigationControls, setNavigationControls] = createSignal<NavigationControls | null>(null)
+  const [navigationControls, setNavigationControls] = createSignal<NavigationControls | undefined>()
   // State for run function from active automaton visualization
-  const [runFunction, setRunFunction] = createSignal<(() => void) | null>(null)
+  const [runFunction, setRunFunction] = createSignal<(() => void) | undefined>()
   // Computation results are now tracked in the global store instead of local state
   
   // Result changes are now handled via global store messages instead of callbacks
 
   // Wrapper to properly store function in signal
-  const handleRunReady = (fn: (() => void) | null) => {
+  const handleRunReady = (fn: (() => void) | undefined) => {
     // Use the updater function form to store the function
     setRunFunction(() => fn)
   }

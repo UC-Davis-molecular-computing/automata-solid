@@ -26,7 +26,7 @@ export const NFAComponent: Component<NFAComponentProps> = (props) => {
   })
   
   // Derived values from AppState (single source of truth)
-  const hasResult = () => appState.result !== null
+  const hasResult = () => appState.result !== undefined
 
   // Function to run the computation (for manual mode only)
   const runComputation = () => {
@@ -76,7 +76,7 @@ export const NFAComponent: Component<NFAComponentProps> = (props) => {
       setState({
         currentPosition: 0
       })
-      setAppState('result', null)
+      setAppState('result', undefined)
     }
     
     return currentInput
@@ -145,10 +145,10 @@ export const NFAComponent: Component<NFAComponentProps> = (props) => {
   }
 
   const getCurrentSymbol = () => {
-    if (!hasResult() || !appState.inputString.length) return null
+    if (!hasResult() || !appState.inputString.length) return undefined
     return state.currentPosition < appState.inputString.length 
       ? appState.inputString[state.currentPosition] 
-      : null
+      : undefined
   }
 
   // Format input string with position indicator
@@ -220,7 +220,7 @@ interface NFATransitionRowProps {
   nfa: NFA
   stateName: string
   currentStates: string[]
-  currentSymbol: string | null
+  currentSymbol?: string
 }
 
 const NFATransitionRow: Component<NFATransitionRowProps> = (props) => {
@@ -283,7 +283,7 @@ const NFATransitionEntry: Component<NFATransitionEntryProps> = (props) => {
       return props.nfa.transitionStr(props.state, props.symbol)
     } catch {
       // No transition defined for this state-symbol pair
-      return null
+      return undefined
     }
   }
 

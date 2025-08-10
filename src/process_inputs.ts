@@ -98,25 +98,19 @@ interface CFGJson {
 }
 
 interface CompleteResult {
-  results: TestResult[] | null;
-  error: string | null;
+  results?: TestResult[];
+  error?: string;
   // JSON representations of automata for Python's non_input_tests to analyze structure
-  dfa: DFAJson | null;
-  nfa: NFAJson | null;
-  regex: RegexJson | null;
-  tm: TMJson | null;
-  cfg: CFGJson | null;
+  dfa?: DFAJson;
+  nfa?: NFAJson;
+  regex?: RegexJson;
+  tm?: TMJson;
+  cfg?: CFGJson;
 }
 
 // Global result object - matches Dart implementation pattern
 const completeResult: CompleteResult = {
-  results: null,
-  error: null,
-  dfa: null,
-  nfa: null,
-  regex: null,
-  tm: null,
-  cfg: null
+  // All fields are optional and undefined by default
 };
 
 function main() {

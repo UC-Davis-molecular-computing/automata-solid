@@ -262,9 +262,9 @@ describe('NFA', () => {
       expect(nfa010or101.transitionStr('start', '')).toBe('ε → {start010,start101}')
     })
 
-    test('returns null for undefined transition', () => {
-      expect(nfa0ThreeFromEnd.transitionStr('q4', '0')).toBe(null)
-      expect(nfa0ThreeFromEnd.transitionStr('q4', '1')).toBe(null)
+    test('returns undefined for undefined transition', () => {
+      expect(nfa0ThreeFromEnd.transitionStr('q4', '0')).toBe(undefined)
+      expect(nfa0ThreeFromEnd.transitionStr('q4', '1')).toBe(undefined)
     })
 
     test('throws on invalid symbol', () => {

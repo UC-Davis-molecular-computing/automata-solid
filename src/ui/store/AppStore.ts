@@ -206,10 +206,10 @@ export const dispatch = (message: AppMessage): void => {
     console.log('SetEditorContent:', message.editorContent)
   } else if (message instanceof SetComputationResult) {
     setAppState('result', message.result)
-    setAppState('parseError', null)
+    setAppState('parseError', undefined)
   } else if (message instanceof SetParseError) {
     setAppState('parseError', message.error)
-    setAppState('result', null)
+    setAppState('result', undefined)
   } else {
     // Fallback for unknown message types
     console.error('Unhandled message type:', message.constructor.name)
@@ -237,7 +237,7 @@ const saveAutomatonToFile = (): void => {
   const extension = appState.automatonType.toLowerCase()
   const filename = `${appState.automatonType.toLowerCase()}.${extension}`
   downloadFile(filename, appState.editorContent)
-  setAppState('parseError', null)
+  setAppState('parseError', undefined)
 }
 
 const loadAutomatonFromFile = (content: string): void => {
@@ -245,8 +245,8 @@ const loadAutomatonFromFile = (content: string): void => {
   try {
     // TODO: Parse and validate file content
     setAppState('editorContent', content)
-    setAppState('parseError', null)
-    setAppState('result', null)
+    setAppState('parseError', undefined)
+    setAppState('result', undefined)
     console.log('File loaded successfully')
   } catch (error) {
     setAppState('parseError', `Failed to load file: ${error}`)
@@ -293,7 +293,7 @@ createRoot(() => {
 createRoot(() => {
   createEffect(() => {
     try {
-      let automaton = null
+      let automaton = undefined
       
       // Parse based on automaton type
       switch (appState.automatonType) {
@@ -323,14 +323,14 @@ createRoot(() => {
       
       // Successfully parsed - store automaton and clear errors
       setAppState('automaton', automaton)
-      setAppState('parseError', null)
+      setAppState('parseError', undefined)
       
     } catch (error) {
       // Parsing failed - clear automaton and store error
       const errorMessage = error instanceof Error ? error.message : 'Unknown parsing error'
-      setAppState('automaton', null)
+      setAppState('automaton', undefined)
       setAppState('parseError', errorMessage)
-      setAppState('result', null) // Clear results when parsing fails
+      setAppState('result', undefined) // Clear results when parsing fails
     }
   })
 })
@@ -396,7 +396,7 @@ const runAutomatonTest = (): void => {
       outputString,
       error: undefined
     })
-    setAppState('parseError', null)
+    setAppState('parseError', undefined)
   } catch (error) {
     setAppState('result', { accepts: false, error: String(error) })
   }
@@ -426,8 +426,8 @@ const openFileDialog = (): void => {
           // Load the file content and switch automaton type
           setAppState('editorContent', content)
           setAppState('automatonType', automatonType)
-          setAppState('parseError', null)
-          setAppState('result', null)
+          setAppState('parseError', undefined)
+          setAppState('result', undefined)
         }
       }
       reader.onerror = () => {

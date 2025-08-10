@@ -13,7 +13,7 @@ interface CFGComponentProps {
 
 interface CFGComponentState {
   accepted: boolean
-  parseTree: string | null
+  parseTree?: string
   hasResult: boolean // Whether computation has been run and result should be shown
   lastComputedInput: string // Track the input string that was last computed
 }
@@ -22,9 +22,9 @@ export const CFGComponent: Component<CFGComponentProps> = (props) => {
   // Local component state
   const [state, setState] = createStore<CFGComponentState>({
     accepted: false,
-    parseTree: null,
     hasResult: false,
     lastComputedInput: ''
+    // parseTree is undefined by default
   })
 
   // Function to run the computation

@@ -169,7 +169,7 @@ export class NFA implements Automaton {
    * Creates string representation of transition from this state on this symbol
    * (e.g., '0 -> {B,A}', '1 -> A', 'ε -> C').
    */
-  transitionStr(state: string, symbol: string): string | null {
+  transitionStr(state: string, symbol: string): string | undefined {
     if (symbol !== '' && (symbol.length !== 1 || !this.inputAlphabet.includes(symbol))) {
       throw new Error(`"${symbol}" is not contained in input alphabet ${this.inputAlphabet}`)
     }
@@ -180,7 +180,7 @@ export class NFA implements Automaton {
       const displaySymbol = symbol.length > 0 ? symbol : 'ε'
       return `${displaySymbol} → ${setNotation(targets)}`
     }
-    return null
+    return undefined
   }
 
   /**

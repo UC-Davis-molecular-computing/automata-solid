@@ -390,8 +390,8 @@ describe('CFG', () => {
       const cfg = new CFG(['a'], ['S'], rules, 'S')
       
       const tree = cfg.parseTree('a')
-      expect(tree).not.toBeNull()
-      assert(tree !== null, 'Parse tree should not be null')
+      expect(tree).toBeDefined()
+      assert(tree !== undefined, 'Parse tree should not be undefined')
       expect(tree.symbol).toBe('S')
       expect(tree.children.length).toBe(1)
       expect(tree.children[0].symbol).toBe('a')
@@ -402,8 +402,8 @@ describe('CFG', () => {
       const cfg = new CFG(['a', 'b'], ['S'], rules, 'S')
       
       const tree = cfg.parseTree('ab')
-      expect(tree).not.toBeNull()
-      assert(tree !== null, 'Parse tree should not be null')
+      expect(tree).toBeDefined()
+      assert(tree !== undefined, 'Parse tree should not be undefined')
       expect(tree.symbol).toBe('S')
       expect(tree.children.length).toBe(2)
       expect(tree.children[0].symbol).toBe('a')
@@ -419,8 +419,8 @@ describe('CFG', () => {
       const cfg = new CFG(['(', ')'], ['S'], rules, 'S')
       
       const tree = cfg.parseTree('')
-      expect(tree).not.toBeNull()
-      assert(tree !== null, 'Parse tree should not be null')
+      expect(tree).toBeDefined()
+      assert(tree !== undefined, 'Parse tree should not be undefined')
       expect(tree.symbol).toBe('S')
       expect(tree.children.length).toBe(1)
       expect(tree.children[0].symbol).toBe(EPSILON)
@@ -435,8 +435,8 @@ describe('CFG', () => {
       const cfg = new CFG(['(', ')'], ['S', 'A'], rules, 'S')
       
       const tree = cfg.parseTree('()')
-      expect(tree).not.toBeNull()
-      assert(tree !== null, 'Parse tree should not be null')
+      expect(tree).toBeDefined()
+      assert(tree !== undefined, 'Parse tree should not be undefined')
       expect(tree.symbol).toBe('S')
       expect(tree.children.length).toBe(3)
       expect(tree.children[0].symbol).toBe('(')
@@ -454,10 +454,10 @@ describe('CFG', () => {
       ]
       const cfg = new CFG(['(', ')'], ['S'], rules, 'S')
       
-      expect(cfg.parseTree('(((')).toBeNull()
-      expect(cfg.parseTree(')))')).toBeNull()
-      expect(cfg.parseTree(')(')).toBeNull()
-      expect(cfg.parseTree('(()')).toBeNull()
+      expect(cfg.parseTree('(((')).toBeUndefined()
+      expect(cfg.parseTree(')))')).toBeUndefined()
+      expect(cfg.parseTree(')(')).toBeUndefined()
+      expect(cfg.parseTree('(()')).toBeUndefined()
     })
   })
 

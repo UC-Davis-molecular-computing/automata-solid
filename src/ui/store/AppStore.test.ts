@@ -10,9 +10,7 @@ function createMockAppStore() {
     automatonType: AutomatonType.Dfa,
     editorContent: 'initial dfa content',
     inputString: 'test123',
-    automaton: null,
-    parseError: null,
-    result: null,
+    // automaton, parseError, result are undefined by default (omitted)
     // Add required AppState fields
     theme: 'monokai',
     splitPercentage: 0.5,
@@ -27,15 +25,15 @@ function createMockAppStore() {
       // This is the loadDefaultAutomaton logic
       setAppState('editorContent', `default ${appState.automatonType.toLowerCase()} content`)
       // Should NOT clear inputString - this was the bug
-      setAppState('parseError', null)
-      setAppState('result', null)
+      setAppState('parseError', undefined)
+      setAppState('result', undefined)
     } else if (message instanceof SetAutomatonType) {
       // This is the SetAutomatonType logic - NOW FIXED to not change editorContent
       setAppState('automatonType', message.automatonType)
       // Should NOT change editorContent when switching models
       // Should NOT clear inputString - preserve it
-      setAppState('parseError', null)
-      setAppState('result', null)
+      setAppState('parseError', undefined)
+      setAppState('result', undefined)
     }
   }
   

@@ -414,9 +414,9 @@ describe('TM', () => {
       expect(transStr).toBe('0_ → q1 , 0$ , SR')
     })
 
-    test('transitionStr returns null for undefined transition', () => {
+    test('transitionStr returns undefined for undefined transition', () => {
       const transStr = doubleTM.transitionStr('q0', '1_')
-      expect(transStr).toBe(null)
+      expect(transStr).toBe(undefined)
     })
   })
 

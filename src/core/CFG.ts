@@ -99,7 +99,7 @@ export class CFG implements Automaton {
     return parser.accepts()
   }
 
-  parseTree(input: string): TreeNode | null {
+  parseTree(input: string): TreeNode | undefined {
     // Validate input against terminal alphabet, similar to DFA
     checkAgainstInputAlphabet(this.terminals, input)
     
@@ -480,7 +480,7 @@ export class EarleyParser {
   /**
    * Returns a parse tree if the input is accepted, otherwise null
    */
-  parseTree(): TreeNode | null {
+  parseTree(): TreeNode | undefined {
     const finalChart = this.charts[this.charts.length - 1]
     
     for (const row of finalChart.rows) {
@@ -491,7 +491,7 @@ export class EarleyParser {
       }
     }
     
-    return null
+    return undefined
   }
 
   private buildTree(rootRow: Row): TreeNode {

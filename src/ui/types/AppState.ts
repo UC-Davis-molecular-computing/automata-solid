@@ -29,16 +29,16 @@ export interface AppState {
   inputString: string
   editorContent: string
   
-  // Parsed automaton (null if parsing failed)
-  automaton: Automaton | null
+  // Parsed automaton (undefined if parsing failed)
+  automaton?: Automaton
   
   // Results
-  parseError: string | null
-  result: {
+  parseError?: string
+  result?: {
     accepts: boolean
     outputString?: string
     error?: string
-  } | null
+  }
 }
 
 // We'll set the actual default content in AppStore.ts where we have access to getDefaultYamlFor
@@ -49,7 +49,4 @@ export const initialState: AppState = {
   runImmediately: true,
   inputString: '',
   editorContent: '',
-  automaton: null,
-  parseError: null,
-  result: null
 }

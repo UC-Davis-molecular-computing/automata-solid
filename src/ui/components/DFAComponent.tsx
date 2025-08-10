@@ -26,7 +26,7 @@ export const DFAComponent: Component<DFAComponentProps> = (props) => {
   })
 
   // Derived values from AppState (single source of truth)
-  const hasResult = () => appState.result !== null
+  const hasResult = () => appState.result !== undefined
 
   // Function to run the computation (for manual mode only)
   const runComputation = () => {
@@ -76,7 +76,7 @@ export const DFAComponent: Component<DFAComponentProps> = (props) => {
       setState({
         currentPosition: 0
       })
-      setAppState('result', null)
+      setAppState('result', undefined)
     }
     
     return currentInput
@@ -146,10 +146,10 @@ export const DFAComponent: Component<DFAComponentProps> = (props) => {
   }
 
   const getCurrentSymbol = () => {
-    if (!hasResult() || !appState.inputString.length) return null
+    if (!hasResult() || !appState.inputString.length) return undefined
     return state.currentPosition < appState.inputString.length 
       ? appState.inputString[state.currentPosition] 
-      : null
+      : undefined
   }
 
 
@@ -209,7 +209,7 @@ interface TransitionRowProps {
   dfa: DFA
   stateName: string
   currentState: string
-  currentSymbol: string | null
+  currentSymbol?: string
 }
 
 const TransitionRow: Component<TransitionRowProps> = (props) => {
