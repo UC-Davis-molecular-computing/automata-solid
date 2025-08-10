@@ -1,4 +1,3 @@
-import type { AutomatonType } from './AppState'
 
 // Base interface for type checking
 export abstract class AppMessage {}
