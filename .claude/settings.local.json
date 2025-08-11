@@ -37,7 +37,9 @@
       "Bash(./duplicate-components.sh:*)",
       "Bash(./duplicate-more.sh)",
       "Bash(git restore:*)",
-      "Bash(rsync:*)"
+      "Bash(rsync:*)",
+      "Bash(git checkout:*)",
+      "Bash(git rm:*)"
     ],
     "deny": []
   }
