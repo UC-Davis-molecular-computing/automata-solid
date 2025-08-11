@@ -31,7 +31,12 @@
       "Bash(npm run build:*)",
       "Bash(mv:*)",
       "Bash(git config:*)",
-      "Bash(time npx tsc --noEmit)"
+      "Bash(time npx tsc --noEmit)",
+      "Bash(mkdir:*)",
+      "Bash(node:*)",
+      "Bash(./duplicate-components.sh:*)",
+      "Bash(./duplicate-more.sh)",
+      "Bash(git restore:*)"
     ],
     "deny": []
   }
