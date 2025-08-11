@@ -39,8 +39,8 @@ export class SetComputationResult implements AppMessage {
 }
 
 export class SetParseError implements AppMessage {
-  readonly error?: string
-  constructor(error?: string) {
+  readonly error: string
+  constructor(error: string) {
     this.error = error
   }
 }

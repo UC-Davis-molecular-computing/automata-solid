@@ -28,3 +28,6 @@ automata-github-pages
 
 # Private example files (homework solutions)
 private_example_automata/
+
+# TypeScript incremental compilation cache
+.tsbuildinfo
