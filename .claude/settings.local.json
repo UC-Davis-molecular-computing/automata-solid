@@ -36,7 +36,8 @@
       "Bash(node:*)",
       "Bash(./duplicate-components.sh:*)",
       "Bash(./duplicate-more.sh)",
-      "Bash(git restore:*)"
+      "Bash(git restore:*)",
+      "Bash(rsync:*)"
     ],
     "deny": []
   }
