@@ -212,6 +212,12 @@ export class CFGParser {
     // Check for unreachable variables (optional warning - could be implemented)
     // This is more complex and might not be necessary for basic functionality
   }
+
+  static getDefaultYAML(): string {
+    return `# CFG generating language of balanced () parentheses
+
+S: [(S), SS, '']  # wrap in parentheses, concatenate, or empty`
+  }
 }
 
 // CFG-specific normalization function

@@ -1,6 +1,12 @@
 import { LineCounter } from 'yaml'
 import type { ErrorObject } from 'ajv'
 import { setNotation } from '../core/Utils'
+import { DFAParser } from './DFAParser'
+import { NFAParser } from './NFAParser'
+import { TMParser } from './TMParser'
+import { CFGParser } from './CFGParser'
+import { RegexParser } from './RegexParser'
+import { AutomatonType } from '../ui/types/AppState'
 
 /**
  * Interface for source position information
@@ -648,6 +654,31 @@ export class ParserUtil {
         markClass: 'cm-automata-error'
       }
     })
+  }
+
+  /**
+   * Get default YAML content for a given automaton type
+   */
+  static getDefaultContent(automatonType: AutomatonType): string {
+    switch (automatonType) {
+      case AutomatonType.Dfa:
+        return DFAParser.getDefaultYAML()
+
+      case AutomatonType.Nfa:
+        return NFAParser.getDefaultYAML()
+
+      case AutomatonType.Tm:
+        return TMParser.getDefaultYAML()
+
+      case AutomatonType.Cfg:
+        return CFGParser.getDefaultYAML()
+
+      case AutomatonType.Regex:
+        return RegexParser.getDefaultYAML()
+
+      default:
+        return ''
+    }
   }
 
 }

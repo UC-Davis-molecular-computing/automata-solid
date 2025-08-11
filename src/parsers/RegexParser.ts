@@ -18,4 +18,10 @@ export class RegexParser {
     // Pass cleaned input to Regex constructor
     return new Regex(cleanedInput);
   }
+
+  static getDefaultYAML(): string {
+    return `# Matches any binary string containing the substring 010
+B = (0|1)*;  # subexpression matching any binary string
+B 010 B`
+  }
 }

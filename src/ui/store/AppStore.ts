@@ -12,120 +12,7 @@ import { NFAParser } from '../../parsers/NFAParser'
 import { TMParser } from '../../parsers/TMParser'
 import { CFGParser } from '../../parsers/CFGParser'
 import { RegexParser } from '../../parsers/RegexParser'
-
-// ========================================
-// HELPER FUNCTIONS (defined first so we can use them for initialization)
-// ========================================
-
-const getDefaultYamlFor = (type: AutomatonType): string => {
-  switch (type) {
-    case AutomatonType.Dfa:
-      return `# DFA recognizing { x in {0,1}* | x does not end in 000 }
-
-states: 
-  - q      # last bit was a 1 or non-existent
-  - q0     # last two bits were 10
-  - q00    # last three bits were 100
-  - q000   # last three bits were 000
-
-input_alphabet: [0, 1]
-
-# no last bit when we start
-start_state: q
-
-# accept if last three bits were not 000
-accept_states: [q, q0, q00]
-
-delta:
-  # if we see a 1, reset
-  q:
-    1: q
-    0: q0    # if we see a 0, count one more 0 than before
-  q0:
-    1: q
-    0: q00
-  q00:
-    1: q
-    0: q000
-  q000:
-    1: q
-    0: q000  # until we get to three`
-
-    case AutomatonType.Nfa:
-      return `# NFA recognizing { x in {0,1}* | third-to-last bit of x is 0 }
-
-states: [q1, q2, q3, q4]
-input_alphabet: [0, 1]
-start_state: q1
-accept_states: [q4]
-
-delta:
-  q1:
-    0: [q1, q2]
-    1: q1
-  q2:
-    0: q3
-    1: q3
-  q3:
-    0: q4
-    1: q4
-`
-
-    case AutomatonType.Regex:
-      return `# Matches any binary string containing the substring 010
-B = (0|1)*;  # subexpression matching any binary string
-B 010 B`
-
-    case AutomatonType.Cfg:
-      return `# CFG generating language of balanced () parentheses
-
-S: [(S), SS, '']  # wrap in parentheses, concatenate, or empty`
-
-    case AutomatonType.Tm:
-      return `# TM deciding { w in {0,1}* | w = w^R } (palindromes)
-
-states: [s, r00, r11, r01, r10, l, lx, qA, qR]
-input_alphabet: [0, 1]
-tape_alphabet_extra: [x, _]
-start_state: s
-accept_state: qA
-reject_state: qR
-
-delta:
-  s:
-    0: [r00, x, R]
-    1: [r11, x, R]
-    x: [qA, x, S]    # empty string is palindrome
-  r00:
-    0: [r00, 0, R]
-    1: [r01, 1, R]
-    _: [lx, _, L]
-    x: [lx, x, L]
-  r01:
-    0: [r00, 0, R]
-    1: [r01, 1, R]
-  r10:
-    0: [r10, 0, R]
-    1: [r11, 1, R]
-  r11:
-    0: [r10, 0, R]
-    1: [r11, 1, R]
-    _: [lx, _, L]
-    x: [lx, x, L]
-  lx:
-    0: [l, x, L]
-    1: [l, x, L]
-    x: [qA, x, S]    # all matched
-  l:
-    0: [l, 0, L]
-    1: [l, 1, L]
-    x: [s, x, R]`
-
-    default:
-      return ''
-  }
-}
-
+import { ParserUtil } from '../../parsers/ParserUtil'
 
 // ========================================
 // GLOBAL STORE (initialized with localStorage or defaults)
@@ -135,7 +22,7 @@ delta:
 function createInitialState(): AppState {
   const defaultState: AppState = {
     ...initialState,
-    editorContent: getDefaultYamlFor(AutomatonType.Dfa),
+    editorContent: ParserUtil.getDefaultContent(AutomatonType.Dfa),
     inputString: ''
   }
   
@@ -150,7 +37,7 @@ function createInitialState(): AppState {
       mergedState.automatonType = stored.automatonType
       // When automaton type is restored, load its default content if no editor content is stored
       if (!stored.editorContent) {
-        mergedState.editorContent = getDefaultYamlFor(stored.automatonType)
+        mergedState.editorContent = ParserUtil.getDefaultContent(stored.automatonType)
         // Don't clear inputString - let it be restored from localStorage or keep default
       }
     }
@@ -206,7 +93,7 @@ export const dispatch = (message: AppMessage): void => {
 const loadDefaultAutomaton = (type: AutomatonType): void => {
   // Load default YAML content for the given automaton type
   // Let the reactive system handle parsing, validation, and computation
-  setAppState('editorContent', getDefaultYamlFor(type))
+  setAppState('editorContent', ParserUtil.getDefaultContent(type))
 }
 
 const saveAutomatonToFile = (): void => {
@@ -244,7 +131,7 @@ const minimizeDfaAutomaton = (): void => {
   }
   
   // TODO: Implement DFA minimization algorithm
-  console.log('Minimizing DFA...')
+  console.log('[UNIMPLEMENTED] Minimizing DFA...')
 }
 
 // ========================================
@@ -323,21 +210,46 @@ createRoot(() => {
 // ========================================
 
 // Create effect to run computation when automaton, inputString, or runImmediately changes
+let appStoreEffectCallCount = 0
 createRoot(() => {
   createEffect(() => {
     if (appState.automaton && appState.runImmediately) {
+      appStoreEffectCallCount++
+      console.log(`[AppStore createEffect] Called ${appStoreEffectCallCount} times with runImmediately=true`)
+      console.log(`[AppStore createEffect] Input length: ${appState.inputString.length}`)
+      const effectStart = performance.now()
+      
       try {
-        // All automata have the accepts method from the Automaton interface
-        const accepts = appState.automaton.accepts(appState.inputString)
-        
-        // Handle type-specific output generation
+        // Handle type-specific computation - avoid duplicate calls for TMs
+        let accepts: boolean
         let outputString: string | undefined = undefined
+        
         switch (appState.automatonType) {
           case AutomatonType.Tm:
-            // TM needs type assertion for output string generation
+            // For TMs, do computation once and get both results
+            console.log('[AppStore createEffect] TM: calling getConfigDiffsAndFinalConfig once...')
+            const t1 = performance.now()
             const tm = appState.automaton as import('../../core/TM').TM
-            const finalConfig = tm.getConfigDiffsAndFinalConfig(appState.inputString).finalConfig
+            const { finalConfig } = tm.getConfigDiffsAndFinalConfig(appState.inputString)
+            accepts = finalConfig.state === tm.acceptState
             outputString = finalConfig.outputString()
+            const t2 = performance.now()
+            console.log(`[AppStore createEffect] TM computation took ${(t2 - t1).toFixed(2)}ms`)
+            break
+          default:
+            // For other automata, use the accepts method
+            console.log('[AppStore createEffect] Calling accepts...')
+            const t3 = performance.now()
+            accepts = appState.automaton.accepts(appState.inputString)
+            const t4 = performance.now()
+            console.log(`[AppStore createEffect] accepts took ${(t4 - t3).toFixed(2)}ms`)
+            break
+        }
+        
+        // Handle remaining type-specific output generation (non-TM cases)
+        switch (appState.automatonType) {
+          case AutomatonType.Tm:
+            // Already handled above
             break
           case AutomatonType.Cfg:
             // CFG needs type assertion for parse tree generation
@@ -356,13 +268,21 @@ createRoot(() => {
         }
         
         // Store computation result
+        console.log('[AppStore createEffect] Setting result in AppState...')
+        const t5 = performance.now()
         setAppState('result', { accepts, outputString })
+        const t6 = performance.now()
+        console.log(`[AppStore createEffect] setAppState took ${(t6 - t5).toFixed(2)}ms`)
         
       } catch (error) {
         // Computation failed
         const errorMessage = error instanceof Error ? error.message : 'Unknown computation error'
         setAppState('result', { accepts: false, error: errorMessage })
       }
+      
+      const effectEnd = performance.now()
+      console.log(`[AppStore createEffect] TOTAL TIME: ${(effectEnd - effectStart).toFixed(2)}ms`)
+      console.log('[AppStore createEffect] Effect completed')
     }
   })
 })

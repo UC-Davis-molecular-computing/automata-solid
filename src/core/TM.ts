@@ -788,8 +788,8 @@ export class TM implements Automaton {
   accepts(input: string): boolean {
     checkAgainstInputAlphabet(this.inputAlphabet, input)
     
-    const configs = this.configsVisited(input)
-    const finalConfig = configs[configs.length - 1]
+    // Use memory-efficient approach instead of configsVisited
+    const { finalConfig } = this.getConfigDiffsAndFinalConfig(input)
     return finalConfig.state === this.acceptState
   }
 
@@ -799,42 +799,15 @@ export class TM implements Automaton {
   run(input: string): string {
     checkAgainstInputAlphabet(this.inputAlphabet, input)
     
-    const configs = this.configsVisited(input)
-    const finalConfig = configs[configs.length - 1]
+    // Use memory-efficient approach instead of configsVisited
+    const { finalConfig } = this.getConfigDiffsAndFinalConfig(input)
     return finalConfig.outputString()
   }
 
-  /**
-   * Returns a list of the states visited by the TM when processing the string x.
-   */
-  statesVisited(input: string): string[] {
-    const configs = this.configsVisited(input)
-    return configs.map(config => config.state)
-  }
+
 
   /**
-   * Returns a list of the configurations visited by the TM when processing the string x.
-   */
-  configsVisited(input: string): TMConfiguration[] {
-    checkAgainstInputAlphabet(this.inputAlphabet, input)
-    
-    const configurations: TMConfiguration[] = []
-    configurations.push(this.initialConfig(input))
-    
-    for (let step = 0; step < TM.MAX_STEPS; step++) {
-      const curConfig = configurations[configurations.length - 1]
-      if (curConfig.isHalting()) {
-        break
-      }
-      const nextConfig = curConfig.nextConfig()
-      configurations.push(nextConfig)
-    }
-    
-    return configurations
-  }
-
-  /**
-   * Memory-efficient alternative to configsVisited that returns ConfigDiffs and final configuration.
+   * Memory-efficient method that returns ConfigDiffs and final configuration.
    * Only stores diffs instead of full configurations to save memory.
    */
   getConfigDiffsAndFinalConfig(input: string): { diffs: ConfigDiff[], finalConfig: TMConfiguration } {

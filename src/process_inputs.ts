@@ -250,12 +250,7 @@ function processInputs(machine: DFA | NFA | TM | CFG | Regex) {
     try {
       if (machine instanceof TM) {
         // Turing Machine: get both boolean and string output
-        const configs = machine.configsVisited(input);
-        if (configs.length === 0) {
-          throw new Error(`TM didn't halt on input ${input}`);
-        }
-        
-        const finalConfig = configs[configs.length - 1];
+        const { finalConfig } = machine.getConfigDiffsAndFinalConfig(input);
         const finalState = finalConfig.state;
         
         // Check if halted (accept or reject state)

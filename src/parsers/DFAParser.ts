@@ -182,5 +182,37 @@ export class DFAParser {
     }
   }
 
+  static getDefaultYAML(): string {
+    return `# DFA recognizing { x in {0,1}* | x does not end in 000 }
+
+states: 
+  - q      # last bit was a 1 or non-existent
+  - q0     # last two bits were 10
+  - q00    # last three bits were 100
+  - q000   # last three bits were 000
+
+input_alphabet: [0, 1]
+
+# no last bit when we start
+start_state: q
+
+# accept if last three bits were not 000
+accept_states: [q, q0, q00]
+
+delta:
+  # if we see a 1, reset
+  q:
+    1: q
+    0: q0    # if we see a 0, count one more 0 than before
+  q0:
+    1: q
+    0: q00
+  q00:
+    1: q
+    0: q000
+  q000:
+    1: q
+    0: q000  # until we get to three`
+  }
 
 }
