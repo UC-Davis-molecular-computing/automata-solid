@@ -292,18 +292,6 @@ const App: Component = () => {
                     onRunReady={handleRunReady}
                   />
                 </Show>
-                <Show when={appState.automatonType !== AutomatonType.Dfa && 
-                            appState.automatonType !== AutomatonType.Nfa && 
-                            appState.automatonType !== AutomatonType.Tm &&
-                            appState.automatonType !== AutomatonType.Regex &&
-                            appState.automatonType !== AutomatonType.Cfg}>
-                  <div class="placeholder">
-                    <p>Visualization for {appState.automatonType.toUpperCase()} coming soon</p>
-                    <p><strong>Current Model:</strong> {appState.automatonType.toUpperCase()}</p>
-                    <p><strong>Theme:</strong> {appState.theme}</p>
-                    <p><strong>Input String:</strong> "{appState.inputString}"</p>
-                  </div>
-                </Show>
               </div>
             </Resizable.Panel>
           </Resizable>
