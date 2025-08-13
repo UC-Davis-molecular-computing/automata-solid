@@ -1,9 +1,9 @@
 import type { Component } from 'solid-js'
-import { createEffect, Show, onMount } from 'solid-js'
-import { createStore } from 'solid-js/store'
+import { createEffect, createSignal, Show, onMount } from 'solid-js'
 import { CFG } from '../../core/CFG'
-import { appState, dispatch } from '../store/AppStore'
+import { appState, dispatch, setAppState } from '../store/AppStore'
 import { SetComputationResult, SetParseError } from '../types/Messages'
+import { assert } from '../../core/Utils'
 import './TableComponent.css'
 
 interface CFGComponentProps {
@@ -11,40 +11,26 @@ interface CFGComponentProps {
   onRunReady?: (runFunction: () => void) => void
 }
 
-interface CFGComponentState {
-  accepted: boolean
-  parseTree?: string
-  hasResult: boolean // Whether computation has been run and result should be shown
-  lastComputedInput: string // Track the input string that was last computed
-}
-
 export const CFGComponent: Component<CFGComponentProps> = (props) => {
-  // Local component state
-  const [state, setState] = createStore<CFGComponentState>({
-    accepted: false,
-    hasResult: false,
-    lastComputedInput: ''
-    // parseTree is undefined by default
-  })
+  // Local component state (only CFG-specific state)
+  const [parseTree, setParseTree] = createSignal<string | undefined>(undefined)
 
-  // Function to run the computation
+  // Derived values from AppState (single source of truth)
+  const hasResult = () => appState.computation !== undefined
+
+  // Function to run the computation (for manual mode only)
   const runComputation = () => {
     try {
       // Test the input string
       const accepted = props.cfg.accepts(appState.inputString)
-      const parseTree = accepted ? props.cfg.parseTree(appState.inputString)?.toTreeString() || undefined : undefined
+      const tree = accepted ? props.cfg.parseTree(appState.inputString)?.toTreeString() || undefined : undefined
       
-      setState({
-        accepted,
-        parseTree,
-        hasResult: true,
-        lastComputedInput: appState.inputString
-      })
+      setParseTree(tree)
       
-      // Dispatch computation result to global store
+      // Computation result is handled by centralized logic in AppStore
       dispatch(new SetComputationResult({
         accepts: accepted,
-        outputString: parseTree // CFGs can have parse tree output
+        outputString: tree // CFGs can have parse tree output
       }))
       
     } catch (error) {
@@ -53,44 +39,53 @@ export const CFGComponent: Component<CFGComponentProps> = (props) => {
     }
   }
 
-  // Run computation immediately if enabled
+  // Update parseTree when result changes (for both manual and immediate modes)
   createEffect(() => {
-    if (appState.runImmediately) {
-      runComputation()
+    if (hasResult()) {
+      try {
+        assert(appState.computation, 'computation should exist when hasResult() is true')
+        const accepted = appState.computation.accepts
+        const tree = accepted ? props.cfg.parseTree(appState.inputString)?.toTreeString() || undefined : undefined
+        setParseTree(tree)
+      } catch {
+        // If we can't compute parse tree, reset
+        setParseTree(undefined)
+      }
     }
   })
 
-  // Reset computation results when test input changes in manual mode
-  createEffect(() => {
-    // Only reset if the input string actually changed since last computation
+  // Clear results and reset parseTree when inputString changes in manual mode  
+  createEffect((prevInput) => {
     const currentInput = appState.inputString
-    if (!appState.runImmediately && state.hasResult && 
-        currentInput !== state.lastComputedInput) {
-      setState({
-        hasResult: false
-      })
+    
+    // Only clear results if input actually changed and we're in manual mode
+    if (!appState.runImmediately && hasResult() && 
+        prevInput !== undefined && prevInput !== currentInput) {
+      setParseTree(undefined)
+      setAppState('computation', undefined)
     }
+    
+    return currentInput
   })
 
-  // Results are now dispatched to global store instead of using callbacks
-
-  // Export run function once on mount
+  // Export run function once on mount (CFG is guaranteed to be valid)
   onMount(() => {
-    // Export run function for manual mode
     if (props.onRunReady) {
       props.onRunReady(runComputation)
     }
   })
 
+  // Results are now dispatched to global store instead of using callbacks
+
   return (
     <div class="dfa-table-component">
       <div class="dfa-content">
           {/* Parse Tree Display */}
-          <Show when={state.hasResult && state.accepted && state.parseTree}>
+          <Show when={hasResult() && appState.computation?.accepts && parseTree()}>
             <div class="cfg-parse-tree">
               <h3>Parse Tree</h3>
               <div class="parse-tree-display">
-                <pre><code>{state.parseTree}</code></pre>
+                <pre><code>{parseTree()}</code></pre>
               </div>
             </div>
           </Show>

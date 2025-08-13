@@ -1,8 +1,7 @@
 import type { Component } from 'solid-js'
 import { createEffect, Show, onMount, For } from 'solid-js'
-import { createStore } from 'solid-js/store'
 import { Regex } from '../../core/Regex'
-import { appState, dispatch } from '../store/AppStore'
+import { appState, dispatch, setAppState } from '../store/AppStore'
 import { SetComputationResult, SetParseError } from '../types/Messages'
 import './TableComponent.css'
 
@@ -11,33 +10,17 @@ interface RegexComponentProps {
   onRunReady?: (runFunction: () => void) => void
 }
 
-interface RegexComponentState {
-  accepted: boolean
-  hasResult: boolean // Whether computation has been run and result should be shown
-  lastComputedInput: string // Track the input string that was last computed
-}
-
 export const RegexComponent: Component<RegexComponentProps> = (props) => {
-  // Local component state
-  const [state, setState] = createStore<RegexComponentState>({
-    accepted: false,
-    hasResult: false,
-    lastComputedInput: ''
-  })
+  // Derived values from AppState (single source of truth)
+  const hasResult = () => appState.computation !== undefined
 
-  // Function to run the computation
+  // Function to run the computation (for manual mode only)
   const runComputation = () => {
     try {
       // Test the input string
       const accepted = props.regex.accepts(appState.inputString)
       
-      setState({
-        accepted,
-        hasResult: true,
-        lastComputedInput: appState.inputString
-      })
-      
-      // Dispatch computation result to global store
+      // Computation result is handled by centralized logic in AppStore
       dispatch(new SetComputationResult({
         accepts: accepted,
         outputString: undefined // Regex doesn't have output strings
@@ -49,34 +32,27 @@ export const RegexComponent: Component<RegexComponentProps> = (props) => {
     }
   }
 
-  // Run computation immediately if enabled
-  createEffect(() => {
-    if (appState.runImmediately) {
-      runComputation()
-    }
-  })
-
-  // Reset computation results when test input changes in manual mode
-  createEffect(() => {
-    // Only reset if the input string actually changed since last computation
+  // Clear results when inputString changes in manual mode  
+  createEffect((prevInput) => {
     const currentInput = appState.inputString
-    if (!appState.runImmediately && state.hasResult && 
-        currentInput !== state.lastComputedInput) {
-      setState({
-        hasResult: false
-      })
+    
+    // Only clear results if input actually changed and we're in manual mode
+    if (!appState.runImmediately && hasResult() && 
+        prevInput !== undefined && prevInput !== currentInput) {
+      setAppState('computation', undefined)
     }
+    
+    return currentInput
   })
 
-  // Results are now dispatched to global store instead of using callbacks
-
-  // Export run function once on mount
+  // Export run function once on mount (Regex is guaranteed to be valid)
   onMount(() => {
-    // Export run function for manual mode
     if (props.onRunReady) {
       props.onRunReady(runComputation)
     }
   })
+
+  // Results are now dispatched to global store instead of using callbacks
 
 
   return (
