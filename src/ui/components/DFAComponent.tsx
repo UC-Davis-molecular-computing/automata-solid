@@ -19,13 +19,6 @@ interface DFAComponentState {
 }
 
 export const DFAComponent: Component<DFAComponentProps> = (props) => {
-  console.log('[DFAComponent] Mounted with DFA:', {
-    dfa: props.dfa,
-    states: props.dfa?.states,
-    alphabet: props.dfa?.inputAlphabet,
-    constructor: props.dfa?.constructor?.name
-  })
-  
   // Local component state (only DFA-specific state)
   const [state, setState] = createStore<DFAComponentState>({
     currentPosition: 0,

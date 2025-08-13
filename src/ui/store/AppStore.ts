@@ -1,5 +1,5 @@
 import { createStore } from 'solid-js/store'
-import { createEffect } from 'solid-js'
+import { createEffect, createRoot } from 'solid-js'
 import type { AppState } from '../types/AppState'
 import { AutomatonType, initialState } from '../types/AppState'
 import type { AppMessage } from '../types/Messages'
@@ -28,12 +28,8 @@ function createInitialState(): AppState {
     inputString: ''
   }
   
-  console.log('[AppStore] Creating initial state, default:', defaultState)
-  
   // Try to load from localStorage
   const stored = loadFromLocalStorage()
-  console.log('[AppStore] Loaded from localStorage:', stored)
-  
   if (stored) {
     // Merge stored state with defaults, with special handling for editor content
     const mergedState = { ...defaultState }
@@ -50,11 +46,9 @@ function createInitialState(): AppState {
     // Restore all persistable fields automatically
     Object.assign(mergedState, stored)
     
-    console.log('[AppStore] Final merged state:', mergedState)
     return mergedState
   }
   
-  console.log('[AppStore] Using default state')
   return defaultState
 }
 
@@ -369,99 +363,101 @@ const updateTMCurrentConfig = (newStep: number): void => {
 }
 
 // ========================================
-// LOCALSTORAGE PERSISTENCE (using createEffect)
+// REACTIVE EFFECTS (wrapped in createRoot to avoid warnings)
 // ========================================
 
-// Debounced save function to avoid excessive localStorage writes during typing
-const debouncedSave = debounce((state: Parameters<typeof saveToLocalStorage>[0]) => {
-  saveToLocalStorage(state)
-}, 500) // Wait 500ms after last change before saving
-
-// Create effect to automatically save relevant state to localStorage
-createEffect(() => {
-  // Automatically extract all persistable fields (excludes parseError and result)
-  const stateToPersist = getPersistableState(appState)
+// Create a root context for module-level effects that should live for the app's lifetime
+// We intentionally never call the dispose function since these should persist
+createRoot(() => {
   
-  // Use debounced save to avoid saving on every keystroke
-  debouncedSave(stateToPersist)
-})
-
-// ========================================
-// CENTRALIZED AUTOMATON PARSING 
-// ========================================
-
-// Create effect to parse automaton when editorContent or automatonType changes
-createEffect(() => {
-  console.log('[AppStore] Parse effect triggered, automatonType:', appState.automatonType, 'editorContent length:', appState.editorContent?.length)
-  try {
-    let automaton = undefined
+  // ========================================
+  // LOCALSTORAGE PERSISTENCE
+  // ========================================
+  
+  // Debounced save function to avoid excessive localStorage writes during typing
+  const debouncedSave = debounce((state: Parameters<typeof saveToLocalStorage>[0]) => {
+    saveToLocalStorage(state)
+  }, 500) // Wait 500ms after last change before saving
+  
+  // Create effect to automatically save relevant state to localStorage
+  createEffect(() => {
+    // Automatically extract all persistable fields (excludes parseError and result)
+    const stateToPersist = getPersistableState(appState)
     
-    // Parse based on automaton type
-    switch (appState.automatonType) {
-      case AutomatonType.Dfa:
-        const dfaParser = new DFAParser()
-        automaton = dfaParser.parseDFA(appState.editorContent)
-        console.log('[AppStore] DFA parsed successfully:', automaton)
-        break
-      case AutomatonType.Nfa:
-        const nfaParser = new NFAParser()
-        automaton = nfaParser.parseNFA(appState.editorContent)
-        console.log('[AppStore] NFA parsed successfully:', automaton)
-        break
-      case AutomatonType.Tm:
-        const tmParser = new TMParser()
-        automaton = tmParser.parseTM(appState.editorContent)
-        console.log('[AppStore] TM parsed successfully:', automaton)
-        break
-      case AutomatonType.Cfg:
-        const cfgParser = new CFGParser()
-        automaton = cfgParser.parseCFG(appState.editorContent)
-        console.log('[AppStore] CFG parsed successfully:', automaton)
-        break
-      case AutomatonType.Regex:
-        const regexParser = new RegexParser()
-        automaton = regexParser.parseRegex(appState.editorContent)
-        console.log('[AppStore] Regex parsed successfully:', automaton)
-        break
-      default:
-        throw new Error(`Unknown automaton type: ${appState.automatonType}`)
-    }
-    
-    // Successfully parsed - store automaton and clear errors
-    console.log('[AppStore] Setting automaton in state, constructor name:', automaton?.constructor?.name)
-    setAppState('automaton', automaton)
-    setAppState('parseError', undefined)
-    
-  } catch (error) {
-    // Parsing failed - clear automaton and store error
-    console.error('[AppStore] Parse error:', error)
-    const errorMessage = error instanceof Error ? error.message : 'Unknown parsing error'
-    setAppState('automaton', undefined)
-    setAppState('parseError', errorMessage)
-    setAppState('computation', undefined) // Clear results when parsing fails
-  }
-})
-
-// ========================================
-// CENTRALIZED COMPUTATION (when runImmediately is enabled)
-// ========================================
-
-// Create effect to run computation when automaton, inputString, or runImmediately changes
-createEffect(() => {
-  if (appState.automaton && appState.runImmediately) {
-    
+    // Use debounced save to avoid saving on every keystroke
+    debouncedSave(stateToPersist)
+  })
+  
+  // ========================================
+  // CENTRALIZED AUTOMATON PARSING 
+  // ========================================
+  
+  // Create effect to parse automaton when editorContent or automatonType changes
+  createEffect(() => {
     try {
-      // Run computation and build type-safe ExecutionData
-      const computation = runUnifiedComputation(appState.automaton, appState.automatonType, appState.inputString)
+      let automaton = undefined
       
-      // Store computation result
-      setAppState('computation', computation)
+      // Parse based on automaton type
+      switch (appState.automatonType) {
+        case AutomatonType.Dfa:
+          const dfaParser = new DFAParser()
+          automaton = dfaParser.parseDFA(appState.editorContent)
+          break
+        case AutomatonType.Nfa:
+          const nfaParser = new NFAParser()
+          automaton = nfaParser.parseNFA(appState.editorContent)
+          break
+        case AutomatonType.Tm:
+          const tmParser = new TMParser()
+          automaton = tmParser.parseTM(appState.editorContent)
+          break
+        case AutomatonType.Cfg:
+          const cfgParser = new CFGParser()
+          automaton = cfgParser.parseCFG(appState.editorContent)
+          break
+        case AutomatonType.Regex:
+          const regexParser = new RegexParser()
+          automaton = regexParser.parseRegex(appState.editorContent)
+          break
+        default:
+          throw new Error(`Unknown automaton type: ${appState.automatonType}`)
+      }
+      
+      // Successfully parsed - store automaton and clear errors
+      setAppState('automaton', automaton)
+      setAppState('parseError', undefined)
+      
     } catch (error) {
-      // Computation failed
-      const errorMessage = error instanceof Error ? error.message : 'Unknown computation error'
-      setAppState('computation', { accepts: false, error: errorMessage })
-    } 
-  }
+      // Parsing failed - clear automaton and store error
+      const errorMessage = error instanceof Error ? error.message : 'Unknown parsing error'
+      setAppState('automaton', undefined)
+      setAppState('parseError', errorMessage)
+      setAppState('computation', undefined) // Clear results when parsing fails
+    }
+  })
+  
+  // ========================================
+  // CENTRALIZED COMPUTATION (when runImmediately is enabled)
+  // ========================================
+  
+  // Create effect to run computation when automaton, inputString, or runImmediately changes
+  createEffect(() => {
+    if (appState.automaton && appState.runImmediately) {
+      
+      try {
+        // Run computation and build type-safe ExecutionData
+        const computation = runUnifiedComputation(appState.automaton, appState.automatonType, appState.inputString)
+        
+        // Store computation result
+        setAppState('computation', computation)
+      } catch (error) {
+        // Computation failed
+        const errorMessage = error instanceof Error ? error.message : 'Unknown computation error'
+        setAppState('computation', { accepts: false, error: errorMessage })
+      } 
+    }
+  })
+  
 })
 
 

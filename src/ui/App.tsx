@@ -21,13 +21,6 @@ import type { NavigationControls } from './types/NavigationControls'
 import './App.css'
 
 const App: Component = () => {
-  console.log('[App] Component mounted, initial appState:', {
-    automatonType: appState.automatonType,
-    hasAutomaton: !!appState.automaton,
-    automatonConstructor: appState.automaton?.constructor?.name,
-    hasParseError: !!appState.parseError
-  })
-  
   // State for navigation controls from active automaton visualization
   const [navigationControls, setNavigationControls] = createSignal<NavigationControls | undefined>()
   // State for run function from active automaton visualization
@@ -266,18 +259,7 @@ const App: Component = () => {
                   </div>
                 </Show>
                 
-                <Show when={(() => {
-                  const condition = appState.automatonType === AutomatonType.Dfa && appState.automaton && appState.automaton instanceof DFA
-                  console.log('[App] DFA Show condition:', {
-                    automatonType: appState.automatonType,
-                    isDfa: appState.automatonType === AutomatonType.Dfa,
-                    hasAutomaton: !!appState.automaton,
-                    constructorName: appState.automaton?.constructor?.name,
-                    isDFAInstance: appState.automaton instanceof DFA,
-                    finalCondition: condition
-                  })
-                  return condition
-                })()}>
+                <Show when={appState.automatonType === AutomatonType.Dfa && appState.automaton && appState.automaton instanceof DFA}>
                   <DFAComponent 
                     dfa={appState.automaton as DFA}
                     onNavigationReady={setNavigationControls}
