@@ -1,14 +1,12 @@
 import type { Component } from 'solid-js'
-import { createEffect, createSignal, Show, onMount } from 'solid-js'
+import { createEffect, createSignal, Show } from 'solid-js'
 import { CFG } from '../../core/CFG'
-import { appState, dispatch, setAppState } from '../store/AppStore'
-import { SetComputationResult, SetParseError } from '../types/Messages'
+import { appState, setAppState } from '../store/AppStore'
 import { assert } from '../../core/Utils'
 import './TableComponent.css'
 
 interface CFGComponentProps {
   cfg: CFG
-  onRunReady?: (runFunction: () => void) => void
 }
 
 export const CFGComponent: Component<CFGComponentProps> = (props) => {
@@ -18,26 +16,7 @@ export const CFGComponent: Component<CFGComponentProps> = (props) => {
   // Derived values from AppState (single source of truth)
   const hasResult = () => appState.computation !== undefined
 
-  // Function to run the computation (for manual mode only)
-  const runComputation = () => {
-    try {
-      // Test the input string
-      const accepted = props.cfg.accepts(appState.inputString)
-      const tree = accepted ? props.cfg.parseTree(appState.inputString)?.toTreeString() || undefined : undefined
-      
-      setParseTree(tree)
-      
-      // Computation result is handled by centralized logic in AppStore
-      dispatch(new SetComputationResult({
-        accepts: accepted,
-        outputString: tree // CFGs can have parse tree output
-      }))
-      
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error during computation'
-      dispatch(new SetParseError(errorMessage))
-    }
-  }
+  // Computation is now triggered via message dispatch from App.tsx
 
   // Update parseTree when result changes (for both manual and immediate modes)
   createEffect(() => {
@@ -66,13 +45,6 @@ export const CFGComponent: Component<CFGComponentProps> = (props) => {
     }
     
     return currentInput
-  })
-
-  // Export run function once on mount (CFG is guaranteed to be valid)
-  onMount(() => {
-    if (props.onRunReady) {
-      props.onRunReady(runComputation)
-    }
   })
 
   // Results are now dispatched to global store instead of using callbacks

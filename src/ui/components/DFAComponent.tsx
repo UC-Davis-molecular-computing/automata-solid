@@ -2,15 +2,13 @@ import type { Component } from 'solid-js'
 import { createEffect, For, onMount } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import type { DFA } from '../../core/DFA'
-import { appState, dispatch, setAppState } from '../store/AppStore'
-import { SetComputationResult, SetParseError } from '../types/Messages'
+import { appState, setAppState } from '../store/AppStore'
 import type { NavigationControls } from '../types/NavigationControls'
 import './TableComponent.css'
 
 interface DFAComponentProps {
   dfa: DFA
   onNavigationReady?: (controls: NavigationControls) => void
-  onRunReady?: (runFunction: () => void) => void
 }
 
 interface DFAComponentState {
@@ -28,24 +26,7 @@ export const DFAComponent: Component<DFAComponentProps> = (props) => {
   // Derived values from AppState (single source of truth)
   const hasResult = () => appState.computation !== undefined
 
-  // Function to run the computation (for manual mode only)
-  const runComputation = () => {
-    try {
-      const statesVisited = props.dfa.statesVisited(appState.inputString)
-      setState({
-        currentPosition: 0,
-        statesVisited,
-      })
-      // Computation result is handled by centralized logic in AppStore
-      dispatch(new SetComputationResult({
-        accepts: props.dfa.accepts(appState.inputString),
-        outputString: undefined // DFAs don't have output strings
-      }))
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error during computation'
-      dispatch(new SetParseError(errorMessage))
-    }
-  }
+  // Computation is now triggered via message dispatch from App.tsx
 
   // Update statesVisited when result changes (for both manual and immediate modes)
   createEffect(() => {
@@ -80,13 +61,6 @@ export const DFAComponent: Component<DFAComponentProps> = (props) => {
     }
     
     return currentInput
-  })
-
-  // Export run function once on mount (DFA is guaranteed to be valid)
-  onMount(() => {
-    if (props.onRunReady) {
-      props.onRunReady(runComputation)
-    }
   })
 
   // Results are now dispatched to global store instead of using callbacks

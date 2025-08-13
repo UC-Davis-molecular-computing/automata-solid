@@ -16,24 +16,16 @@ import { Regex } from '../core/Regex'
 import { CFG } from '../core/CFG'
 import { appState, setAppState, dispatch } from './store/AppStore'
 import { AutomatonType } from './types/AppState'
-import { LoadDefault, SaveFile, OpenFile } from './types/Messages'
+import { LoadDefault, SaveFile, OpenFile, TriggerComputation } from './types/Messages'
 import type { NavigationControls } from './types/NavigationControls'
 import './App.css'
 
 const App: Component = () => {
   // State for navigation controls from active automaton visualization
   const [navigationControls, setNavigationControls] = createSignal<NavigationControls | undefined>()
-  // State for run function from active automaton visualization
-  const [runFunction, setRunFunction] = createSignal<(() => void) | undefined>()
   // Computation results are now tracked in the global store instead of local state
   
   // Result changes are now handled via global store messages instead of callbacks
-
-  // Wrapper to properly store function in signal
-  const handleRunReady = (fn: (() => void) | undefined) => {
-    // Use the updater function form to store the function
-    setRunFunction(() => fn)
-  }
   
   
   // Save split percentage when it changes
@@ -201,12 +193,7 @@ const App: Component = () => {
             <Show when={!appState.runImmediately}>
               <button 
                 class="run-button"
-                onClick={() => {
-                  const run = runFunction()
-                  if (run) {
-                    run()
-                  }
-                }}
+                onClick={() => dispatch(new TriggerComputation(appState.automatonType))}
               >
                 Run
               </button>
@@ -263,33 +250,28 @@ const App: Component = () => {
                   <DFAComponent 
                     dfa={appState.automaton as DFA}
                     onNavigationReady={setNavigationControls}
-                    onRunReady={handleRunReady}
                   />
                 </Show>
                 <Show when={appState.automatonType === AutomatonType.Nfa && appState.automaton && appState.automaton instanceof NFA}>
                   <NFAComponent 
                     nfa={appState.automaton as NFA}
                     onNavigationReady={setNavigationControls}
-                    onRunReady={handleRunReady}
                   />
                 </Show>
                 <Show when={appState.automatonType === AutomatonType.Tm && appState.automaton && appState.automaton instanceof TM}>
                   <TMComponent 
                     tm={appState.automaton as TM}
                     onNavigationReady={setNavigationControls}
-                    onRunReady={handleRunReady}
                   />
                 </Show>
                 <Show when={appState.automatonType === AutomatonType.Regex && appState.automaton && appState.automaton instanceof Regex}>
                   <RegexComponent 
                     regex={appState.automaton as Regex}
-                    onRunReady={handleRunReady}
                   />
                 </Show>
                 <Show when={appState.automatonType === AutomatonType.Cfg && appState.automaton && appState.automaton instanceof CFG}>
                   <CFGComponent 
                     cfg={appState.automaton as CFG}
-                    onRunReady={handleRunReady}
                   />
                 </Show>
               </div>

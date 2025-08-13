@@ -5,7 +5,7 @@ import { AutomatonType, initialState } from '../types/AppState'
 import type { AppMessage } from '../types/Messages'
 import { LoadDefault, SaveFile, LoadFile, MinimizeDfa, RunTest, OpenFile, SaveFileAs,
   SetComputationResult, SetParseError, NavigateForward, NavigateBackward, 
-  NavigateToBeginning, NavigateToEnd } from '../types/Messages'
+  NavigateToBeginning, NavigateToEnd, TriggerComputation } from '../types/Messages'
 import { debounce } from '../utils/debounce'
 import { saveToLocalStorage, loadFromLocalStorage, getPersistableState } from '../utils/localStorage'
 import { DFAParser } from '../../parsers/DFAParser'
@@ -89,6 +89,17 @@ export const dispatch = (message: AppMessage): void => {
     navigateToBeginning()
   } else if (message instanceof NavigateToEnd) {
     navigateToEnd()
+  } else if (message instanceof TriggerComputation) {
+    // Handle manual computation trigger
+    if (appState.automaton && message.automatonType === appState.automatonType) {
+      const computation = runUnifiedComputation(
+        appState.automaton, 
+        appState.automatonType, 
+        appState.inputString
+      )
+      setAppState('computation', computation)
+      setAppState('parseError', undefined)
+    }
   } else {
     // Fallback for unknown message types
     console.error('Unhandled message type:', message.constructor.name)

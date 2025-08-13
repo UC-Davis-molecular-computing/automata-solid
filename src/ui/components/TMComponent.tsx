@@ -3,15 +3,13 @@ import { createEffect, For, Show, onMount } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import { TM, TMConfiguration, ConfigDiff } from '../../core/TM'
 import { wildcardMatch, WILDCARD, assert } from '../../core/Utils'
-import { appState, dispatch, setAppState } from '../store/AppStore'
-import { SetComputationResult, SetParseError } from '../types/Messages'
+import { appState, setAppState } from '../store/AppStore'
 import type { NavigationControls } from '../types/NavigationControls'
 import './TableComponent.css' // Reuse existing CSS
 
 interface TMComponentProps {
   tm: TM
   onNavigationReady?: (controls: NavigationControls) => void
-  onRunReady?: (runFunction: () => void) => void
 }
 
 interface TMComponentState {
@@ -33,54 +31,23 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
   // Derived values from AppState (single source of truth)
   const hasResult = () => appState.computation !== undefined
 
-  // Function to run the computation
-  const runComputation = () => {
-    try {
-      // Process the input using memory-efficient ConfigDiff approach
-      const { diffs, finalConfig } = props.tm.getConfigDiffsAndFinalConfig(appState.inputString)
-      const initialConfig = props.tm.initialConfig(appState.inputString)
-      const accepted = finalConfig.state === props.tm.acceptState
-      
-      const outputString = finalConfig.outputString()
-      
-      // Check if we hit the MAX_STEPS limit
-      // This happens when we have MAX_STEPS diffs and the final configuration is not halting
-      const hitMaxSteps = diffs.length === TM.MAX_STEPS && !finalConfig.isHalting()
-            
-      // Log to see if setState is synchronous or if something else happens
-      setState({
-        currentStep: 0,
-        diffs,
-        initialConfig,
-        finalConfig,
-        currentConfig: initialConfig.copy()
-      })
-      
-      // Dispatch computation result to global store
-      dispatch(new SetComputationResult({
-        accepts: accepted,
-        outputString: outputString,
-        error: hitMaxSteps ? 'MAX_STEPS_REACHED' : undefined
-      }))
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error during computation'
-      dispatch(new SetParseError(errorMessage))
-    }
-  }
+  // Computation is now triggered via message dispatch from App.tsx
 
-  // Handle computation and initial state based on settings
+  // Update state when global computation changes
   createEffect(() => {
-    // Depend on both editorContent and inputString for reactivity
-    const inputString = appState.inputString
-    const runImmediately = appState.runImmediately
-    
-    if (runImmediately) {
-      // Run computation immediately
-      runComputation()
-    } else {
+    const computation = appState.computation
+    if (computation && computation.navigation?.executionData?.type === 'tm') {
+      const tmData = computation.navigation.executionData
+      setState({
+        currentStep: computation.navigation.currentStep,
+        diffs: tmData.diffs as ConfigDiff[],
+        initialConfig: tmData.initialConfig as TMConfiguration,
+        finalConfig: tmData.finalConfig as TMConfiguration,
+        currentConfig: tmData.currentConfig as TMConfiguration
+      })
+    } else if (!appState.runImmediately) {
       // Just show initial configuration without running computation
-      // This will update whenever either editorContent OR inputString changes
-      const initialConfig = props.tm.initialConfig(inputString)
+      const initialConfig = props.tm.initialConfig(appState.inputString)
       setState({
         initialConfig,
         currentConfig: initialConfig.copy(),
@@ -179,10 +146,6 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
         canGoForward: () => hasResult() && state.currentStep < state.diffs.length,
         canGoBackward: () => hasResult() && state.currentStep > 0
       })
-    }
-    
-    if (props.onRunReady) {
-      props.onRunReady(runComputation)
     }
   })
 

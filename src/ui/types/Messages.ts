@@ -1,5 +1,6 @@
 
 // Base interface for type checking
+import type { ExecutionData, AutomatonType } from './AppState'
 export abstract class AppMessage {}
 
 
@@ -35,7 +36,7 @@ export class SetComputationResult implements AppMessage {
     navigation?: {
       currentStep: number
       totalSteps: number
-      executionData?: import('./AppState').ExecutionData
+    executionData?: ExecutionData
     }
   }
   constructor(computation: { 
@@ -45,7 +46,7 @@ export class SetComputationResult implements AppMessage {
     navigation?: {
       currentStep: number
       totalSteps: number
-      executionData?: import('./AppState').ExecutionData
+    executionData?: ExecutionData
     }
   }) {
     this.computation = computation
@@ -64,3 +65,11 @@ export class NavigateForward implements AppMessage {}
 export class NavigateBackward implements AppMessage {}
 export class NavigateToBeginning implements AppMessage {}
 export class NavigateToEnd implements AppMessage {}
+
+// Computation trigger message
+export class TriggerComputation implements AppMessage {
+  readonly automatonType: AutomatonType
+  constructor(automatonType: import('./AppState').AutomatonType) {
+    this.automatonType = automatonType
+  }
+}
