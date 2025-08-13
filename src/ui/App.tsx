@@ -21,6 +21,13 @@ import type { NavigationControls } from './types/NavigationControls'
 import './App.css'
 
 const App: Component = () => {
+  console.log('[App] Component mounted, initial appState:', {
+    automatonType: appState.automatonType,
+    hasAutomaton: !!appState.automaton,
+    automatonConstructor: appState.automaton?.constructor?.name,
+    hasParseError: !!appState.parseError
+  })
+  
   // State for navigation controls from active automaton visualization
   const [navigationControls, setNavigationControls] = createSignal<NavigationControls | undefined>()
   // State for run function from active automaton visualization
@@ -212,17 +219,17 @@ const App: Component = () => {
               </button>
             </Show>
           </div>
-          <Show when={!appState.parseError && appState.result}>
+          <Show when={!appState.parseError && appState.computation}>
             <div class="acceptance-status">
-              <Show when={appState.result}>
-                <Show when={appState.automatonType === AutomatonType.Tm && appState.result?.error === 'MAX_STEPS_REACHED'} fallback={
+              <Show when={appState.computation}>
+                <Show when={appState.automatonType === AutomatonType.Tm && appState.computation?.error === 'MAX_STEPS_REACHED'} fallback={
                   <>
-                    <span class={appState.result?.accepts ? 'accepted' : 'rejected'}>
-                      {appState.result?.accepts ? 'accept' : 'reject'}
+                    <span class={appState.computation?.accepts ? 'accepted' : 'rejected'}>
+                      {appState.computation?.accepts ? 'accept' : 'reject'}
                     </span>
-                    <Show when={appState.automatonType === AutomatonType.Tm && appState.result?.outputString !== undefined}>
+                    <Show when={appState.automatonType === AutomatonType.Tm && appState.computation?.outputString !== undefined}>
                       <span title="This is the string on the last tape, starting at the tape head, until the first _ to the right of there." class="tm-output">
-                        string output: <span class="output-string">{appState.result?.outputString || 'ε'}</span>
+                        string output: <span class="output-string">{appState.computation?.outputString || 'ε'}</span>
                       </span>
                     </Show>
                   </>
@@ -230,7 +237,7 @@ const App: Component = () => {
                   <span class="max-steps-reached">MAX_STEPS={TM.MAX_STEPS.toLocaleString()} limit reached</span>
                 </Show>
               </Show>
-              <Show when={!appState.result}>
+              <Show when={!appState.computation}>
                 <span>Click Run to see result</span>
               </Show>
             </div>
@@ -259,34 +266,45 @@ const App: Component = () => {
                   </div>
                 </Show>
                 
-                <Show when={appState.automatonType === AutomatonType.Dfa && appState.automaton && appState.automaton.constructor.name === 'DFA'}>
+                <Show when={(() => {
+                  const condition = appState.automatonType === AutomatonType.Dfa && appState.automaton && appState.automaton instanceof DFA
+                  console.log('[App] DFA Show condition:', {
+                    automatonType: appState.automatonType,
+                    isDfa: appState.automatonType === AutomatonType.Dfa,
+                    hasAutomaton: !!appState.automaton,
+                    constructorName: appState.automaton?.constructor?.name,
+                    isDFAInstance: appState.automaton instanceof DFA,
+                    finalCondition: condition
+                  })
+                  return condition
+                })()}>
                   <DFAComponent 
                     dfa={appState.automaton as DFA}
                     onNavigationReady={setNavigationControls}
                     onRunReady={handleRunReady}
                   />
                 </Show>
-                <Show when={appState.automatonType === AutomatonType.Nfa && appState.automaton && appState.automaton.constructor.name === 'NFA'}>
+                <Show when={appState.automatonType === AutomatonType.Nfa && appState.automaton && appState.automaton instanceof NFA}>
                   <NFAComponent 
                     nfa={appState.automaton as NFA}
                     onNavigationReady={setNavigationControls}
                     onRunReady={handleRunReady}
                   />
                 </Show>
-                <Show when={appState.automatonType === AutomatonType.Tm && appState.automaton && appState.automaton.constructor.name === 'TM'}>
+                <Show when={appState.automatonType === AutomatonType.Tm && appState.automaton && appState.automaton instanceof TM}>
                   <TMComponent 
                     tm={appState.automaton as TM}
                     onNavigationReady={setNavigationControls}
                     onRunReady={handleRunReady}
                   />
                 </Show>
-                <Show when={appState.automatonType === AutomatonType.Regex && appState.automaton && appState.automaton.constructor.name === 'Regex'}>
+                <Show when={appState.automatonType === AutomatonType.Regex && appState.automaton && appState.automaton instanceof Regex}>
                   <RegexComponent 
                     regex={appState.automaton as Regex}
                     onRunReady={handleRunReady}
                   />
                 </Show>
-                <Show when={appState.automatonType === AutomatonType.Cfg && appState.automaton && appState.automaton.constructor.name === 'CFG'}>
+                <Show when={appState.automatonType === AutomatonType.Cfg && appState.automaton && appState.automaton instanceof CFG}>
                   <CFGComponent 
                     cfg={appState.automaton as CFG}
                     onRunReady={handleRunReady}

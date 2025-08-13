@@ -28,13 +28,27 @@ export class SaveFileAs implements AppMessage {
 }
 
 export class SetComputationResult implements AppMessage {
-  readonly result: {
+  readonly computation: {
     accepts: boolean
     outputString?: string
     error?: string
+    navigation?: {
+      currentStep: number
+      totalSteps: number
+      executionData?: import('./AppState').ExecutionData
+    }
   }
-  constructor(result: { accepts: boolean; outputString?: string; error?: string }) {
-    this.result = result
+  constructor(computation: { 
+    accepts: boolean; 
+    outputString?: string; 
+    error?: string;
+    navigation?: {
+      currentStep: number
+      totalSteps: number
+      executionData?: import('./AppState').ExecutionData
+    }
+  }) {
+    this.computation = computation
   }
 }
 
@@ -44,3 +58,9 @@ export class SetParseError implements AppMessage {
     this.error = error
   }
 }
+
+// Navigation messages
+export class NavigateForward implements AppMessage {}
+export class NavigateBackward implements AppMessage {}
+export class NavigateToBeginning implements AppMessage {}
+export class NavigateToEnd implements AppMessage {}

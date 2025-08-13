@@ -26,11 +26,11 @@ function createMockAppStore() {
       setAppState('editorContent', `default ${appState.automatonType.toLowerCase()} content`)
       // Should NOT clear inputString - this was the bug
       setAppState('parseError', undefined)
-      setAppState('result', undefined)
+      setAppState('computation', undefined)
       // Should NOT change editorContent when switching models
       // Should NOT clear inputString - preserve it
       setAppState('parseError', undefined)
-      setAppState('result', undefined)
+      setAppState('computation', undefined)
     }
   }
   

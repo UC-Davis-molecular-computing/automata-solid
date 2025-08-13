@@ -31,45 +31,23 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
   })
   
   // Derived values from AppState (single source of truth)
-  const hasResult = () => appState.result !== undefined
+  const hasResult = () => appState.computation !== undefined
 
   // Function to run the computation
   const runComputation = () => {
-    console.log('[runComputation] Starting...')
-    const totalStart = performance.now()
-    
     try {
-      // Process the test input using memory-efficient ConfigDiff approach
-      console.log('[runComputation] Calling getConfigDiffsAndFinalConfig...')
-      const t1 = performance.now()
+      // Process the input using memory-efficient ConfigDiff approach
       const { diffs, finalConfig } = props.tm.getConfigDiffsAndFinalConfig(appState.inputString)
-      const t2 = performance.now()
-      console.log(`[runComputation] getConfigDiffsAndFinalConfig took ${(t2 - t1).toFixed(2)}ms for ${diffs.length} steps`)
-      
-      console.log('[runComputation] Creating initial config...')
-      const t3 = performance.now()
       const initialConfig = props.tm.initialConfig(appState.inputString)
-      const t4 = performance.now()
-      console.log(`[runComputation] initialConfig took ${(t4 - t3).toFixed(2)}ms`)
-      
       const accepted = finalConfig.state === props.tm.acceptState
       
-      console.log('[runComputation] Getting output string...')
-      const t5 = performance.now()
       const outputString = finalConfig.outputString()
-      const t6 = performance.now()
-      console.log(`[runComputation] outputString took ${(t6 - t5).toFixed(2)}ms`)
       
       // Check if we hit the MAX_STEPS limit
       // This happens when we have MAX_STEPS diffs and the final configuration is not halting
       const hitMaxSteps = diffs.length === TM.MAX_STEPS && !finalConfig.isHalting()
-      
-      console.log('[runComputation] Setting state...')
-      console.log(`[runComputation] About to store ${diffs.length} diffs in state`)
-      const t7 = performance.now()
-      
+            
       // Log to see if setState is synchronous or if something else happens
-      console.log('[runComputation] Calling setState...')
       setState({
         currentStep: 0,
         diffs,
@@ -77,51 +55,28 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
         finalConfig,
         currentConfig: initialConfig.copy()
       })
-      console.log('[runComputation] setState returned')
-      
-      const t8 = performance.now()
-      console.log(`[runComputation] setState took ${(t8 - t7).toFixed(2)}ms`)
       
       // Dispatch computation result to global store
-      console.log('[runComputation] Dispatching result...')
-      const t9 = performance.now()
       dispatch(new SetComputationResult({
         accepts: accepted,
         outputString: outputString,
         error: hitMaxSteps ? 'MAX_STEPS_REACHED' : undefined
       }))
-      const t10 = performance.now()
-      console.log(`[runComputation] dispatch took ${(t10 - t9).toFixed(2)}ms`)
-      
-      const totalEnd = performance.now()
-      console.log(`[runComputation] TOTAL TIME: ${(totalEnd - totalStart).toFixed(2)}ms`)
-      console.log('[runComputation] Function completed, returning control to SolidJS')
-      
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error during computation'
       dispatch(new SetParseError(errorMessage))
-      console.log(`[runComputation] Error: ${errorMessage}`)
     }
   }
 
   // Handle computation and initial state based on settings
-  let effectCallCount = 0
   createEffect(() => {
-    effectCallCount++
-    console.log(`[TMComponent createEffect] Called ${effectCallCount} times`)
-    console.log(`[TMComponent createEffect] runImmediately=${appState.runImmediately}, input length=${appState.inputString.length}`)
-    
     // Depend on both editorContent and inputString for reactivity
     const inputString = appState.inputString
     const runImmediately = appState.runImmediately
     
     if (runImmediately) {
       // Run computation immediately
-      console.log('[TMComponent createEffect] Calling runComputation...')
-      const effectStart = performance.now()
       runComputation()
-      const effectEnd = performance.now()
-      console.log(`[TMComponent createEffect] runComputation returned after ${(effectEnd - effectStart).toFixed(2)}ms`)
     } else {
       // Just show initial configuration without running computation
       // This will update whenever either editorContent OR inputString changes
@@ -134,7 +89,6 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
         finalConfig: undefined
       })
     }
-    console.log('[TMComponent createEffect] Effect completed')
   })
 
   // Clear results and reset state when inputString changes in manual mode  
@@ -147,7 +101,7 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
       setState({
         currentStep: 0
       })
-      setAppState('result', undefined)
+      setAppState('computation', undefined)
     }
     
     return currentInput
@@ -243,8 +197,6 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
     return config ? config.state : ''
   }
 
-  console.log(`[TMComponent render] Rendering with ${state.diffs.length} diffs`)
-  
   return (
     <div class="automaton-table-component">
       <div class="automaton-content">

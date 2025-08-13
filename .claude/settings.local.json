@@ -40,7 +40,9 @@
       "Bash(rsync:*)",
       "Bash(git checkout:*)",
       "Bash(git rm:*)",
-      "Bash(npx vitest run:*)"
+      "Bash(npx vitest run:*)",
+      "Bash(npm run dev:*)",
+      "Bash(npm run preview:*)"
     ],
     "deny": []
   }

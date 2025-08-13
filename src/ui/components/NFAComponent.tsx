@@ -26,7 +26,7 @@ export const NFAComponent: Component<NFAComponentProps> = (props) => {
   })
   
   // Derived values from AppState (single source of truth)
-  const hasResult = () => appState.result !== undefined
+  const hasResult = () => appState.computation !== undefined
 
   // Function to run the computation (for manual mode only)
   const runComputation = () => {
@@ -76,7 +76,7 @@ export const NFAComponent: Component<NFAComponentProps> = (props) => {
       setState({
         currentPosition: 0
       })
-      setAppState('result', undefined)
+      setAppState('computation', undefined)
     }
     
     return currentInput

@@ -4,6 +4,13 @@
 
 import type { Automaton } from '../../core/Automaton'
 
+// Discriminated union for step-through execution data
+export type ExecutionData = 
+  | { type: 'dfa'; stateSequence: string[] }
+  | { type: 'nfa'; stateSetSequence: string[][] }  
+  | { type: 'tm'; diffs: unknown[]; initialConfig: unknown; finalConfig: unknown; currentConfig: unknown }
+  | { type: 'cfg'; parseTree?: unknown }
+
 export const AutomatonType = {
   Dfa: 'dfa',
   Nfa: 'nfa', 
@@ -34,10 +41,22 @@ export interface AppState {
   
   // Results
   parseError?: string
-  result?: {
+  
+  // Unified computation results (replaces old 'result' field)
+  computation?: {
+    // Common results (all automaton types)
     accepts: boolean
     outputString?: string
     error?: string
+    
+    // Navigation state (when step-through visualization is available)
+    navigation?: {
+      currentStep: number
+      totalSteps: number
+      
+      // Type-safe execution data using discriminated unions
+      executionData?: ExecutionData
+    }
   }
 }
 
