@@ -5,7 +5,7 @@ import { AutomatonType, initialState } from '../types/AppState'
 import type { AppMessage } from '../types/Messages'
 import { LoadDefault, SaveFile, LoadFile, MinimizeDfa, RunTest, OpenFile, SaveFileAs,
   SetComputationResult, SetParseError, NavigateForward, NavigateBackward, 
-  NavigateToBeginning, NavigateToEnd, TriggerComputation } from '../types/Messages'
+  NavigateToBeginning, NavigateToEnd, TriggerComputation, RegisterNavigationControls } from '../types/Messages'
 import { debounce } from '../utils/debounce'
 import { saveToLocalStorage, loadFromLocalStorage, getPersistableState } from '../utils/localStorage'
 import { DFAParser } from '../../parsers/DFAParser'
@@ -100,6 +100,8 @@ export const dispatch = (message: AppMessage): void => {
       setAppState('computation', computation)
       setAppState('parseError', undefined)
     }
+  } else if (message instanceof RegisterNavigationControls) {
+    setAppState('navigationControls', message.controls)
   } else {
     // Fallback for unknown message types
     console.error('Unhandled message type:', message.constructor.name)
@@ -407,6 +409,9 @@ createRoot(() => {
   createEffect(() => {
     try {
       let automaton = undefined
+      
+      // Clear navigation controls when automaton type changes
+      setAppState('navigationControls', undefined)
       
       // Parse based on automaton type
       switch (appState.automatonType) {

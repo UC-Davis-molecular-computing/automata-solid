@@ -2,13 +2,12 @@ import type { Component } from 'solid-js'
 import { createEffect, For, onMount } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import type { DFA } from '../../core/DFA'
-import { appState, setAppState } from '../store/AppStore'
-import type { NavigationControls } from '../types/NavigationControls'
+import { appState, setAppState, dispatch } from '../store/AppStore'
+import { RegisterNavigationControls } from '../types/Messages'
 import './TableComponent.css'
 
 interface DFAComponentProps {
   dfa: DFA
-  onNavigationReady?: (controls: NavigationControls) => void
 }
 
 interface DFAComponentState {
@@ -98,18 +97,16 @@ export const DFAComponent: Component<DFAComponentProps> = (props) => {
     })
   }
 
-  // Export navigation functions once on mount - functions are stable
+  // Register navigation controls with the store on mount
   onMount(() => {
-    if (props.onNavigationReady) {
-      props.onNavigationReady({
-        goForward,
-        goBackward, 
-        goToBeginning,
-        goToEnd,
-        canGoForward: () => hasResult() && state.currentPosition < appState.inputString.length,
-        canGoBackward: () => hasResult() && state.currentPosition > 0
-      })
-    }
+    dispatch(new RegisterNavigationControls({
+      goForward,
+      goBackward, 
+      goToBeginning,
+      goToEnd,
+      canGoForward: () => hasResult() && state.currentPosition < appState.inputString.length,
+      canGoBackward: () => hasResult() && state.currentPosition > 0
+    }))
   })
 
 

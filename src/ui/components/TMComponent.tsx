@@ -3,13 +3,12 @@ import { createEffect, For, Show, onMount } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import { TM, TMConfiguration, ConfigDiff } from '../../core/TM'
 import { wildcardMatch, WILDCARD, assert } from '../../core/Utils'
-import { appState, setAppState } from '../store/AppStore'
-import type { NavigationControls } from '../types/NavigationControls'
+import { appState, setAppState, dispatch } from '../store/AppStore'
+import { RegisterNavigationControls } from '../types/Messages'
 import './TableComponent.css' // Reuse existing CSS
 
 interface TMComponentProps {
   tm: TM
-  onNavigationReady?: (controls: NavigationControls) => void
 }
 
 interface TMComponentState {
@@ -135,18 +134,16 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
     })
   }
 
-  // Export navigation functions and run function once on mount
+  // Register navigation controls with the store on mount
   onMount(() => {
-    if (props.onNavigationReady) {
-      props.onNavigationReady({
-        goForward,
-        goBackward,
-        goToBeginning,
-        goToEnd,
-        canGoForward: () => hasResult() && state.currentStep < state.diffs.length,
-        canGoBackward: () => hasResult() && state.currentStep > 0
-      })
-    }
+    dispatch(new RegisterNavigationControls({
+      goForward,
+      goBackward,
+      goToBeginning,
+      goToEnd,
+      canGoForward: () => hasResult() && state.currentStep < state.diffs.length,
+      canGoBackward: () => hasResult() && state.currentStep > 0
+    }))
   })
 
   // Helper functions for rendering

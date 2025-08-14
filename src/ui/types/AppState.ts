@@ -3,6 +3,7 @@
  */
 
 import type { Automaton } from '../../core/Automaton'
+import type { NavigationControls } from './NavigationControls'
 
 // Discriminated union for step-through execution data
 export type ExecutionData = 
@@ -38,6 +39,9 @@ export interface AppState {
   
   // Parsed automaton (undefined if parsing failed)
   automaton?: Automaton
+  
+  // Navigation controls registered by components
+  navigationControls?: NavigationControls
   
   // Results
   parseError?: string

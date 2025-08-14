@@ -66,6 +66,15 @@ export class NavigateBackward implements AppMessage {}
 export class NavigateToBeginning implements AppMessage {}
 export class NavigateToEnd implements AppMessage {}
 
+// Register navigation controls from components
+import type { NavigationControls } from './NavigationControls'
+export class RegisterNavigationControls implements AppMessage {
+  readonly controls: NavigationControls | undefined
+  constructor(controls: NavigationControls | undefined) {
+    this.controls = controls
+  }
+}
+
 // Computation trigger message
 export class TriggerComputation implements AppMessage {
   readonly automatonType: AutomatonType

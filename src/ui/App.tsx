@@ -1,5 +1,5 @@
 import type { Component } from 'solid-js'
-import { Show, createSignal, onMount, onCleanup } from 'solid-js'
+import { Show, onMount, onCleanup } from 'solid-js'
 import Resizable from '@corvu/resizable'
 import { MenuBar } from './components/MenuBar'
 import { ModelIndicator } from './components/ModelIndicator'
@@ -17,12 +17,10 @@ import { CFG } from '../core/CFG'
 import { appState, setAppState, dispatch } from './store/AppStore'
 import { AutomatonType } from './types/AppState'
 import { LoadDefault, SaveFile, OpenFile, TriggerComputation } from './types/Messages'
-import type { NavigationControls } from './types/NavigationControls'
 import './App.css'
 
 const App: Component = () => {
   // State for navigation controls from active automaton visualization
-  const [navigationControls, setNavigationControls] = createSignal<NavigationControls | undefined>()
   // Computation results are now tracked in the global store instead of local state
   
   // Result changes are now handled via global store messages instead of callbacks
@@ -60,31 +58,30 @@ const App: Component = () => {
       return
     }
     
-    const controls = navigationControls()
-    if (!controls) return
+    if (!appState.navigationControls) return
     
     switch (event.key) {
       case ',':
       case 'ArrowLeft':
         event.preventDefault()
-        if (controls.canGoBackward()) {
-          controls.goBackward()
+        if (appState.navigationControls.canGoBackward()) {
+          appState.navigationControls.goBackward()
         }
         break
       case '.':
       case 'ArrowRight':
         event.preventDefault()
-        if (controls.canGoForward()) {
-          controls.goForward()
+        if (appState.navigationControls.canGoForward()) {
+          appState.navigationControls.goForward()
         }
         break
       case 'Home':
         event.preventDefault()
-        controls.goToBeginning()
+        appState.navigationControls.goToBeginning()
         break
       case 'End':
         event.preventDefault()
-        controls.goToEnd()
+        appState.navigationControls.goToEnd()
         break
     }
   }
@@ -100,23 +97,19 @@ const App: Component = () => {
   
   // Navigation button handlers
   const handleGoToBeginning = () => {
-    const controls = navigationControls()
-    if (controls) controls.goToBeginning()
+    if (appState.navigationControls) appState.navigationControls.goToBeginning()
   }
   
   const handleGoBackward = () => {
-    const controls = navigationControls()
-    if (controls) controls.goBackward()
+    if (appState.navigationControls) appState.navigationControls.goBackward()
   }
   
   const handleGoForward = () => {
-    const controls = navigationControls()
-    if (controls) controls.goForward()
+    if (appState.navigationControls) appState.navigationControls.goForward()
   }
   
   const handleGoToEnd = () => {
-    const controls = navigationControls()
-    if (controls) controls.goToEnd()
+    if (appState.navigationControls) appState.navigationControls.goToEnd()
   }
   
   // Check if navigation is available for current automaton type
@@ -152,28 +145,28 @@ const App: Component = () => {
               <button 
                 title="go to beginning (Home key)"
                 onClick={handleGoToBeginning}
-                disabled={!navigationControls()?.canGoBackward()}
+                disabled={!appState.navigationControls?.canGoBackward()}
               >
                 |&lt;&lt;
               </button>
               <button 
                 title="backward one step (⭠ key or ,)"
                 onClick={handleGoBackward}
-                disabled={!navigationControls()?.canGoBackward()}
+                disabled={!appState.navigationControls?.canGoBackward()}
               >
                 &lt; (,)
               </button>
               <button 
                 title="forward one step (⭢ key or .)"
                 onClick={handleGoForward}
-                disabled={!navigationControls()?.canGoForward()}
+                disabled={!appState.navigationControls?.canGoForward()}
               >
                 &gt; (.)
               </button>
               <button 
                 title="go to end (End key)"
                 onClick={handleGoToEnd}
-                disabled={!navigationControls()?.canGoForward()}
+                disabled={!appState.navigationControls?.canGoForward()}
               >
                 &gt;&gt;|
               </button>
@@ -249,19 +242,16 @@ const App: Component = () => {
                 <Show when={appState.automatonType === AutomatonType.Dfa && appState.automaton && appState.automaton instanceof DFA}>
                   <DFAComponent 
                     dfa={appState.automaton as DFA}
-                    onNavigationReady={setNavigationControls}
                   />
                 </Show>
                 <Show when={appState.automatonType === AutomatonType.Nfa && appState.automaton && appState.automaton instanceof NFA}>
                   <NFAComponent 
                     nfa={appState.automaton as NFA}
-                    onNavigationReady={setNavigationControls}
                   />
                 </Show>
                 <Show when={appState.automatonType === AutomatonType.Tm && appState.automaton && appState.automaton instanceof TM}>
                   <TMComponent 
                     tm={appState.automaton as TM}
-                    onNavigationReady={setNavigationControls}
                   />
                 </Show>
                 <Show when={appState.automatonType === AutomatonType.Regex && appState.automaton && appState.automaton instanceof Regex}>
