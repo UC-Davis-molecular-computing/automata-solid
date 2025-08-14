@@ -31,3 +31,4 @@ private_example_automata/
 
 # TypeScript incremental compilation cache
 .tsbuildinfo
+.claude/settings.local.json
