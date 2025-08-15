@@ -35,23 +35,13 @@ jobs:
           ~/.cache/ms-playwright
         key: ${{ runner.os }}-playwright-${{ steps.playwright-version.outputs.PLAYWRIGHT_VERSION }}
 
-    - name: Cache Playwright system dependencies
-      uses: actions/cache@v4
-      id: playwright-deps-cache
-      with:
-        path: |
-          /var/cache/apt
-        key: ${{ runner.os }}-playwright-deps-${{ steps.playwright-version.outputs.PLAYWRIGHT_VERSION }}
-        restore-keys: |
-          ${{ runner.os }}-playwright-deps-
-
     - name: Install Playwright Browsers and dependencies
       if: steps.playwright-cache.outputs.cache-hit != 'true'
-      run: npx playwright install --with-deps chromium
+      run: npx playwright install --with-deps
 
     - name: Install Playwright dependencies only
-      if: steps.playwright-cache.outputs.cache-hit == 'true' && steps.playwright-deps-cache.outputs.cache-hit != 'true'
-      run: npx playwright install-deps chromium
+      if: steps.playwright-cache.outputs.cache-hit == 'true'
+      run: npx playwright install-deps
 
     - name: Build project
       run: npm run build

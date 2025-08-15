@@ -38,7 +38,11 @@ jobs:
 
     - name: Setup Playwright
       if: steps.cache-playwright-browsers.outputs.cache-hit != 'true'
-      run: npx playwright install --with-deps chromium
+      run: npx playwright install --with-deps
+
+    - name: Install Playwright dependencies
+      if: steps.cache-playwright-browsers.outputs.cache-hit == 'true'
+      run: npx playwright install-deps
 
     - name: Build project
       run: npm run build
