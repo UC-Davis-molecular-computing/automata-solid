@@ -1,11 +1,13 @@
 import { createStore } from 'solid-js/store'
 import { createEffect, createRoot } from 'solid-js'
 import type { AppState } from '../types/AppState'
-import { AutomatonType, initialState } from '../types/AppState'
+import { AutomatonType, defaultInitialState } from '../types/AppState'
 import type { AppMessage } from '../types/Messages'
-import { LoadDefault, SaveFile, LoadFile, MinimizeDfa, RunTest, OpenFile, SaveFileAs,
-  SetComputationResult, SetParseError, NavigateForward, NavigateBackward, 
-  NavigateToBeginning, NavigateToEnd, TriggerComputation, RegisterNavigationControls } from '../types/Messages'
+import {
+  LoadDefault, SaveFile, LoadFile, MinimizeDfa, RunTest, OpenFile, SaveFileAs,
+  SetComputationResult, SetParseError, NavigateForward, NavigateBackward,
+  NavigateToBeginning, NavigateToEnd, TriggerComputation, RegisterNavigationControls
+} from '../types/Messages'
 import { debounce } from '../utils/debounce'
 import { saveToLocalStorage, loadFromLocalStorage, getPersistableState } from '../utils/localStorage'
 import { DFAParser } from '../../parsers/DFAParser'
@@ -22,18 +24,14 @@ import type { Automaton } from '../../core/Automaton'
 
 // Load from localStorage and merge with defaults
 function createInitialState(): AppState {
-  const defaultState: AppState = {
-    ...initialState,
-    editorContent: ParserUtil.getDefaultContent(AutomatonType.Dfa),
-    inputString: ''
-  }
-  
+  const defaultState: AppState = { ...defaultInitialState }
+
   // Try to load from localStorage
   const stored = loadFromLocalStorage()
   if (stored) {
     // Merge stored state with defaults, with special handling for editor content
     const mergedState = { ...defaultState }
-    
+
     // Restore these fields if they exist in localStorage
     if (stored.automatonType) {
       mergedState.automatonType = stored.automatonType
@@ -42,14 +40,14 @@ function createInitialState(): AppState {
         mergedState.editorContent = ParserUtil.getDefaultContent(stored.automatonType)
       }
     }
-    
+
     // Restore all persistable fields automatically
     Object.assign(mergedState, stored)
-    
+
     return mergedState
+  } else {
+    return defaultState
   }
-  
-  return defaultState
 }
 
 export const [appState, setAppState] = createStore<AppState>(createInitialState())
@@ -60,7 +58,6 @@ export const [appState, setAppState] = createStore<AppState>(createInitialState(
 // ========================================
 
 export const dispatch = (message: AppMessage): void => {
-  // instanceof checks for type-safe message handling
   if (message instanceof LoadDefault) {
     loadDefaultAutomaton(appState.automatonType)
   } else if (message instanceof SaveFile) {
@@ -93,8 +90,8 @@ export const dispatch = (message: AppMessage): void => {
     // Handle manual computation trigger
     if (appState.automaton && message.automatonType === appState.automatonType) {
       const computation = runUnifiedComputation(
-        appState.automaton, 
-        appState.automatonType, 
+        appState.automaton,
+        appState.automatonType,
         appState.inputString
       )
       setAppState('computation', computation)
@@ -124,7 +121,7 @@ const saveAutomatonToFile = (): void => {
     setAppState('parseError', 'Cannot save empty automaton')
     return
   }
-  
+
   // Use automaton type as file extension for better type detection
   const extension = appState.automatonType.toLowerCase()
   const filename = `${appState.automatonType.toLowerCase()}.${extension}`
@@ -135,10 +132,7 @@ const saveAutomatonToFile = (): void => {
 const loadAutomatonFromFile = (content: string): void => {
   // Complex logic: parse, validate, update multiple fields
   try {
-    // TODO: Parse and validate file content
     setAppState('editorContent', content)
-    setAppState('parseError', undefined)
-    setAppState('computation', undefined)
   } catch (error) {
     setAppState('parseError', `Failed to load file: ${error}`)
   }
@@ -150,7 +144,7 @@ const minimizeDfaAutomaton = (): void => {
     setAppState('parseError', 'Can only minimize DFA automata')
     return
   }
-  
+
   // TODO: Implement DFA minimization algorithm
   console.log('[UNIMPLEMENTED] Minimizing DFA...')
 }
@@ -166,15 +160,15 @@ const runUnifiedComputation = (automaton: Automaton, automatonType: AutomatonTyp
       const tm = automaton as import('../../core/TM').TM
       const { diffs, finalConfig } = tm.getConfigDiffsAndFinalConfig(inputString)
       const initialConfig = tm.initialConfig(inputString)
-      
+
       const accepts = finalConfig.state === tm.acceptState
       const outputString = finalConfig.outputString()
-      
+
       // Check if we hit the MAX_STEPS limit
       const TM = tm.constructor as typeof import('../../core/TM').TM
       const hitMaxSteps = diffs.length === TM.MAX_STEPS && !finalConfig.isHalting()
       const error = hitMaxSteps ? 'MAX_STEPS_REACHED' : undefined
-      
+
       return {
         accepts,
         outputString,
@@ -192,13 +186,13 @@ const runUnifiedComputation = (automaton: Automaton, automatonType: AutomatonTyp
         }
       }
     }
-    
+
     case AutomatonType.Dfa: {
       const dfa = automaton as import('../../core/DFA').DFA
       const accepts = dfa.accepts(inputString)
-      
+
       // TODO: Generate state sequence for step-through visualization
-      
+
       return {
         accepts,
         navigation: {
@@ -211,13 +205,13 @@ const runUnifiedComputation = (automaton: Automaton, automatonType: AutomatonTyp
         }
       }
     }
-    
+
     case AutomatonType.Nfa: {
       const nfa = automaton as import('../../core/NFA').NFA
       const accepts = nfa.accepts(inputString)
-      
+
       // TODO: Generate state set sequence for step-through visualization
-      
+
       return {
         accepts,
         navigation: {
@@ -230,19 +224,19 @@ const runUnifiedComputation = (automaton: Automaton, automatonType: AutomatonTyp
         }
       }
     }
-    
+
     case AutomatonType.Cfg: {
       const cfg = automaton as import('../../core/CFG').CFG
       const accepts = cfg.accepts(inputString)
-      
+
       let outputString: string | undefined
       let parseTree = undefined
-      
+
       if (accepts) {
         parseTree = cfg.parseTree(inputString)
         outputString = parseTree?.toTreeString()
       }
-      
+
       return {
         accepts,
         outputString,
@@ -256,18 +250,18 @@ const runUnifiedComputation = (automaton: Automaton, automatonType: AutomatonTyp
         }
       }
     }
-    
+
     case AutomatonType.Regex: {
       const regex = automaton as import('../../core/Regex').Regex
       const accepts = regex.accepts(inputString)
-      
+
       // Regex doesn't support step-through navigation
       return {
         accepts,
         // No navigation for Regex
       }
     }
-    
+
     default:
       throw new Error(`Unknown automaton type: ${automatonType}`)
   }
@@ -279,15 +273,15 @@ const runUnifiedComputation = (automaton: Automaton, automatonType: AutomatonTyp
 
 const navigateForward = (): void => {
   if (!appState.computation?.navigation) return
-  
+
   const navigation = appState.computation.navigation
   const newStep = Math.min(navigation.currentStep + 1, navigation.totalSteps)
-  
+
   if (newStep === navigation.currentStep) return // No change
-  
+
   // Update currentStep
   setAppState('computation', 'navigation', 'currentStep', newStep)
-  
+
   // Update TM currentConfig if applicable
   if (navigation.executionData?.type === 'tm') {
     updateTMCurrentConfig(newStep)
@@ -296,15 +290,15 @@ const navigateForward = (): void => {
 
 const navigateBackward = (): void => {
   if (!appState.computation?.navigation) return
-  
+
   const navigation = appState.computation.navigation
   const newStep = Math.max(navigation.currentStep - 1, 0)
-  
+
   if (newStep === navigation.currentStep) return // No change
-  
+
   // Update currentStep
   setAppState('computation', 'navigation', 'currentStep', newStep)
-  
+
   // Update TM currentConfig if applicable
   if (navigation.executionData?.type === 'tm') {
     updateTMCurrentConfig(newStep)
@@ -313,12 +307,12 @@ const navigateBackward = (): void => {
 
 const navigateToBeginning = (): void => {
   if (!appState.computation?.navigation) return
-  
+
   const navigation = appState.computation.navigation
-  
+
   // Update currentStep to 0
   setAppState('computation', 'navigation', 'currentStep', 0)
-  
+
   // Reset TM to initial config if applicable
   if (navigation.executionData?.type === 'tm') {
     const tmData = navigation.executionData
@@ -330,12 +324,12 @@ const navigateToBeginning = (): void => {
 
 const navigateToEnd = (): void => {
   if (!appState.computation?.navigation) return
-  
+
   const navigation = appState.computation.navigation
-  
+
   // Update currentStep to totalSteps
   setAppState('computation', 'navigation', 'currentStep', navigation.totalSteps)
-  
+
   // Set TM to final config if applicable
   if (navigation.executionData?.type === 'tm') {
     const tmData = navigation.executionData
@@ -350,12 +344,12 @@ const updateTMCurrentConfig = (newStep: number): void => {
   if (!appState.computation?.navigation?.executionData || appState.computation.navigation.executionData.type !== 'tm') {
     return
   }
-  
+
   const tmData = appState.computation.navigation.executionData
   const currentStep = appState.computation.navigation.currentStep
   const diffs = tmData.diffs as import('../../core/TM').ConfigDiff[]
   const currentConfig = tmData.currentConfig as import('../../core/TM').TMConfiguration
-  
+
   if (newStep < currentStep) {
     // Move backward using reverse diffs
     for (let i = currentStep - 1; i >= newStep; i--) {
@@ -369,7 +363,7 @@ const updateTMCurrentConfig = (newStep: number): void => {
       currentConfig.applyDiff(diff)
     }
   }
-  
+
   // Update the current config in state
   const updatedExecutionData = { ...tmData, currentConfig }
   setAppState('computation', 'navigation', 'executionData', updatedExecutionData)
@@ -382,37 +376,37 @@ const updateTMCurrentConfig = (newStep: number): void => {
 // Create a root context for module-level effects that should live for the app's lifetime
 // We intentionally never call the dispose function since these should persist
 createRoot(() => {
-  
+
   // ========================================
   // LOCALSTORAGE PERSISTENCE
   // ========================================
-  
+
   // Debounced save function to avoid excessive localStorage writes during typing
   const debouncedSave = debounce((state: Parameters<typeof saveToLocalStorage>[0]) => {
     saveToLocalStorage(state)
   }, 500) // Wait 500ms after last change before saving
-  
+
   // Create effect to automatically save relevant state to localStorage
   createEffect(() => {
     // Automatically extract all persistable fields (excludes parseError and result)
     const stateToPersist = getPersistableState(appState)
-    
+
     // Use debounced save to avoid saving on every keystroke
     debouncedSave(stateToPersist)
   })
-  
+
   // ========================================
   // CENTRALIZED AUTOMATON PARSING 
   // ========================================
-  
+
   // Create effect to parse automaton when editorContent or automatonType changes
   createEffect(() => {
     try {
       let automaton = undefined
-      
+
       // Clear navigation controls when automaton type changes
       setAppState('navigationControls', undefined)
-      
+
       // Parse based on automaton type
       switch (appState.automatonType) {
         case AutomatonType.Dfa:
@@ -438,11 +432,11 @@ createRoot(() => {
         default:
           throw new Error(`Unknown automaton type: ${appState.automatonType}`)
       }
-      
+
       // Successfully parsed - store automaton and clear errors
       setAppState('automaton', automaton)
       setAppState('parseError', undefined)
-      
+
     } catch (error) {
       // Parsing failed - clear automaton and store error
       const errorMessage = error instanceof Error ? error.message : 'Unknown parsing error'
@@ -451,29 +445,29 @@ createRoot(() => {
       setAppState('computation', undefined) // Clear results when parsing fails
     }
   })
-  
+
   // ========================================
   // CENTRALIZED COMPUTATION (when runImmediately is enabled)
   // ========================================
-  
+
   // Create effect to run computation when automaton, inputString, or runImmediately changes
   createEffect(() => {
     if (appState.automaton && appState.runImmediately) {
-      
+
       try {
         // Run computation and build type-safe ExecutionData
         const computation = runUnifiedComputation(appState.automaton, appState.automatonType, appState.inputString)
-        
+
         // Store computation result
         setAppState('computation', computation)
       } catch (error) {
         // Computation failed
         const errorMessage = error instanceof Error ? error.message : 'Unknown computation error'
         setAppState('computation', { accepts: false, error: errorMessage })
-      } 
+      }
     }
   })
-  
+
 })
 
 
@@ -504,7 +498,7 @@ const openFileDialog = (): void => {
   input.type = 'file'
   input.accept = '.dfa,.nfa,.regex,.cfg,.tm,.yaml,.yml,.txt'
   input.style.display = 'none'
-  
+
   input.onchange = (event) => {
     const file = (event.target as HTMLInputElement).files?.[0]
     if (file) {
@@ -514,7 +508,7 @@ const openFileDialog = (): void => {
         if (content) {
           // Detect automaton type from file extension
           const automatonType = getAutomatonTypeFromFilename(file.name)
-          
+
           // Load the file content and switch automaton type
           setAppState('editorContent', content)
           setAppState('automatonType', automatonType)
@@ -530,7 +524,7 @@ const openFileDialog = (): void => {
     // Clean up
     document.body.removeChild(input)
   }
-  
+
   // Trigger file dialog
   document.body.appendChild(input)
   input.click()
@@ -544,11 +538,11 @@ const downloadFile = (filename: string, content: string): void => {
   link.href = url
   link.download = filename
   link.style.display = 'none'
-  
+
   // Trigger download
   document.body.appendChild(link)
   link.click()
-  
+
   // Clean up
   document.body.removeChild(link)
   URL.revokeObjectURL(url)
@@ -561,7 +555,7 @@ const saveFileAs = (filename: string, content: string): void => {
 // Helper function to determine automaton type from filename
 const getAutomatonTypeFromFilename = (filename: string): AutomatonType => {
   const extension = filename.toLowerCase().split('.').pop()
-  
+
   switch (extension) {
     case 'dfa':
       return AutomatonType.Dfa

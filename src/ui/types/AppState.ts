@@ -3,18 +3,19 @@
  */
 
 import type { Automaton } from '../../core/Automaton'
+import { ParserUtil } from '../../parsers/ParserUtil';
 import type { NavigationControls } from './NavigationControls'
 
 // Discriminated union for step-through execution data
-export type ExecutionData = 
+export type ExecutionData =
   | { type: 'dfa'; stateSequence: string[] }
-  | { type: 'nfa'; stateSetSequence: string[][] }  
+  | { type: 'nfa'; stateSetSequence: string[][] }
   | { type: 'tm'; diffs: unknown[]; initialConfig: unknown; finalConfig: unknown; currentConfig: unknown }
   | { type: 'cfg'; parseTree?: unknown }
 
 export const AutomatonType = {
   Dfa: 'dfa',
-  Nfa: 'nfa', 
+  Nfa: 'nfa',
   Regex: 'regex',
   Cfg: 'cfg',
   Tm: 'tm'
@@ -27,37 +28,37 @@ export type AutomatonType = typeof AutomatonType[keyof typeof AutomatonType]
 export interface AppState {
   // Current automaton type
   automatonType: AutomatonType
-  
+
   // UI state
   theme: string
   splitPercentage: number
   runImmediately: boolean
-  
+
   // Input and test state
   inputString: string
   editorContent: string
-  
+
   // Parsed automaton (undefined if parsing failed)
   automaton?: Automaton
-  
+
   // Navigation controls registered by components
   navigationControls?: NavigationControls
-  
+
   // Results
   parseError?: string
-  
+
   // Unified computation results (replaces old 'result' field)
   computation?: {
     // Common results (all automaton types)
     accepts: boolean
     outputString?: string
     error?: string
-    
+
     // Navigation state (when step-through visualization is available)
     navigation?: {
       currentStep: number
       totalSteps: number
-      
+
       // Type-safe execution data using discriminated unions
       executionData?: ExecutionData
     }
@@ -65,11 +66,11 @@ export interface AppState {
 }
 
 // We'll set the actual default content in AppStore.ts where we have access to getDefaultYamlFor
-export const initialState: AppState = {
+export const defaultInitialState: AppState = {
   automatonType: AutomatonType.Dfa,
   theme: 'monokai',
   splitPercentage: 0.5,
   runImmediately: true,
   inputString: '',
-  editorContent: '',
+  editorContent: ParserUtil.getDefaultContent(AutomatonType.Dfa),
 }
