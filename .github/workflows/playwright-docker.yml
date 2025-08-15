@@ -11,8 +11,7 @@ jobs:
     timeout-minutes: 60
     runs-on: ubuntu-latest
     container:
-      image: mcr.microsoft.com/playwright:v1.49.0-noble
-      options: --user 1001
+      image: mcr.microsoft.com/playwright:v1.54.2-noble
 
     steps:
     - uses: actions/checkout@v4
@@ -31,8 +30,6 @@ jobs:
 
     - name: Run Playwright tests
       run: npm run test:e2e:ci
-      env:
-        HOME: /root
 
     - uses: actions/upload-artifact@v4
       if: always()
