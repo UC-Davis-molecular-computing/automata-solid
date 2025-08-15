@@ -103,6 +103,26 @@ delta:
         .toThrow(/Missing required field/)
     })
 
+    test('throws on unexpected additional properties', () => {
+      const extraFields = `
+type: DFA
+name: Test DFA
+states: [q0, q1]
+input_alphabet: [0, 1]
+start_state: q0
+accept_states: [q1]
+delta:
+  q0:
+    0: q1
+    1: q0
+  q1:
+    0: q0
+    1: q1
+`
+      expect(() => parser.parseDFA(extraFields))
+        .toThrow(/Unexpected property/)
+    })
+
     test('throws on empty states array', () => {
       const emptyStates = `
 states: []

@@ -3,7 +3,7 @@
  */
 
 import type { Automaton } from '../../core/Automaton'
-import { ParserUtil } from '../../parsers/ParserUtil';
+import { ParserUtil } from '../../parsers/ParserUtil'
 import type { NavigationControls } from './NavigationControls'
 
 // Discriminated union for step-through execution data
@@ -65,12 +65,12 @@ export interface AppState {
   }
 }
 
-// We'll set the actual default content in AppStore.ts where we have access to getDefaultYamlFor
-export const defaultInitialState: AppState = {
+// Default initial state - use a getter function to avoid initialization-time execution
+export const getDefaultInitialState = (): AppState => ({
   automatonType: AutomatonType.Dfa,
   theme: 'monokai',
   splitPercentage: 0.5,
   runImmediately: true,
   inputString: '',
   editorContent: ParserUtil.getDefaultContent(AutomatonType.Dfa),
-}
+})

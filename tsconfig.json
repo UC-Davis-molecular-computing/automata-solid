@@ -4,6 +4,7 @@
     "useDefineForClassFields": true,
     "module": "ESNext",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["@playwright/test"],
     "skipLibCheck": true,
     
     /* Performance optimizations */
@@ -28,6 +29,6 @@
     "noUncheckedSideEffectImports": true,
     "erasableSyntaxOnly": true,
   },
-  "include": ["src/**/*", "vite.config.ts"],
+  "include": ["src/**/*", "vite.config.ts", "tests/**/*"],
   "exclude": ["node_modules", "dist", "example_scripts"]
 }

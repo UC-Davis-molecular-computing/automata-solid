@@ -1,7 +1,7 @@
 import { createStore } from 'solid-js/store'
 import { createEffect, createRoot } from 'solid-js'
 import type { AppState } from '../types/AppState'
-import { AutomatonType, defaultInitialState } from '../types/AppState'
+import { AutomatonType, getDefaultInitialState } from '../types/AppState'
 import type { AppMessage } from '../types/Messages'
 import {
   LoadDefault, SaveFile, LoadFile, MinimizeDfa, RunTest, OpenFile, SaveFileAs,
@@ -24,7 +24,7 @@ import type { Automaton } from '../../core/Automaton'
 
 // Load from localStorage and merge with defaults
 function createInitialState(): AppState {
-  const defaultState: AppState = { ...defaultInitialState }
+  const defaultState: AppState = { ...getDefaultInitialState() }
 
   // Try to load from localStorage
   const stored = loadFromLocalStorage()

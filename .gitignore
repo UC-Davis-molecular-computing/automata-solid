@@ -32,3 +32,5 @@ private_example_automata/
 # TypeScript incremental compilation cache
 .tsbuildinfo
 .claude/
+/test-results
+/playwright-report
