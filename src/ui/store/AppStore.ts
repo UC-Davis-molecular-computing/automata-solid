@@ -493,7 +493,7 @@ const openFileDialog = (): void => {
   // Create file input element
   const input = document.createElement('input')
   input.type = 'file'
-  input.accept = '.dfa,.nfa,.regex,.cfg,.tm,.yaml,.yml,.txt'
+  input.accept = '.dfa,.nfa,.regex,.cfg,.tm'
   input.style.display = 'none'
 
   input.onchange = (event) => {

@@ -20,12 +20,6 @@ import { LoadDefault, SaveFile, OpenFile, TriggerComputation } from './types/Mes
 import './App.css'
 
 const App: Component = () => {
-  // State for navigation controls from active automaton visualization
-  // Computation results are now tracked in the global store instead of local state
-
-  // Result changes are now handled via global store messages instead of callbacks
-
-
   // Save split percentage when it changes
   const handleSplitChange = (sizes: number[]) => {
     const newPercentage = sizes[0] // First panel percentage
