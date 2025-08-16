@@ -64,14 +64,14 @@ const App: Component = () => {
       case ',':
       case 'ArrowLeft':
         event.preventDefault()
-        if (appState.navigationControls.canGoBackward()) {
+        if (canNavigate() && appState.navigationControls.canGoBackward()) {
           appState.navigationControls.goBackward()
         }
         break
       case '.':
       case 'ArrowRight':
         event.preventDefault()
-        if (appState.navigationControls.canGoForward()) {
+        if (canNavigate() && appState.navigationControls.canGoForward()) {
           appState.navigationControls.goForward()
         }
         break
@@ -120,6 +120,13 @@ const App: Component = () => {
     // Regex and CFG don't need navigation controls
   }
 
+  // Centralized logic for navigation enablement
+  const canNavigate = () => {
+    return appState.computation &&
+      !appState.computation.error &&
+      appState.computation.navigation?.executionData !== undefined
+  }
+
   return (
     <div class="app">
 
@@ -145,28 +152,28 @@ const App: Component = () => {
               <button
                 title="go to beginning (Home key)"
                 onClick={handleGoToBeginning}
-                disabled={!appState.navigationControls?.canGoBackward()}
+                disabled={!canNavigate() || !appState.navigationControls?.canGoBackward()}
               >
                 |&lt;&lt;
               </button>
               <button
                 title="backward one step (⭠ key or ,)"
                 onClick={handleGoBackward}
-                disabled={!appState.navigationControls?.canGoBackward()}
+                disabled={!canNavigate() || !appState.navigationControls?.canGoBackward()}
               >
                 &lt; (,)
               </button>
               <button
                 title="forward one step (⭢ key or .)"
                 onClick={handleGoForward}
-                disabled={!appState.navigationControls?.canGoForward()}
+                disabled={!canNavigate() || !appState.navigationControls?.canGoForward()}
               >
                 &gt; (.)
               </button>
               <button
                 title="go to end (End key)"
                 onClick={handleGoToEnd}
-                disabled={!appState.navigationControls?.canGoForward()}
+                disabled={!canNavigate() || !appState.navigationControls?.canGoForward()}
               >
                 &gt;&gt;|
               </button>
