@@ -92,13 +92,20 @@ export const dispatch = (message: AppMessage): void => {
   } else if (message instanceof TriggerComputation) {
     // Handle manual computation trigger
     if (appState.automaton && message.automatonType === appState.automatonType) {
-      const computation = runUnifiedComputation(
-        appState.automaton,
-        appState.automatonType,
-        appState.inputString
-      )
-      setAppState('computation', computation)
-      setAppState('parseError', undefined)
+      try {
+        const computation = runUnifiedComputation(
+          appState.automaton,
+          appState.automatonType,
+          appState.inputString
+        )
+        setAppState('computation', { ...computation, error: undefined })
+        setAppState('parseError', undefined)
+      } catch (error) {
+        // Computation failed (e.g., alphabet validation error)
+        const errorMessage = error instanceof Error ? error.message : 'Unknown computation error'
+        setAppState('computation', { accepts: false, error: errorMessage })
+        setAppState('parseError', undefined)
+      }
     }
   } else if (message instanceof RegisterNavigationControls) {
     setAppState('navigationControls', message.controls)
@@ -463,8 +470,8 @@ createRoot(() => {
         // Run computation and build type-safe ExecutionData
         const computation = runUnifiedComputation(appState.automaton, appState.automatonType, appState.inputString)
 
-        // Store computation result
-        setAppState('computation', computation)
+        // Store computation result and explicitly clear any previous error
+        setAppState('computation', { ...computation, error: undefined })
       } catch (error) {
         // Computation failed
         const errorMessage = error instanceof Error ? error.message : 'Unknown computation error'

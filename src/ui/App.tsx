@@ -22,16 +22,16 @@ import './App.css'
 const App: Component = () => {
   // State for navigation controls from active automaton visualization
   // Computation results are now tracked in the global store instead of local state
-  
+
   // Result changes are now handled via global store messages instead of callbacks
-  
-  
+
+
   // Save split percentage when it changes
   const handleSplitChange = (sizes: number[]) => {
     const newPercentage = sizes[0] // First panel percentage
     setAppState('splitPercentage', newPercentage)
   }
-  
+
   // Keyboard event handler for navigation shortcuts and global shortcuts
   const handleKeyDown = (event: KeyboardEvent) => {
     // Handle global shortcuts first (Ctrl+key combinations)
@@ -51,15 +51,15 @@ const App: Component = () => {
           return
       }
     }
-    
+
     // Handle navigation shortcuts only when not in input fields
     const target = event.target as HTMLElement
     if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
       return
     }
-    
+
     if (!appState.navigationControls) return
-    
+
     switch (event.key) {
       case ',':
       case 'ArrowLeft':
@@ -85,85 +85,85 @@ const App: Component = () => {
         break
     }
   }
-  
+
   // Set up keyboard event listeners
   onMount(() => {
     document.addEventListener('keydown', handleKeyDown)
   })
-  
+
   onCleanup(() => {
     document.removeEventListener('keydown', handleKeyDown)
   })
-  
+
   // Navigation button handlers
   const handleGoToBeginning = () => {
     if (appState.navigationControls) appState.navigationControls.goToBeginning()
   }
-  
+
   const handleGoBackward = () => {
     if (appState.navigationControls) appState.navigationControls.goBackward()
   }
-  
+
   const handleGoForward = () => {
     if (appState.navigationControls) appState.navigationControls.goForward()
   }
-  
+
   const handleGoToEnd = () => {
     if (appState.navigationControls) appState.navigationControls.goToEnd()
   }
-  
+
   // Check if navigation is available for current automaton type
   const hasNavigation = () => {
-    return appState.automatonType === AutomatonType.Dfa || 
-           appState.automatonType === AutomatonType.Nfa ||
-           appState.automatonType === AutomatonType.Tm
+    return appState.automatonType === AutomatonType.Dfa ||
+      appState.automatonType === AutomatonType.Nfa ||
+      appState.automatonType === AutomatonType.Tm
     // Regex and CFG don't need navigation controls
   }
-  
+
   return (
     <div class="app">
-      
+
       {/* Header with Menu Bar and Model Indicator */}
       <div class="header-bar" data-type={appState.automatonType}>
         <MenuBar />
         <ModelIndicator />
       </div>
-      
-      
+
+
       {/* Placeholder sections */}
       <div class="main-content">
         <div class="input-controls">
-          <input 
-            type="text" 
-            placeholder="type input string here" 
+          <input
+            type="text"
+            placeholder="type input string here"
             value={appState.inputString}
             onInput={(e) => setAppState('inputString', e.currentTarget.value)}
             size={37}
           />
           <Show when={hasNavigation()}>
             <div class="step-controls">
-              <button 
+              <button
                 title="go to beginning (Home key)"
                 onClick={handleGoToBeginning}
                 disabled={!appState.navigationControls?.canGoBackward()}
               >
                 |&lt;&lt;
               </button>
-              <button 
+              <button
                 title="backward one step (⭠ key or ,)"
                 onClick={handleGoBackward}
                 disabled={!appState.navigationControls?.canGoBackward()}
               >
                 &lt; (,)
               </button>
-              <button 
+              <button
                 title="forward one step (⭢ key or .)"
                 onClick={handleGoForward}
                 disabled={!appState.navigationControls?.canGoForward()}
               >
                 &gt; (.)
               </button>
-              <button 
+              <button
                 title="go to end (End key)"
                 onClick={handleGoToEnd}
                 disabled={!appState.navigationControls?.canGoForward()}
@@ -172,19 +172,19 @@ const App: Component = () => {
               </button>
             </div>
           </Show>
-          <div 
+          <div
             title="When checked, computations run automatically as you type. When unchecked, use the Run button to compute results manually. Useful for TMs that may take time to process."
           >
             <label>
-              <input 
-                type="checkbox" 
+              <input
+                type="checkbox"
                 checked={appState.runImmediately}
                 onChange={(e) => setAppState('runImmediately', e.currentTarget.checked)}
               />
               Run immediately?
             </label>
             <Show when={!appState.runImmediately}>
-              <button 
+              <button
                 class="run-button"
                 onClick={() => dispatch(new TriggerComputation(appState.automatonType))}
               >
@@ -195,7 +195,7 @@ const App: Component = () => {
           <Show when={!appState.parseError && appState.computation}>
             <div class="acceptance-status">
               <Show when={appState.computation}>
-                <Show when={appState.automatonType === AutomatonType.Tm && appState.computation?.error === 'MAX_STEPS_REACHED'} fallback={
+                <Show when={appState.computation?.error} fallback={
                   <>
                     <span class={appState.computation?.accepts ? 'accepted' : 'rejected'}>
                       {appState.computation?.accepts ? 'accept' : 'reject'}
@@ -207,7 +207,14 @@ const App: Component = () => {
                     </Show>
                   </>
                 }>
-                  <span class="max-steps-reached">MAX_STEPS={TM.MAX_STEPS.toLocaleString()} limit reached</span>
+                  <Show when={appState.computation?.error === 'MAX_STEPS_REACHED'} fallback={
+                    <div class="error-message">
+                      <strong>Error:</strong>
+                      <pre class="error-text">{appState.computation?.error}</pre>
+                    </div>
+                  }>
+                    <span class="max-steps-reached">MAX_STEPS={TM.MAX_STEPS.toLocaleString()} limit reached</span>
+                  </Show>
                 </Show>
               </Show>
               <Show when={!appState.computation}>
@@ -216,7 +223,7 @@ const App: Component = () => {
             </div>
           </Show>
         </div>
-        
+
         <div class="split-content">
           <Resizable sizes={[appState.splitPercentage, 1 - appState.splitPercentage]} onSizesChange={handleSplitChange}>
             <Resizable.Panel minSize={0.01}>
@@ -224,11 +231,11 @@ const App: Component = () => {
                 <CodeEditor />
               </div>
             </Resizable.Panel>
-            
+
             <Resizable.Handle aria-label="Resize editor and results panels">
               <div class="resize-handle" />
             </Resizable.Handle>
-            
+
             <Resizable.Panel minSize={0.01}>
               <div class="results-section">
                 {/* Centralized Error Display */}
@@ -238,29 +245,29 @@ const App: Component = () => {
                     <pre class="error-text">{appState.parseError}</pre>
                   </div>
                 </Show>
-                
+
                 <Show when={appState.automatonType === AutomatonType.Dfa && appState.automaton && appState.automaton instanceof DFA}>
-                  <DFAComponent 
+                  <DFAComponent
                     dfa={appState.automaton as DFA}
                   />
                 </Show>
                 <Show when={appState.automatonType === AutomatonType.Nfa && appState.automaton && appState.automaton instanceof NFA}>
-                  <NFAComponent 
+                  <NFAComponent
                     nfa={appState.automaton as NFA}
                   />
                 </Show>
                 <Show when={appState.automatonType === AutomatonType.Tm && appState.automaton && appState.automaton instanceof TM}>
-                  <TMComponent 
+                  <TMComponent
                     tm={appState.automaton as TM}
                   />
                 </Show>
                 <Show when={appState.automatonType === AutomatonType.Regex && appState.automaton && appState.automaton instanceof Regex}>
-                  <RegexComponent 
+                  <RegexComponent
                     regex={appState.automaton as Regex}
                   />
                 </Show>
                 <Show when={appState.automatonType === AutomatonType.Cfg && appState.automaton && appState.automaton instanceof CFG}>
-                  <CFGComponent 
+                  <CFGComponent
                     cfg={appState.automaton as CFG}
                   />
                 </Show>

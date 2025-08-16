@@ -10,7 +10,7 @@ interface CFGComponentProps {
 
 export const CFGComponent: Component<CFGComponentProps> = (_props) => {
   // Derived values from AppState (single source of truth)
-  const hasResult = () => appState.computation !== undefined
+  const hasResult = () => appState.computation?.navigation?.executionData !== undefined
 
   // Get parseTree from appState computation - only call when hasResult() is true
   const parseTree = () => {

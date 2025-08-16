@@ -21,7 +21,7 @@ export const DFAComponent: Component<DFAComponentProps> = (props) => {
   })
 
   // Derived values from AppState (single source of truth)
-  const hasResult = () => appState.computation !== undefined
+  const hasResult = () => appState.computation?.navigation?.executionData !== undefined
 
   // Computation is now triggered via message dispatch from App.tsx
 

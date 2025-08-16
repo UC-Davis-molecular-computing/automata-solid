@@ -28,7 +28,7 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
   })
   
   // Derived values from AppState (single source of truth)
-  const hasResult = () => appState.computation !== undefined
+  const hasResult = () => appState.computation?.navigation?.executionData !== undefined
 
   // Computation is now triggered via message dispatch from App.tsx
 
