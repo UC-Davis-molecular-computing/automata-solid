@@ -7,7 +7,6 @@ export abstract class AppMessage {}
 export class LoadDefault implements AppMessage {}
 export class SaveFile implements AppMessage {}
 export class MinimizeDfa implements AppMessage {}
-export class RunTest implements AppMessage {}
 
 
 export class LoadFile implements AppMessage {

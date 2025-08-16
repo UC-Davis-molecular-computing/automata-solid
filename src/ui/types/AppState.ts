@@ -5,13 +5,15 @@
 import type { Automaton } from '../../core/Automaton'
 import { ParserUtil } from '../../parsers/ParserUtil'
 import type { NavigationControls } from './NavigationControls'
+import type { TMConfiguration, ConfigDiff } from '../../core/TM'
+import type { TreeNode } from '../../core/CFG'
 
 // Discriminated union for step-through execution data
 export type ExecutionData =
-  | { type: 'dfa'; stateSequence: string[] }
-  | { type: 'nfa'; stateSetSequence: string[][] }
-  | { type: 'tm'; diffs: unknown[]; initialConfig: unknown; finalConfig: unknown; currentConfig: unknown }
-  | { type: 'cfg'; parseTree?: unknown }
+  | { type: 'dfa'; statesVisited: string[] }
+  | { type: 'nfa'; stateSetsVisited: string[][] }
+  | { type: 'tm'; diffs: ConfigDiff[]; initialConfig: TMConfiguration; finalConfig: TMConfiguration; currentConfig: TMConfiguration }
+  | { type: 'cfg'; parseTree?: TreeNode }
 
 export const AutomatonType = {
   Dfa: 'dfa',

@@ -12,14 +12,12 @@ interface NFAComponentProps {
 
 interface NFAComponentState {
   currentPosition: number
-  stateSetsVisited: string[][] // Array of state sets (NFA can be in multiple states)
 }
 
 export const NFAComponent: Component<NFAComponentProps> = (props) => {
-  // Local component state (only NFA-specific state)
+  // Local component state (only navigation position)
   const [state, setState] = createStore<NFAComponentState>({
-    currentPosition: 0,
-    stateSetsVisited: []
+    currentPosition: 0
   })
   
   // Derived values from AppState (single source of truth)
@@ -27,22 +25,19 @@ export const NFAComponent: Component<NFAComponentProps> = (props) => {
 
   // Computation is now triggered via message dispatch from App.tsx
 
-  // Update stateSetsVisited when result changes (for both manual and immediate modes)
+  // Get stateSetsVisited from appState computation - only call when hasResult() is true  
+  const stateSetsVisited = () => {
+    if (appState.computation?.navigation?.executionData?.type === 'nfa') {
+      return appState.computation.navigation.executionData?.stateSetsVisited
+    }
+    // This should not happen if caller checks hasResult() first
+    throw new Error('stateSetsVisited() called when NFA execution data not available')
+  }
+
+  // Reset position when result changes
   createEffect(() => {
     if (hasResult()) {
-      try {
-        const stateSetsVisited = props.nfa.stateSetsVisited(appState.inputString)
-        setState({
-          currentPosition: 0,
-          stateSetsVisited
-        })
-      } catch {
-        // If we can't compute states visited, reset
-        setState({
-          currentPosition: 0,
-          stateSetsVisited: []
-        })
-      }
+      setState({ currentPosition: 0 })
     }
   })
 
@@ -111,8 +106,11 @@ export const NFAComponent: Component<NFAComponentProps> = (props) => {
 
   // Helper functions for rendering
   const getCurrentStateSet = () => {
-    if (!hasResult() || !state.stateSetsVisited.length) return []
-    return state.stateSetsVisited[state.currentPosition] || []
+    if (!hasResult()) return []
+    
+    const visited = stateSetsVisited()
+    if (!visited || !visited.length) return []
+    return visited[state.currentPosition] || []
   }
 
   const getCurrentSymbol = () => {

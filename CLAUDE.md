@@ -90,6 +90,19 @@ npx tsx examples\error-messages-nfa.ts
 - **Solution**: `npm run test:run` makes tests exit immediately after completion
 - Use `npx vitest run --reporter=verbose` for detailed test output when debugging
 
+### ⚠️ Playwright Testing Notes for Claude Code
+- **Always use `npm run test:e2e:ci`** for playwright tests to avoid hanging
+- **Why CI script is needed**: Direct `npx playwright test` opens HTML report that waits for user input
+- **The problem**: HTML report server blocks the command until manually stopped with Ctrl+C
+- **Solution**: `npm run test:e2e:ci` runs tests without opening the report server
+- **Alternative**: Use `npx playwright test --reporter=line` for simple text output without HTML report
+
+### ⚠️ Development Server Notes for Claude Code
+- **Never run `npm run dev` directly** - this starts a local development server that requires manual interaction
+- **Why this is problematic**: The dev server runs indefinitely and may open browser windows or require user input to stop
+- **Solution**: Always ask the user to run `npm run dev` themselves and report what they observe
+- **Proper workflow**: "Please run `npm run dev` and let me know what you see (any errors, warnings, or if it starts successfully)"`
+
 ### ⚠️ TypeScript Error Checking
 - **Periodically run `npm run build`** to check for TypeScript compilation errors
 - **Alternative**: Use `npx tsc --noEmit` for faster type-checking without building

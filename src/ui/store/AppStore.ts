@@ -1,10 +1,10 @@
 import { createStore } from 'solid-js/store'
 import { createEffect, createRoot } from 'solid-js'
-import type { AppState } from '../types/AppState'
+import type { AppState, ExecutionData } from '../types/AppState'
 import { AutomatonType, getDefaultInitialState } from '../types/AppState'
 import type { AppMessage } from '../types/Messages'
 import {
-  LoadDefault, SaveFile, LoadFile, MinimizeDfa, RunTest, OpenFile, SaveFileAs,
+  LoadDefault, SaveFile, LoadFile, MinimizeDfa, OpenFile, SaveFileAs,
   SetComputationResult, SetParseError, NavigateForward, NavigateBackward,
   NavigateToBeginning, NavigateToEnd, TriggerComputation, RegisterNavigationControls
 } from '../types/Messages'
@@ -17,6 +17,11 @@ import { CFGParser } from '../../parsers/CFGParser'
 import { RegexParser } from '../../parsers/RegexParser'
 import { ParserUtil } from '../../parsers/ParserUtil'
 import type { Automaton } from '../../core/Automaton'
+import { TM, type TMConfiguration, type ConfigDiff } from '../../core/TM'
+import type { DFA } from '../../core/DFA'
+import type { NFA } from '../../core/NFA'
+import type { CFG } from '../../core/CFG'
+import type { Regex } from '../../core/Regex'
 
 // ========================================
 // GLOBAL STORE (initialized with localStorage or defaults)
@@ -66,8 +71,6 @@ export const dispatch = (message: AppMessage): void => {
     loadAutomatonFromFile(message.content)
   } else if (message instanceof MinimizeDfa) {
     minimizeDfaAutomaton()
-  } else if (message instanceof RunTest) {
-    runAutomatonTest()
   } else if (message instanceof OpenFile) {
     openFileDialog()
   } else if (message instanceof SaveFileAs) {
@@ -153,11 +156,22 @@ const minimizeDfaAutomaton = (): void => {
 // UNIFIED COMPUTATION FUNCTION
 // ========================================
 
-const runUnifiedComputation = (automaton: Automaton, automatonType: AutomatonType, inputString: string) => {
+type ComputationResult = {
+  accepts: boolean
+  outputString?: string
+  error?: string
+  navigation?: {
+    currentStep: number
+    totalSteps: number
+    executionData?: ExecutionData
+  }
+}
+
+const runUnifiedComputation = (automaton: Automaton, automatonType: AutomatonType, inputString: string): ComputationResult => {
   // Type-specific computation with ExecutionData generation
   switch (automatonType) {
     case AutomatonType.Tm: {
-      const tm = automaton as import('../../core/TM').TM
+      const tm = automaton as TM
       const { diffs, finalConfig } = tm.getConfigDiffsAndFinalConfig(inputString)
       const initialConfig = tm.initialConfig(inputString)
 
@@ -165,7 +179,6 @@ const runUnifiedComputation = (automaton: Automaton, automatonType: AutomatonTyp
       const outputString = finalConfig.outputString()
 
       // Check if we hit the MAX_STEPS limit
-      const TM = tm.constructor as typeof import('../../core/TM').TM
       const hitMaxSteps = diffs.length === TM.MAX_STEPS && !finalConfig.isHalting()
       const error = hitMaxSteps ? 'MAX_STEPS_REACHED' : undefined
 
@@ -188,10 +201,9 @@ const runUnifiedComputation = (automaton: Automaton, automatonType: AutomatonTyp
     }
 
     case AutomatonType.Dfa: {
-      const dfa = automaton as import('../../core/DFA').DFA
-      const accepts = dfa.accepts(inputString)
-
-      // TODO: Generate state sequence for step-through visualization
+      const dfa = automaton as DFA
+      const statesVisited = dfa.statesVisited(inputString)
+      const accepts = dfa.acceptStates.includes(statesVisited[statesVisited.length - 1])
 
       return {
         accepts,
@@ -200,17 +212,16 @@ const runUnifiedComputation = (automaton: Automaton, automatonType: AutomatonTyp
           totalSteps: inputString.length,
           executionData: {
             type: 'dfa' as const,
-            stateSequence: ['TODO'] // TODO: implement state sequence generation
+            statesVisited: statesVisited
           }
         }
       }
     }
 
     case AutomatonType.Nfa: {
-      const nfa = automaton as import('../../core/NFA').NFA
-      const accepts = nfa.accepts(inputString)
-
-      // TODO: Generate state set sequence for step-through visualization
+      const nfa = automaton as NFA
+      const stateSetsVisited = nfa.stateSetsVisited(inputString)
+      const accepts = stateSetsVisited.some(set => set.some(state => nfa.acceptStates.includes(state)))
 
       return {
         accepts,
@@ -219,23 +230,17 @@ const runUnifiedComputation = (automaton: Automaton, automatonType: AutomatonTyp
           totalSteps: inputString.length,
           executionData: {
             type: 'nfa' as const,
-            stateSetSequence: [['TODO']] // TODO: implement state set sequence generation
+            stateSetsVisited: stateSetsVisited
           }
         }
       }
     }
 
     case AutomatonType.Cfg: {
-      const cfg = automaton as import('../../core/CFG').CFG
+      const cfg = automaton as CFG
       const accepts = cfg.accepts(inputString)
-
-      let outputString: string | undefined
-      let parseTree = undefined
-
-      if (accepts) {
-        parseTree = cfg.parseTree(inputString)
-        outputString = parseTree?.toTreeString()
-      }
+      const parseTree = accepts ? cfg.parseTree(inputString) : undefined
+      const outputString = parseTree?.toTreeString()
 
       return {
         accepts,
@@ -252,7 +257,7 @@ const runUnifiedComputation = (automaton: Automaton, automatonType: AutomatonTyp
     }
 
     case AutomatonType.Regex: {
-      const regex = automaton as import('../../core/Regex').Regex
+      const regex = automaton as Regex
       const accepts = regex.accepts(inputString)
 
       // Regex doesn't support step-through navigation
@@ -316,7 +321,7 @@ const navigateToBeginning = (): void => {
   // Reset TM to initial config if applicable
   if (navigation.executionData?.type === 'tm') {
     const tmData = navigation.executionData
-    const initialConfig = tmData.initialConfig as import('../../core/TM').TMConfiguration
+    const initialConfig = tmData.initialConfig as TMConfiguration
     const updatedExecutionData = { ...tmData, currentConfig: initialConfig.copy() }
     setAppState('computation', 'navigation', 'executionData', updatedExecutionData)
   }
@@ -333,7 +338,7 @@ const navigateToEnd = (): void => {
   // Set TM to final config if applicable
   if (navigation.executionData?.type === 'tm') {
     const tmData = navigation.executionData
-    const finalConfig = tmData.finalConfig as import('../../core/TM').TMConfiguration
+    const finalConfig = tmData.finalConfig as TMConfiguration
     const updatedExecutionData = { ...tmData, currentConfig: finalConfig.copy() }
     setAppState('computation', 'navigation', 'executionData', updatedExecutionData)
   }
@@ -347,8 +352,8 @@ const updateTMCurrentConfig = (newStep: number): void => {
 
   const tmData = appState.computation.navigation.executionData
   const currentStep = appState.computation.navigation.currentStep
-  const diffs = tmData.diffs as import('../../core/TM').ConfigDiff[]
-  const currentConfig = tmData.currentConfig as import('../../core/TM').TMConfiguration
+  const diffs = tmData.diffs as ConfigDiff[]
+  const currentConfig = tmData.currentConfig as TMConfiguration
 
   if (newStep < currentStep) {
     // Move backward using reverse diffs
@@ -471,22 +476,6 @@ createRoot(() => {
 })
 
 
-const runAutomatonTest = (): void => {
-  // Complex logic: parse YAML, run automaton, update results
-  try {
-    // TODO: Parse YAML and test input
-    const accepts = Math.random() > 0.5 // Placeholder
-    const outputString = Math.random() > 0.7 ? 'sample output' : undefined // Placeholder for TM output
-    setAppState('computation', {
-      accepts,
-      outputString,
-      error: undefined
-    })
-    setAppState('parseError', undefined)
-  } catch (error) {
-    setAppState('computation', { accepts: false, error: String(error) })
-  }
-}
 
 // ========================================
 // FILE I/O FUNCTIONS

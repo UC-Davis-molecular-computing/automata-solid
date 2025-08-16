@@ -12,14 +12,12 @@ interface DFAComponentProps {
 
 interface DFAComponentState {
   currentPosition: number
-  statesVisited: string[]
 }
 
 export const DFAComponent: Component<DFAComponentProps> = (props) => {
-  // Local component state (only DFA-specific state)
+  // Local component state (only navigation position)
   const [state, setState] = createStore<DFAComponentState>({
     currentPosition: 0,
-    statesVisited: [],
   })
 
   // Derived values from AppState (single source of truth)
@@ -27,38 +25,35 @@ export const DFAComponent: Component<DFAComponentProps> = (props) => {
 
   // Computation is now triggered via message dispatch from App.tsx
 
-  // Update statesVisited when result changes (for both manual and immediate modes)
+  // Get statesVisited from appState computation - only call when hasResult() is true
+  const statesVisited = () => {
+    if (appState.computation?.navigation?.executionData?.type === 'dfa') {
+      return appState.computation.navigation.executionData?.statesVisited
+    }
+    // This should not happen if caller checks hasResult() first
+    throw new Error('statesVisited() called when DFA execution data not available')
+  }
+
+  // Reset position when result changes
   createEffect(() => {
     if (hasResult()) {
-      try {
-        const statesVisited = props.dfa.statesVisited(appState.inputString)
-        setState({
-          currentPosition: 0,
-          statesVisited,
-        })
-      } catch {
-        // If we can't compute states visited, reset
-        setState({
-          currentPosition: 0,
-          statesVisited: [],
-        })
-      }
+      setState({ currentPosition: 0 })
     }
   })
 
   // Clear results and reset position when inputString changes in manual mode  
   createEffect((prevInput) => {
     const currentInput = appState.inputString
-    
+
     // Only clear results if input actually changed and we're in manual mode
-    if (!appState.runImmediately && hasResult() && 
-        prevInput !== undefined && prevInput !== currentInput) {
+    if (!appState.runImmediately && hasResult() &&
+      prevInput !== undefined && prevInput !== currentInput) {
       setState({
         currentPosition: 0
       })
       setAppState('computation', undefined)
     }
-    
+
     return currentInput
   })
 
@@ -101,7 +96,7 @@ export const DFAComponent: Component<DFAComponentProps> = (props) => {
   onMount(() => {
     dispatch(new RegisterNavigationControls({
       goForward,
-      goBackward, 
+      goBackward,
       goToBeginning,
       goToEnd,
       canGoForward: () => hasResult() && state.currentPosition < appState.inputString.length,
@@ -112,14 +107,17 @@ export const DFAComponent: Component<DFAComponentProps> = (props) => {
 
   // Helper functions for rendering
   const getCurrentState = () => {
-    if (!hasResult() || !state.statesVisited.length) return ''
-    return state.statesVisited[state.currentPosition] || ''
+    if (!hasResult()) return ''
+    
+    const visited = statesVisited()
+    if (!visited || !visited.length) return ''
+    return visited[state.currentPosition] || ''
   }
 
   const getCurrentSymbol = () => {
     if (!hasResult() || !appState.inputString.length) return undefined
-    return state.currentPosition < appState.inputString.length 
-      ? appState.inputString[state.currentPosition] 
+    return state.currentPosition < appState.inputString.length
+      ? appState.inputString[state.currentPosition]
       : undefined
   }
 
@@ -159,7 +157,7 @@ export const DFAComponent: Component<DFAComponentProps> = (props) => {
             <tbody>
               <For each={props.dfa.states}>
                 {(stateName) => (
-                  <TransitionRow 
+                  <TransitionRow
                     dfa={props.dfa}
                     stateName={stateName}
                     currentState={getCurrentState()}
@@ -190,18 +188,18 @@ const TransitionRow: Component<TransitionRowProps> = (props) => {
   }
 
   return (
-    <tr 
+    <tr
       id={`transition-row-${props.stateName}`}
     >
       {/* State Cell */}
-      <td 
+      <td
         class="state-cell"
       >
         <div class={`transition-table-entry state-entry ${isAcceptState() ? 'accepting' : 'rejecting'} ${isCurrentState() ? 'current' : ''}`}>
           {props.stateName}
         </div>
       </td>
-      
+
       {/* Individual Transition Cells */}
       <For each={props.dfa.inputAlphabet}>
         {(symbol) => (
@@ -237,7 +235,7 @@ const TransitionEntry: Component<TransitionEntryProps> = (props) => {
   }
 
   return (
-    <span 
+    <span
       class={`transition-table-entry transition-entry ${props.isCurrentTransition ? 'current' : ''}`}
     >
       {getTransitionText()}

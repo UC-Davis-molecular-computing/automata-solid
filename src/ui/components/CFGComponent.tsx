@@ -1,46 +1,36 @@
 import type { Component } from 'solid-js'
-import { createEffect, createSignal, Show } from 'solid-js'
+import { createEffect, Show } from 'solid-js'
 import { CFG } from '../../core/CFG'
 import { appState, setAppState } from '../store/AppStore'
-import { assert } from '../../core/Utils'
 import './TableComponent.css'
 
 interface CFGComponentProps {
   cfg: CFG
 }
 
-export const CFGComponent: Component<CFGComponentProps> = (props) => {
-  // Local component state (only CFG-specific state)
-  const [parseTree, setParseTree] = createSignal<string | undefined>(undefined)
-
+export const CFGComponent: Component<CFGComponentProps> = (_props) => {
   // Derived values from AppState (single source of truth)
   const hasResult = () => appState.computation !== undefined
 
+  // Get parseTree from appState computation - only call when hasResult() is true
+  const parseTree = () => {
+    if (appState.computation?.navigation?.executionData?.type === 'cfg') {
+      const tree = appState.computation.navigation.executionData?.parseTree
+      return tree?.toTreeString?.()
+    }
+    // This should not happen if caller checks hasResult() first  
+    throw new Error('parseTree() called when CFG execution data not available')
+  }
+
   // Computation is now triggered via message dispatch from App.tsx
 
-  // Update parseTree when result changes (for both manual and immediate modes)
-  createEffect(() => {
-    if (hasResult()) {
-      try {
-        assert(appState.computation, 'computation should exist when hasResult() is true')
-        const accepted = appState.computation.accepts
-        const tree = accepted ? props.cfg.parseTree(appState.inputString)?.toTreeString() || undefined : undefined
-        setParseTree(tree)
-      } catch {
-        // If we can't compute parse tree, reset
-        setParseTree(undefined)
-      }
-    }
-  })
-
-  // Clear results and reset parseTree when inputString changes in manual mode  
+  // Clear results when inputString changes in manual mode  
   createEffect((prevInput) => {
     const currentInput = appState.inputString
     
     // Only clear results if input actually changed and we're in manual mode
     if (!appState.runImmediately && hasResult() && 
         prevInput !== undefined && prevInput !== currentInput) {
-      setParseTree(undefined)
       setAppState('computation', undefined)
     }
     
