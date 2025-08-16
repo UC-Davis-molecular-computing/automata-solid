@@ -1,14 +1,17 @@
 import type { Component } from 'solid-js'
-import { createEffect, For, Show, onMount } from 'solid-js'
+import { createEffect, For, Show, onMount, createSignal } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import { TM, TMConfiguration, ConfigDiff } from '../../core/TM'
 import { wildcardMatch, WILDCARD, assert } from '../../core/Utils'
 import { appState, setAppState, dispatch } from '../store/AppStore'
 import { RegisterNavigationControls } from '../types/Messages'
+import { PanZoomSVG } from './PanZoomSVG'
+import * as Viz from '@viz-js/viz'
 import './TableComponent.css' // Reuse existing CSS
 
 interface TMComponentProps {
   tm: TM
+  isGraphView?: boolean
 }
 
 interface TMComponentState {
@@ -25,6 +28,20 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
     currentStep: 0,
     diffs: []
     // initialConfig, finalConfig, currentConfig are undefined by default
+  })
+
+  // Graph rendering state
+  const [vizInstance, setVizInstance] = createSignal<any>(null)
+  const [graphSvg, setGraphSvg] = createSignal<SVGElement | null>(null)
+
+  // Initialize viz-js instance
+  onMount(async () => {
+    try {
+      const viz = await Viz.instance()
+      setVizInstance(viz)
+    } catch (error) {
+      console.error('Failed to initialize Viz.js:', error)
+    }
   })
   
   // Derived values from AppState (single source of truth)
@@ -157,10 +174,122 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
     return config ? config.state : ''
   }
 
+  // Generate DOT graph description for the TM
+  const generateDotGraph = () => {
+    const currentState = getCurrentState()
+    const config = getCurrentConfig()
+    
+    let dot = 'digraph TM {\n'
+    dot += '  rankdir=LR;\n'
+    dot += '  node [shape=circle];\n'
+    
+    // Add invisible start node and arrow to start state
+    dot += '  start [shape=point, style=invisible];\n'
+    dot += `  start -> "${props.tm.startState}";\n`
+    
+    // Add states with highlighting
+    props.tm.states.forEach(stateName => {
+      const isAccepting = stateName === props.tm.acceptState
+      const isRejecting = stateName === props.tm.rejectState
+      const isCurrent = hasResult() && stateName === currentState
+      
+      let nodeAttrs = []
+      if (isAccepting) {
+        nodeAttrs.push('shape=doublecircle', 'color=green')
+      } else if (isRejecting) {
+        nodeAttrs.push('shape=doublecircle', 'color=red')
+      }
+      if (isCurrent) {
+        nodeAttrs.push('style=filled', 'fillcolor=lightblue')
+      }
+      
+      const attrs = nodeAttrs.length > 0 ? ` [${nodeAttrs.join(', ')}]` : ''
+      dot += `  "${stateName}"${attrs};\n`
+    })
+    
+    // Add transitions with highlighting
+    // Group transitions by from/to states to avoid duplicate edges
+    const transitions: Map<string, string[]> = new Map()
+    
+    Object.entries(props.tm.delta).forEach(([key, [nextState, , ]]) => {
+      const [fromState] = key.split(',')
+      const transKey = `${fromState}->${nextState}`
+      
+      if (!transitions.has(transKey)) {
+        transitions.set(transKey, [])
+      }
+      // Extract symbols from key (everything after first comma)
+      const symbols = key.substring(fromState.length + 1)
+      transitions.get(transKey)!.push(symbols)
+    })
+    
+    // Draw transitions
+    transitions.forEach((symbolsList, transKey) => {
+      const [fromState, toState] = transKey.split('->')
+      
+      // Check if this is the current transition
+      let isCurrentTransition = false
+      if (hasResult() && fromState === currentState && config) {
+        // Check if any of the symbols match the current tape symbols
+        const currentSymbols = config.tapes.map((tape, idx) => {
+          // Get the symbol at the current head position
+          return tape[config.headsPos[idx]] || '_'
+        })
+        
+        isCurrentTransition = symbolsList.some(symbols => {
+          // Handle wildcards
+          const symbolArray = symbols.split(',')
+          return symbolArray.every((sym, i) => 
+            sym === WILDCARD || sym === currentSymbols[i]
+          )
+        })
+      }
+      
+      // Create label with all symbols
+      const label = symbolsList.length > 3 
+        ? `${symbolsList.slice(0, 3).join('\\n')}...` 
+        : symbolsList.join('\\n')
+      
+      let edgeAttrs = [`label="${label}"`]
+      if (isCurrentTransition) {
+        edgeAttrs.push('color=red', 'penwidth=2')
+      }
+      
+      const attrs = edgeAttrs.length > 0 ? ` [${edgeAttrs.join(', ')}]` : ''
+      dot += `  "${fromState}" -> "${toState}"${attrs};\n`
+    })
+    
+    dot += '}\n'
+    return dot
+  }
+
+  // Effect to update graph when state changes
+  createEffect(() => {
+    if (props.isGraphView && vizInstance()) {
+      try {
+        const dot = generateDotGraph()
+        const svg = vizInstance().renderSVGElement(dot)
+        
+        // Let the SVG maintain its intrinsic size and aspect ratio
+        // The PanZoomSVG container will handle the sizing constraints
+        svg.removeAttribute('width')
+        svg.removeAttribute('height')
+        svg.style.maxWidth = '100%'
+        svg.style.maxHeight = '100%'
+        svg.style.height = 'auto'
+        svg.style.width = 'auto'
+        
+        setGraphSvg(svg)
+      } catch (error) {
+        console.error('Failed to render graph:', error)
+      }
+    }
+  })
+
   return (
-    <div class="automaton-table-component">
+    <div class="automaton-component">
       <div class="automaton-content">
-        {/* Tape Display - TM specific */}
+        {/* Tape Display - Always shown for TM */}
         <Show when={state.currentConfig}>
           <div class="tm-tapes-container">
             <h3>Tapes <span class="tm-step-counter">{hasResult() ? `Step ${state.currentStep + 1}/${state.diffs.length + 1}` : 'Initial State'}</span></h3>
@@ -188,29 +317,48 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
           </div>
         </Show>
 
-        {/* Transition Table - Generic styling */}
-        <div class="transition-table-container">
-          <table class="transition-table">
-            <thead>
-              <tr>
-                <th class="transition_header_entry">State</th>
-                <th class="transition_header_entry">Transitions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <For each={props.tm.states}>
-                {(stateName) => (
-                  <TMTransitionRow 
-                    tm={props.tm}
-                    stateName={stateName}
-                    currentState={getCurrentState()}
-                    currentConfig={getCurrentConfig()}
+        {/* Table View */}
+        <Show when={!props.isGraphView}>
+          <div class="table-view-content">
+            <div class="transition-table-container">
+            <table class="transition-table">
+              <thead>
+                <tr>
+                  <th class="transition_header_entry">State</th>
+                  <th class="transition_header_entry">Transitions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <For each={props.tm.states}>
+                  {(stateName) => (
+                    <TMTransitionRow 
+                      tm={props.tm}
+                      stateName={stateName}
+                      currentState={getCurrentState()}
+                      currentConfig={getCurrentConfig()}
                   />
                 )}
               </For>
             </tbody>
           </table>
-        </div>
+            </div>
+          </div>
+        </Show>
+
+        {/* Graph View */}
+        <Show when={props.isGraphView}>
+          <div class="graph-view-content">
+            <Show when={graphSvg()} fallback={<div>Loading graph...</div>}>
+              <PanZoomSVG
+                svgElement={graphSvg()}
+                maxScale={5}
+                minScale={0.3}
+              >
+                {graphSvg()}
+              </PanZoomSVG>
+            </Show>
+          </div>
+        </Show>
       </div>
     </div>
   )

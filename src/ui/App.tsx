@@ -15,7 +15,7 @@ import { NFA } from '../core/NFA'
 import { Regex } from '../core/Regex'
 import { CFG } from '../core/CFG'
 import { appState, setAppState, dispatch } from './store/AppStore'
-import { AutomatonType } from './types/AppState'
+import { AutomatonType, ViewMode } from './types/AppState'
 import { LoadDefault, SaveFile, OpenFile, TriggerComputation } from './types/Messages'
 import './App.css'
 
@@ -250,16 +250,19 @@ const App: Component = () => {
                 <Show when={appState.automatonType === AutomatonType.Dfa && appState.automaton && appState.automaton instanceof DFA}>
                   <DFAComponent
                     dfa={appState.automaton as DFA}
+                    isGraphView={appState.viewMode === ViewMode.Graph}
                   />
                 </Show>
                 <Show when={appState.automatonType === AutomatonType.Nfa && appState.automaton && appState.automaton instanceof NFA}>
                   <NFAComponent
                     nfa={appState.automaton as NFA}
+                    isGraphView={appState.viewMode === ViewMode.Graph}
                   />
                 </Show>
                 <Show when={appState.automatonType === AutomatonType.Tm && appState.automaton && appState.automaton instanceof TM}>
                   <TMComponent
                     tm={appState.automaton as TM}
+                    isGraphView={appState.viewMode === ViewMode.Graph}
                   />
                 </Show>
                 <Show when={appState.automatonType === AutomatonType.Regex && appState.automaton && appState.automaton instanceof Regex}>

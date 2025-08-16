@@ -1,13 +1,17 @@
 import type { Component } from 'solid-js'
-import { createEffect, For, onMount } from 'solid-js'
+import { createEffect, For, onMount, createSignal, Show } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import type { DFA } from '../../core/DFA'
+import { deltaKey } from '../../core/Utils'
 import { appState, setAppState, dispatch } from '../store/AppStore'
 import { RegisterNavigationControls } from '../types/Messages'
+import { PanZoomSVG } from './PanZoomSVG'
+import * as Viz from '@viz-js/viz'
 import './TableComponent.css'
 
 interface DFAComponentProps {
   dfa: DFA
+  isGraphView?: boolean
 }
 
 interface DFAComponentState {
@@ -18,6 +22,20 @@ export const DFAComponent: Component<DFAComponentProps> = (props) => {
   // Local component state (only navigation position)
   const [state, setState] = createStore<DFAComponentState>({
     currentPosition: 0,
+  })
+
+  // Graph rendering state
+  const [vizInstance, setVizInstance] = createSignal<any>(null)
+  const [graphSvg, setGraphSvg] = createSignal<SVGElement | null>(null)
+
+  // Initialize viz-js instance
+  onMount(async () => {
+    try {
+      const viz = await Viz.instance()
+      setVizInstance(viz)
+    } catch (error) {
+      console.error('Failed to initialize Viz.js:', error)
+    }
   })
 
   // Derived values from AppState (single source of truth)
@@ -133,8 +151,83 @@ export const DFAComponent: Component<DFAComponentProps> = (props) => {
     return `${processed}^${remaining}`
   }
 
+  // Generate DOT graph description for the DFA
+  const generateDotGraph = () => {
+    const currentState = getCurrentState()
+    const currentSymbol = getCurrentSymbol()
+    
+    let dot = 'digraph DFA {\n'
+    dot += '  rankdir=LR;\n'
+    dot += '  node [shape=circle];\n'
+    
+    // Add invisible start node and arrow to start state
+    dot += '  start [shape=point, style=invisible];\n'
+    dot += `  start -> "${props.dfa.startState}";\n`
+    
+    // Add states with highlighting
+    props.dfa.states.forEach(stateName => {
+      const isAccepting = props.dfa.acceptStates.includes(stateName)
+      const isCurrent = hasResult() && stateName === currentState
+      
+      let nodeAttrs = []
+      if (isAccepting) {
+        nodeAttrs.push('shape=doublecircle')
+      }
+      if (isCurrent) {
+        nodeAttrs.push('style=filled', 'fillcolor=lightblue')
+      }
+      
+      const attrs = nodeAttrs.length > 0 ? ` [${nodeAttrs.join(', ')}]` : ''
+      dot += `  "${stateName}"${attrs};\n`
+    })
+    
+    // Add transitions with highlighting
+    props.dfa.states.forEach(fromState => {
+      props.dfa.inputAlphabet.forEach(symbol => {
+        const toState = props.dfa.delta[deltaKey(fromState, symbol)]
+        if (toState) {
+          const isCurrentTransition = hasResult() && fromState === currentState && symbol === currentSymbol
+          
+          let edgeAttrs = [`label="${symbol}"`]
+          if (isCurrentTransition) {
+            edgeAttrs.push('color=red', 'penwidth=2')
+          }
+          
+          const attrs = edgeAttrs.length > 0 ? ` [${edgeAttrs.join(', ')}]` : ''
+          dot += `  "${fromState}" -> "${toState}"${attrs};\n`
+        }
+      })
+    })
+    
+    dot += '}\n'
+    return dot
+  }
+
+  // Effect to update graph when state changes
+  createEffect(() => {
+    if (props.isGraphView && vizInstance()) {
+      try {
+        const dot = generateDotGraph()
+        const svg = vizInstance().renderSVGElement(dot)
+        
+        // Let the SVG maintain its intrinsic size and aspect ratio
+        // The PanZoomSVG container will handle the sizing constraints
+        svg.removeAttribute('width')
+        svg.removeAttribute('height')
+        svg.style.maxWidth = '100%'
+        svg.style.maxHeight = '100%'
+        svg.style.height = 'auto'
+        svg.style.width = 'auto'
+        
+        setGraphSvg(svg)
+      } catch (error) {
+        console.error('Failed to render graph:', error)
+      }
+    }
+  })
+
   return (
-    <div class="automaton-table-component">
+    <div class="automaton-component">
       <div class="automaton-content">
         {/* Compact Input Display */}
         <div class="input-display">
@@ -145,29 +238,48 @@ export const DFAComponent: Component<DFAComponentProps> = (props) => {
           </div>
         </div>
 
-        {/* Transition Table */}
-        <div class="transition-table-container">
-          <table id="transition_table" class="transition-table">
-            <thead>
-              <tr id="transition_table_head">
-                <th class="transition_header_entry">State</th>
-                <th class="transition_header_entry" colspan={props.dfa.inputAlphabet.length} style="text-align: left;">Transitions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <For each={props.dfa.states}>
-                {(stateName) => (
-                  <TransitionRow
-                    dfa={props.dfa}
-                    stateName={stateName}
-                    currentState={getCurrentState()}
-                    currentSymbol={getCurrentSymbol()}
-                  />
-                )}
-              </For>
-            </tbody>
-          </table>
-        </div>
+        {/* Table View */}
+        <Show when={!props.isGraphView}>
+          <div class="table-view-content">
+            <div class="transition-table-container">
+            <table id="transition_table" class="transition-table">
+              <thead>
+                <tr id="transition_table_head">
+                  <th class="transition_header_entry">State</th>
+                  <th class="transition_header_entry" colspan={props.dfa.inputAlphabet.length} style="text-align: left;">Transitions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <For each={props.dfa.states}>
+                  {(stateName) => (
+                    <TransitionRow
+                      dfa={props.dfa}
+                      stateName={stateName}
+                      currentState={getCurrentState()}
+                      currentSymbol={getCurrentSymbol()}
+                    />
+                  )}
+                </For>
+              </tbody>
+            </table>
+            </div>
+          </div>
+        </Show>
+
+        {/* Graph View */}
+        <Show when={props.isGraphView}>
+          <div class="graph-view-content">
+            <Show when={graphSvg()} fallback={<div>Loading graph...</div>}>
+              <PanZoomSVG
+                svgElement={graphSvg()}
+                maxScale={5}
+                minScale={0.3}
+              >
+                {graphSvg()}
+              </PanZoomSVG>
+            </Show>
+          </div>
+        </Show>
       </div>
     </div>
   )

@@ -1,13 +1,16 @@
 import type { Component } from 'solid-js'
-import { createEffect, For, Show, onMount } from 'solid-js'
+import { createEffect, For, Show, onMount, createSignal } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import { NFA } from '../../core/NFA'
 import { appState, setAppState, dispatch } from '../store/AppStore'
 import { RegisterNavigationControls } from '../types/Messages'
+import { PanZoomSVG } from './PanZoomSVG'
+import * as Viz from '@viz-js/viz'
 import './TableComponent.css'
 
 interface NFAComponentProps {
   nfa: NFA
+  isGraphView?: boolean
 }
 
 interface NFAComponentState {
@@ -18,6 +21,20 @@ export const NFAComponent: Component<NFAComponentProps> = (props) => {
   // Local component state (only navigation position)
   const [state, setState] = createStore<NFAComponentState>({
     currentPosition: 0
+  })
+
+  // Graph rendering state
+  const [vizInstance, setVizInstance] = createSignal<any>(null)
+  const [graphSvg, setGraphSvg] = createSignal<SVGElement | null>(null)
+
+  // Initialize viz-js instance
+  onMount(async () => {
+    try {
+      const viz = await Viz.instance()
+      setVizInstance(viz)
+    } catch (error) {
+      console.error('Failed to initialize Viz.js:', error)
+    }
   })
   
   // Derived values from AppState (single source of truth)
@@ -139,8 +156,98 @@ export const NFAComponent: Component<NFAComponentProps> = (props) => {
     return `{${stateSet.join(', ')}}`
   }
 
+  // Generate DOT graph description for the NFA
+  const generateDotGraph = () => {
+    const currentStateSet = getCurrentStateSet()
+    const currentSymbol = getCurrentSymbol()
+    
+    let dot = 'digraph NFA {\n'
+    dot += '  rankdir=LR;\n'
+    dot += '  node [shape=circle];\n'
+    
+    // Add invisible start node and arrow to start state
+    dot += '  start [shape=point, style=invisible];\n'
+    dot += `  start -> "${props.nfa.startState}";\n`
+    
+    // Add states with highlighting
+    props.nfa.states.forEach(stateName => {
+      const isAccepting = props.nfa.acceptStates.includes(stateName)
+      const isCurrent = hasResult() && currentStateSet.includes(stateName)
+      
+      let nodeAttrs = []
+      if (isAccepting) {
+        nodeAttrs.push('shape=doublecircle')
+      }
+      if (isCurrent) {
+        nodeAttrs.push('style=filled', 'fillcolor=lightblue')
+      }
+      
+      const attrs = nodeAttrs.length > 0 ? ` [${nodeAttrs.join(', ')}]` : ''
+      dot += `  "${stateName}"${attrs};\n`
+    })
+    
+    // Add transitions with highlighting
+    props.nfa.states.forEach(fromState => {
+      // Regular transitions
+      props.nfa.inputAlphabet.forEach(symbol => {
+        const key = `${fromState},${symbol}`
+        const toStates = props.nfa.delta[key]
+        if (toStates && toStates.length > 0) {
+          const isCurrentTransition = hasResult() && 
+            currentStateSet.includes(fromState) && 
+            symbol === currentSymbol
+          
+          toStates.forEach(toState => {
+            let edgeAttrs = [`label="${symbol}"`]
+            if (isCurrentTransition) {
+              edgeAttrs.push('color=red', 'penwidth=2')
+            }
+            
+            const attrs = edgeAttrs.length > 0 ? ` [${edgeAttrs.join(', ')}]` : ''
+            dot += `  "${fromState}" -> "${toState}"${attrs};\n`
+          })
+        }
+      })
+      
+      // Epsilon transitions (not highlighted as per requirements)
+      const epsilonKey = `${fromState},`
+      const epsilonStates = props.nfa.delta[epsilonKey]
+      if (epsilonStates && epsilonStates.length > 0) {
+        epsilonStates.forEach(toState => {
+          dot += `  "${fromState}" -> "${toState}" [label="ε", style=dashed];\n`
+        })
+      }
+    })
+    
+    dot += '}\n'
+    return dot
+  }
+
+  // Effect to update graph when state changes
+  createEffect(() => {
+    if (props.isGraphView && vizInstance()) {
+      try {
+        const dot = generateDotGraph()
+        const svg = vizInstance().renderSVGElement(dot)
+        
+        // Let the SVG maintain its intrinsic size and aspect ratio
+        // The PanZoomSVG container will handle the sizing constraints
+        svg.removeAttribute('width')
+        svg.removeAttribute('height')
+        svg.style.maxWidth = '100%'
+        svg.style.maxHeight = '100%'
+        svg.style.height = 'auto'
+        svg.style.width = 'auto'
+        
+        setGraphSvg(svg)
+      } catch (error) {
+        console.error('Failed to render graph:', error)
+      }
+    }
+  })
+
   return (
-    <div class="automaton-table-component">
+    <div class="automaton-component">
       <div class="automaton-content">
         {/* Compact Input Display */}
         <div class="input-display">
@@ -156,29 +263,48 @@ export const NFAComponent: Component<NFAComponentProps> = (props) => {
           </div>
         </div>
 
-        {/* Transition Table */}
-        <div class="transition-table-container">
-          <table id="transition_table" class="transition-table">
-            <thead>
-              <tr id="transition_table_head">
-                <th class="transition_header_entry">State</th>
-                <th class="transition_header_entry" colspan={props.nfa.inputAlphabet.length + 1} style="text-align: left;">Transitions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <For each={props.nfa.states}>
-                {(stateName) => (
-                  <NFATransitionRow 
-                    nfa={props.nfa}
-                    stateName={stateName}
-                    currentStates={getCurrentStateSet()}
-                    currentSymbol={getCurrentSymbol()}
-                  />
-                )}
-              </For>
-            </tbody>
-          </table>
-        </div>
+        {/* Table View */}
+        <Show when={!props.isGraphView}>
+          <div class="table-view-content">
+            <div class="transition-table-container">
+            <table id="transition_table" class="transition-table">
+              <thead>
+                <tr id="transition_table_head">
+                  <th class="transition_header_entry">State</th>
+                  <th class="transition_header_entry" colspan={props.nfa.inputAlphabet.length + 1} style="text-align: left;">Transitions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <For each={props.nfa.states}>
+                  {(stateName) => (
+                    <NFATransitionRow 
+                      nfa={props.nfa}
+                      stateName={stateName}
+                      currentStates={getCurrentStateSet()}
+                      currentSymbol={getCurrentSymbol()}
+                    />
+                  )}
+                </For>
+              </tbody>
+            </table>
+            </div>
+          </div>
+        </Show>
+
+        {/* Graph View */}
+        <Show when={props.isGraphView}>
+          <div class="graph-view-content">
+            <Show when={graphSvg()} fallback={<div>Loading graph...</div>}>
+              <PanZoomSVG
+                svgElement={graphSvg()}
+                maxScale={5}
+                minScale={0.3}
+              >
+                {graphSvg()}
+              </PanZoomSVG>
+            </Show>
+          </div>
+        </Show>
       </div>
     </div>
   )
