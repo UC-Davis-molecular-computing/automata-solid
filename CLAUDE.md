@@ -117,6 +117,15 @@ npx tsx examples\error-messages-nfa.ts
 - **When to run**: Before committing, after making significant changes, or when fixing code quality issues
 - **Fix priority**: Address errors first, then warnings for better code quality
 
+### ⚠️ Critical Code Quality Rules for Claude Code
+- **ALWAYS clean up compilation and lint errors** after making code changes
+- **Never leave TypeScript errors or ESLint errors unaddressed** - these indicate serious issues
+- **Use the `assert` function from `src/core/Utils.ts`** to help with null/undefined checks and reduce linting warnings
+- **The `assert` function signature**: `assert(condition: any, msg?: string): asserts condition`
+- **Example usage**: Instead of `obj!.property` (non-null assertion), use `assert(obj, 'obj should be defined'); obj.property`
+- **Benefits**: Provides runtime validation and satisfies TypeScript's type checker without using risky non-null assertions
+- **When to run cleanup**: After implementing features, before committing, and as part of code review process
+
 ### 📋 TypeScript Configuration Simplified
 - **Single `tsconfig.json`**: Contains all TypeScript settings for the entire project
 - **Includes**: `src/**/*` (all source files) and `vite.config.ts` (build config)

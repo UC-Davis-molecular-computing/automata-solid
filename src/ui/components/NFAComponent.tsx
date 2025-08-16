@@ -24,7 +24,7 @@ export const NFAComponent: Component<NFAComponentProps> = (props) => {
   })
 
   // Graph rendering state
-  const [vizInstance, setVizInstance] = createSignal<any>(null)
+  const [vizInstance, setVizInstance] = createSignal<Awaited<ReturnType<typeof Viz.instance>> | null>(null)
   const [graphSvg, setGraphSvg] = createSignal<SVGElement | null>(null)
 
   // Initialize viz-js instance
@@ -228,7 +228,9 @@ export const NFAComponent: Component<NFAComponentProps> = (props) => {
     if (props.isGraphView && vizInstance()) {
       try {
         const dot = generateDotGraph()
-        const svg = vizInstance().renderSVGElement(dot)
+        const viz = vizInstance()
+        if (!viz) return
+        const svg = viz.renderSVGElement(dot)
         
         // Let the SVG maintain its intrinsic size and aspect ratio
         // The PanZoomSVG container will handle the sizing constraints

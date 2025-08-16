@@ -16,7 +16,7 @@ interface PanZoomSVGProps {
 
 export const PanZoomSVG: Component<PanZoomSVGProps> = (props) => {
   let containerRef: HTMLDivElement | undefined
-  const [panzoomInstance, setPanzoomInstance] = createSignal<any>(null)
+  const [panzoomInstance, setPanzoomInstance] = createSignal<ReturnType<typeof Panzoom> | null>(null)
 
   onMount(() => {
     if (!containerRef) return
@@ -142,7 +142,7 @@ export const PanZoomSVG: Component<PanZoomSVGProps> = (props) => {
 
   return (
     <div
-      ref={containerRef!}
+      ref={(el) => { containerRef = el }}
       class={props.class}
       style={{
         width: '100%',

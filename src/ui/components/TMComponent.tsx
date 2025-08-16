@@ -31,7 +31,7 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
   })
 
   // Graph rendering state
-  const [vizInstance, setVizInstance] = createSignal<any>(null)
+  const [vizInstance, setVizInstance] = createSignal<Awaited<ReturnType<typeof Viz.instance>> | null>(null)
   const [graphSvg, setGraphSvg] = createSignal<SVGElement | null>(null)
 
   // Initialize viz-js instance
@@ -225,7 +225,9 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
       // Create full transition label: "input → output,moves"
       const transitionLabel = `${inputSymbols} → ${newSymbols},${moveDirections}`
       
-      transitions.get(transKey)!.push({
+      const transitionList = transitions.get(transKey)
+      assert(transitionList, 'Transition list should exist')
+      transitionList.push({
         inputSymbols,
         label: transitionLabel
       })
@@ -279,7 +281,9 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
     if (props.isGraphView && vizInstance()) {
       try {
         const dot = generateDotGraph()
-        const svg = vizInstance().renderSVGElement(dot)
+        const viz = vizInstance()
+        if (!viz) return
+        const svg = viz.renderSVGElement(dot)
         
         // Let the SVG maintain its intrinsic size and aspect ratio
         // The PanZoomSVG container will handle the sizing constraints
