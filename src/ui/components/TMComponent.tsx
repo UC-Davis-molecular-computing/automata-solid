@@ -209,46 +209,57 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
     
     // Add transitions with highlighting
     // Group transitions by from/to states to avoid duplicate edges
-    const transitions: Map<string, string[]> = new Map()
+    const transitions: Map<string, Array<{inputSymbols: string, label: string}>> = new Map()
     
-    Object.entries(props.tm.delta).forEach(([key, [nextState, , ]]) => {
+    Object.entries(props.tm.delta).forEach(([key, [nextState, newSymbols, moveDirections]]) => {
       const [fromState] = key.split(',')
       const transKey = `${fromState}->${nextState}`
       
       if (!transitions.has(transKey)) {
         transitions.set(transKey, [])
       }
-      // Extract symbols from key (everything after first comma)
-      const symbols = key.substring(fromState.length + 1)
-      transitions.get(transKey)!.push(symbols)
+      
+      // Extract input symbols from key (everything after first comma)
+      const inputSymbols = key.substring(fromState.length + 1)
+      
+      // Create full transition label: "input → output,moves"
+      const transitionLabel = `${inputSymbols} → ${newSymbols},${moveDirections}`
+      
+      transitions.get(transKey)!.push({
+        inputSymbols,
+        label: transitionLabel
+      })
     })
     
     // Draw transitions
-    transitions.forEach((symbolsList, transKey) => {
+    transitions.forEach((transitionList, transKey) => {
       const [fromState, toState] = transKey.split('->')
       
       // Check if this is the current transition
       let isCurrentTransition = false
       if (hasResult() && fromState === currentState && config) {
-        // Check if any of the symbols match the current tape symbols
+        // Check if any of the transitions match the current tape symbols
         const currentSymbols = config.tapes.map((tape, idx) => {
           // Get the symbol at the current head position
           return tape[config.headsPos[idx]] || '_'
         })
         
-        isCurrentTransition = symbolsList.some(symbols => {
-          // Handle wildcards
-          const symbolArray = symbols.split(',')
-          return symbolArray.every((sym, i) => 
+        isCurrentTransition = transitionList.some(transition => {
+          // For multi-tape TMs, inputSymbols is a string like "1_" which needs to be split into individual tape symbols
+          // Each character represents a symbol on the corresponding tape
+          const symbolArray = transition.inputSymbols.split('')
+          const matches = symbolArray.every((sym, i) => 
             sym === WILDCARD || sym === currentSymbols[i]
           )
+          return matches
         })
       }
       
-      // Create label with all symbols
-      const label = symbolsList.length > 3 
-        ? `${symbolsList.slice(0, 3).join('\\n')}...` 
-        : symbolsList.join('\\n')
+      // Create label with all transition information
+      const labels = transitionList.map(t => t.label)
+      const label = labels.length > 3 
+        ? `${labels.slice(0, 3).join('\\n')}...` 
+        : labels.join('\\n')
       
       let edgeAttrs = [`label="${label}"`]
       if (isCurrentTransition) {
