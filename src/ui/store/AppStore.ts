@@ -416,8 +416,9 @@ createRoot(() => {
     try {
       let automaton = undefined
 
-      // Clear navigation controls when automaton type changes
+      // Clear navigation controls and computation when automaton type changes
       setAppState('navigationControls', undefined)
+      setAppState('computation', undefined)
 
       // Parse based on automaton type
       switch (appState.automatonType) {
