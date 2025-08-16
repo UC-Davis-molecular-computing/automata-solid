@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { createRoot } from 'solid-js'
 import { createStore } from 'solid-js/store'
-import { AutomatonType, type AppState } from '../types/AppState'
+import { AutomatonType, ViewMode, type AppState } from '../types/AppState'
 
 describe('TM Component Input String Changes', () => {
   
@@ -39,6 +39,7 @@ delta:
         runImmediately: false,
         // Required AppState fields
         theme: 'monokai',
+        viewMode: ViewMode.Table,
         splitPercentage: 0.5,
         // automaton, parseError, result are undefined by default (omitted)
       }

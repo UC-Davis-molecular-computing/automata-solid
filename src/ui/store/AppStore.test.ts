@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { createRoot } from 'solid-js'
 import { createStore } from 'solid-js/store'
-import { AutomatonType, type AppState } from '../types/AppState'
+import { AutomatonType, ViewMode, type AppState } from '../types/AppState'
 import { LoadDefault } from '../types/Messages'
 
 // Mock the store implementation to test the logic
@@ -13,6 +13,7 @@ function createMockAppStore() {
     // automaton, parseError, result are undefined by default (omitted)
     // Add required AppState fields
     theme: 'monokai',
+    viewMode: ViewMode.Table,
     splitPercentage: 0.5,
     runImmediately: true
   }

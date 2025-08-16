@@ -1,6 +1,6 @@
 import type { Component } from 'solid-js'
 import { Menubar } from '@kobalte/core/menubar'
-import { AutomatonType } from '../types/AppState'
+import { AutomatonType, ViewMode } from '../types/AppState'
 import { appState, dispatch, setAppState } from '../store/AppStore'
 import { LoadDefault, SaveFile, MinimizeDfa, OpenFile } from '../types/Messages'
 import './MenuBar.css'
@@ -139,26 +139,24 @@ export const MenuBar: Component = () => {
               </Menubar.Portal>
             </Menubar.Sub>
             <Menubar.Separator class="menu-separator" />
-            <Menubar.RadioGroup value="table">
+            <Menubar.RadioGroup value={appState.viewMode}>
               <Menubar.RadioItem 
                 class="menu-item"
-                value="table" 
-                disabled={false}
+                value={ViewMode.Table} 
+                onSelect={() => setAppState('viewMode', ViewMode.Table)}
               >
-                <Menubar.ItemIndicator class="menu-indicator">
-                  ◉
-                </Menubar.ItemIndicator>
-                Table View
+                <span class={appState.viewMode === ViewMode.Table ? "selected-item" : ""}>
+                  Table View
+                </span>
               </Menubar.RadioItem>
               <Menubar.RadioItem 
                 class="menu-item"
-                value="graph" 
-                disabled={true}
+                value={ViewMode.Graph} 
+                onSelect={() => setAppState('viewMode', ViewMode.Graph)}
               >
-                <Menubar.ItemIndicator class="menu-indicator">
-                  ○
-                </Menubar.ItemIndicator>
-                Graph View
+                <span class={appState.viewMode === ViewMode.Graph ? "selected-item" : ""}>
+                  Graph View
+                </span>
               </Menubar.RadioItem>
             </Menubar.RadioGroup>
           </Menubar.Content>

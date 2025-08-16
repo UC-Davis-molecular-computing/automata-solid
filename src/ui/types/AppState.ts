@@ -25,6 +25,13 @@ export const AutomatonType = {
 
 export type AutomatonType = typeof AutomatonType[keyof typeof AutomatonType]
 
+export const ViewMode = {
+  Table: 'table',
+  Graph: 'graph'
+} as const
+
+export type ViewMode = typeof ViewMode[keyof typeof ViewMode]
+
 // Message types moved to Messages.ts for DRY principle
 
 export interface AppState {
@@ -33,6 +40,7 @@ export interface AppState {
 
   // UI state
   theme: string
+  viewMode: ViewMode
   splitPercentage: number
   runImmediately: boolean
 
@@ -71,6 +79,7 @@ export interface AppState {
 export const getDefaultInitialState = (): AppState => ({
   automatonType: AutomatonType.Dfa,
   theme: 'monokai',
+  viewMode: ViewMode.Table,
   splitPercentage: 0.5,
   runImmediately: true,
   inputString: '',
