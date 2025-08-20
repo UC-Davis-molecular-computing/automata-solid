@@ -210,8 +210,7 @@
   background-color: white;
   min-width: 0; /* Allow flex child to shrink horizontally */
   min-height: 0; /* Allow flex child to shrink vertically */
-  overflow-y: auto; /* Allow scrolling if content is too tall */
-  overflow-x: hidden;
+  overflow: hidden; /* Don't scroll on the main container */
 }
 
 /* Make direct children of results-section fill available space */
@@ -239,11 +238,11 @@
   overflow: hidden; /* No scroll on content container */
 }
 
-/* Table view specific - allow scrolling */
+/* Table view specific - allow scrolling both directions */
 .results-section .automaton-component .table-view-content {
   flex: 1;
   overflow-y: auto;
-  overflow-x: hidden;
+  overflow-x: auto; /* Allow horizontal scrolling for wide tables */
 }
 
 /* Graph view specific - no scrolling, fill space */

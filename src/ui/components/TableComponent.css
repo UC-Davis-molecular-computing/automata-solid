@@ -396,6 +396,7 @@
   padding: 6px 8px;
   border-radius: 4px;
   border: 1px solid #dee2e6;
+  overflow-x: auto; /* Allow horizontal scrolling for wide tapes */
 }
 
 .tm-tapes-container h3 {
