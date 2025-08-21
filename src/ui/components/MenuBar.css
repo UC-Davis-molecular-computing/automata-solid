@@ -32,7 +32,7 @@
 /* Menu Content */
 .menu-content {
   background: white;
-  border: 1px solid #ccc;
+  border: 1px solid #dee2e6;
   border-radius: 4px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   padding: 4px;
@@ -43,6 +43,7 @@
   overflow: hidden; /* Prevent hover areas from extending outside menu */
   box-sizing: border-box;
   position: relative;
+  outline: none; /* Remove any default outline */
 }
 
 /* Menu Items */
@@ -113,6 +114,15 @@
 .menu-item:focus-visible {
   background-color: #007bff !important;
   color: white !important;
+  outline: none;
+}
+
+/* Remove any black outlines from menu elements */
+.menu-content * {
+  outline: none;
+}
+
+.menu-content:focus {
   outline: none;
 }
 

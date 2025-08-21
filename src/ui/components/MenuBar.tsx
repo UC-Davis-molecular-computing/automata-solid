@@ -6,7 +6,7 @@ import { LoadDefault, SaveFile, MinimizeDfa, OpenFile } from '../types/Messages'
 import './MenuBar.css'
 
 const themes = [
-  'monokai', 'github', 'tomorrow', 'kuroir', 'twilight', 'xcode', 
+  'monokai', 'github', 'tomorrow', 'kuroir', 'twilight', 'xcode',
   'textmate', 'solarized_dark', 'solarized_light', 'terminal'
 ]
 
@@ -18,7 +18,7 @@ export const MenuBar: Component = () => {
         <Menubar.Trigger class="menu-trigger">File</Menubar.Trigger>
         <Menubar.Portal>
           <Menubar.Content class="menu-content">
-            <Menubar.Item 
+            <Menubar.Item
               class="menu-item"
               onSelect={() => dispatch(new LoadDefault())}
             >
@@ -26,14 +26,14 @@ export const MenuBar: Component = () => {
               <div class="menu-shortcut">Ctrl+L</div>
             </Menubar.Item>
             <Menubar.Separator class="menu-separator" />
-            <Menubar.Item 
+            <Menubar.Item
               class="menu-item"
               onSelect={() => dispatch(new OpenFile())}
             >
               Open...
               <div class="menu-shortcut">Ctrl+O</div>
             </Menubar.Item>
-            <Menubar.Item 
+            <Menubar.Item
               class="menu-item"
               onSelect={() => dispatch(new SaveFile())}
             >
@@ -43,7 +43,7 @@ export const MenuBar: Component = () => {
             {appState.automatonType === AutomatonType.Dfa && (
               <>
                 <Menubar.Separator class="menu-separator" />
-                <Menubar.Item 
+                <Menubar.Item
                   class="menu-item"
                   onSelect={() => dispatch(new MinimizeDfa())}
                 >
@@ -61,45 +61,45 @@ export const MenuBar: Component = () => {
         <Menubar.Portal>
           <Menubar.Content class="menu-content">
             <Menubar.RadioGroup value={appState.automatonType}>
-              <Menubar.RadioItem 
+              <Menubar.RadioItem
                 class="menu-item"
-                value={AutomatonType.Dfa} 
+                value={AutomatonType.Dfa}
                 onSelect={() => setAppState('automatonType', AutomatonType.Dfa)}
               >
                 <span class={appState.automatonType === AutomatonType.Dfa ? "selected-item" : ""}>
                   DFA
                 </span>
               </Menubar.RadioItem>
-              <Menubar.RadioItem 
+              <Menubar.RadioItem
                 class="menu-item"
-                value={AutomatonType.Nfa} 
+                value={AutomatonType.Nfa}
                 onSelect={() => setAppState('automatonType', AutomatonType.Nfa)}
               >
                 <span class={appState.automatonType === AutomatonType.Nfa ? "selected-item" : ""}>
                   NFA
                 </span>
               </Menubar.RadioItem>
-              <Menubar.RadioItem 
+              <Menubar.RadioItem
                 class="menu-item"
-                value={AutomatonType.Regex} 
+                value={AutomatonType.Regex}
                 onSelect={() => setAppState('automatonType', AutomatonType.Regex)}
               >
                 <span class={appState.automatonType === AutomatonType.Regex ? "selected-item" : ""}>
                   Regex
                 </span>
               </Menubar.RadioItem>
-              <Menubar.RadioItem 
+              <Menubar.RadioItem
                 class="menu-item"
-                value={AutomatonType.Cfg} 
+                value={AutomatonType.Cfg}
                 onSelect={() => setAppState('automatonType', AutomatonType.Cfg)}
               >
                 <span class={appState.automatonType === AutomatonType.Cfg ? "selected-item" : ""}>
                   CFG
                 </span>
               </Menubar.RadioItem>
-              <Menubar.RadioItem 
+              <Menubar.RadioItem
                 class="menu-item"
-                value={AutomatonType.Tm} 
+                value={AutomatonType.Tm}
                 onSelect={() => setAppState('automatonType', AutomatonType.Tm)}
               >
                 <span class={appState.automatonType === AutomatonType.Tm ? "selected-item" : ""}>
@@ -118,15 +118,15 @@ export const MenuBar: Component = () => {
           <Menubar.Content class="menu-content">
             <Menubar.Sub>
               <Menubar.SubTrigger class="menu-item">
-                Theme ▶
+                Editor theme ▶
               </Menubar.SubTrigger>
               <Menubar.Portal>
                 <Menubar.SubContent class="menu-content">
                   <Menubar.RadioGroup value={appState.theme}>
                     {themes.map(theme => (
-                      <Menubar.RadioItem 
+                      <Menubar.RadioItem
                         class="menu-item"
-                        value={theme} 
+                        value={theme}
                         onSelect={() => setAppState('theme', theme)}
                       >
                         <span class={appState.theme === theme ? "selected-item" : ""}>
@@ -140,19 +140,21 @@ export const MenuBar: Component = () => {
             </Menubar.Sub>
             <Menubar.Separator class="menu-separator" />
             <Menubar.RadioGroup value={appState.viewMode}>
-              <Menubar.RadioItem 
+              <Menubar.RadioItem
                 class="menu-item"
-                value={ViewMode.Table} 
+                value={ViewMode.Table}
                 onSelect={() => setAppState('viewMode', ViewMode.Table)}
+                title="Display the automaton as a transition table"
               >
                 <span class={appState.viewMode === ViewMode.Table ? "selected-item" : ""}>
                   Table View
                 </span>
               </Menubar.RadioItem>
-              <Menubar.RadioItem 
+              <Menubar.RadioItem
                 class="menu-item"
-                value={ViewMode.Graph} 
+                value={ViewMode.Graph}
                 onSelect={() => setAppState('viewMode', ViewMode.Graph)}
+                title="Display the automaton as a state diagram with nodes and transitions"
               >
                 <span class={appState.viewMode === ViewMode.Graph ? "selected-item" : ""}>
                   Graph View
@@ -168,7 +170,7 @@ export const MenuBar: Component = () => {
         <Menubar.Trigger class="menu-trigger">Help</Menubar.Trigger>
         <Menubar.Portal>
           <Menubar.Content class="menu-content">
-            <Menubar.Item 
+            <Menubar.Item
               class="menu-item"
               onSelect={() => window.open('help.html', '_blank')}
             >
