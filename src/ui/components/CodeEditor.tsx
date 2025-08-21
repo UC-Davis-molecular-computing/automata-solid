@@ -3,50 +3,13 @@ import { onMount, onCleanup, createEffect } from 'solid-js'
 import { EditorView, lineNumbers, highlightActiveLineGutter, highlightSpecialChars, drawSelection, dropCursor, rectangularSelection, crosshairCursor, highlightActiveLine, keymap } from '@codemirror/view'
 import { EditorState } from '@codemirror/state'
 import { automataYaml } from './automata-lang'
-import { oneDark } from '@codemirror/theme-one-dark'
-import { solarizedLight, solarizedDark } from '@uiw/codemirror-theme-solarized'
-import { 
-  tomorrow,
-  solarizedLight as thememirrorSolarizedLight,
-  dracula,
-  bespin,
-  cobalt,
-  espresso
-} from 'thememirror'
+import { getThemeExtension } from '../utils/EditorThemes'
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
 import { searchKeymap, highlightSelectionMatches } from '@codemirror/search'
 import { autocompletion, completionKeymap, closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete'
 import { defaultHighlightStyle, syntaxHighlighting, indentOnInput, bracketMatching, foldGutter, foldKeymap } from '@codemirror/language'
 import { appState, setAppState } from '../store/AppStore'
 import './CodeEditor.css'
-
-// Theme mapping function
-const getThemeExtension = (themeName: string) => {
-  switch (themeName) {
-    case 'monokai':
-      return oneDark
-    case 'github':
-      return thememirrorSolarizedLight  // Use solarized light as github substitute
-    case 'tomorrow':
-      return tomorrow
-    case 'kuroir':
-      return bespin  // Use bespin as kuroir substitute
-    case 'twilight':
-      return dracula  // Use dracula as twilight substitute
-    case 'xcode':
-      return thememirrorSolarizedLight  // Use solarized light as xcode substitute
-    case 'textmate':
-      return cobalt  // Use cobalt as textmate substitute
-    case 'solarized_dark':
-      return solarizedDark
-    case 'solarized_light':
-      return solarizedLight
-    case 'terminal':
-      return espresso  // Use espresso for terminal theme
-    default:
-      return [] // No theme (default light)
-  }
-}
 
 // Create basic setup extensions manually
 const basicSetupExtensions = [

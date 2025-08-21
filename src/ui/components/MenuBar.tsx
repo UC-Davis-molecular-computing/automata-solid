@@ -3,12 +3,8 @@ import { Menubar } from '@kobalte/core/menubar'
 import { AutomatonType, ViewMode } from '../types/AppState'
 import { appState, dispatch, setAppState } from '../store/AppStore'
 import { LoadDefault, SaveFile, MinimizeDfa, OpenFile } from '../types/Messages'
+import { THEME_SECTIONS } from '../utils/EditorThemes'
 import './MenuBar.css'
-
-const themes = [
-  'monokai', 'github', 'tomorrow', 'kuroir', 'twilight', 'xcode',
-  'textmate', 'solarized_dark', 'solarized_light', 'terminal'
-]
 
 export const MenuBar: Component = () => {
   return (
@@ -121,18 +117,24 @@ export const MenuBar: Component = () => {
                 Editor theme ▶
               </Menubar.SubTrigger>
               <Menubar.Portal>
-                <Menubar.SubContent class="menu-content">
+                <Menubar.SubContent class="menu-content theme-submenu">
                   <Menubar.RadioGroup value={appState.theme}>
-                    {themes.map(theme => (
-                      <Menubar.RadioItem
-                        class="menu-item"
-                        value={theme}
-                        onSelect={() => setAppState('theme', theme)}
-                      >
-                        <span class={appState.theme === theme ? "selected-item" : ""}>
-                          {theme}
-                        </span>
-                      </Menubar.RadioItem>
+                    {THEME_SECTIONS.map((section, sectionIndex) => (
+                      <>
+                        {sectionIndex > 0 && <Menubar.Separator class="menu-separator" />}
+                        <div class="theme-section-header">{section.title}</div>
+                        {section.themes.map(theme => (
+                          <Menubar.RadioItem
+                            class="menu-item"
+                            value={theme.name}
+                            onSelect={() => setAppState('theme', theme.name)}
+                          >
+                            <span class={appState.theme === theme.name ? "selected-item" : ""}>
+                              {theme.displayName}
+                            </span>
+                          </Menubar.RadioItem>
+                        ))}
+                      </>
                     ))}
                   </Menubar.RadioGroup>
                 </Menubar.SubContent>

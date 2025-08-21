@@ -1,13 +1,15 @@
+import * as Viz from '@viz-js/viz'
+
 interface GraphRendererOptions {
   isGraphView?: boolean
-  vizInstance: () => any | undefined
+  vizInstance: () => Awaited<ReturnType<typeof Viz.instance>> | undefined
   generateDotGraph: () => string
   setGraphSvg: (value: SVGElement | undefined) => void
 }
 
 export function renderGraphEffect(options: GraphRendererOptions): void {
   const { isGraphView, vizInstance, generateDotGraph, setGraphSvg } = options
-  
+
   if (isGraphView && vizInstance()) {
     try {
       const dot = generateDotGraph()

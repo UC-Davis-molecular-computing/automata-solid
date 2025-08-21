@@ -160,4 +160,45 @@
   color: rgba(255, 255, 255, 0.8);
 }
 
+/* Theme submenu with scrolling */
+.theme-submenu {
+  max-height: calc(100vh - 80px); /* Maximum height: full viewport minus some padding */
+  overflow-y: auto; /* Enable vertical scrolling */
+  overflow-x: hidden; /* Hide horizontal scrolling */
+  scrollbar-width: thin; /* Firefox - thin scrollbar */
+  scrollbar-color: #dee2e6 transparent; /* Firefox - scrollbar colors */
+}
+
+/* Theme section headers */
+.theme-section-header {
+  padding: 8px 12px 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: none;
+  cursor: default;
+  user-select: none;
+  margin-top: 4px;
+}
+
+/* Webkit scrollbar styling */
+.theme-submenu::-webkit-scrollbar {
+  width: 8px;
+}
+
+.theme-submenu::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.theme-submenu::-webkit-scrollbar-thumb {
+  background: #dee2e6;
+  border-radius: 4px;
+}
+
+.theme-submenu::-webkit-scrollbar-thumb:hover {
+  background: #adb5bd;
+}
+
 
