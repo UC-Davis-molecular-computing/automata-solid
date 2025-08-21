@@ -32,6 +32,7 @@ import { xcodeLight, xcodeDark } from '@uiw/codemirror-theme-xcode'
 import { tomorrow, cobalt, espresso } from 'thememirror'
 
 import type { Extension } from '@codemirror/state'
+import { assert } from '../../core/Utils'
 
 export interface EditorTheme {
   name: string
@@ -96,8 +97,10 @@ const lightThemes: EditorTheme[] = [
 ]
 
 // Sort alphabetically, but keep monokai first in dark themes
+const monokaiTheme = darkThemes.find(theme => theme.name === 'monokai')
+assert(monokaiTheme, 'Monokai theme should exist in darkThemes')
 const sortedDarkThemes = [
-  darkThemes.find(theme => theme.name === 'monokai')!,
+  monokaiTheme,
   ...darkThemes.filter(theme => theme.name !== 'monokai').sort((a, b) => a.displayName.localeCompare(b.displayName))
 ]
 
