@@ -3,7 +3,7 @@ import { createEffect, For, Show, onMount, createSignal } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import { TM, TMConfiguration, ConfigDiff } from '../../core/TM'
 import { wildcardMatch, WILDCARD, assert } from '../../core/Utils'
-import { appState, setAppState, dispatch } from '../store/AppStore'
+import { appState, setAppState, dispatch, hasExecutionData } from '../store/AppStore'
 import { RegisterNavigationControls } from '../types/Messages'
 import { PanZoomSVG } from './PanZoomSVG'
 import * as Viz from '@viz-js/viz'
@@ -31,8 +31,8 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
   })
 
   // Graph rendering state
-  const [vizInstance, setVizInstance] = createSignal<Awaited<ReturnType<typeof Viz.instance>> | null>(null)
-  const [graphSvg, setGraphSvg] = createSignal<SVGElement | null>(null)
+  const [vizInstance, setVizInstance] = createSignal<Awaited<ReturnType<typeof Viz.instance>> | undefined>(undefined)
+  const [graphSvg, setGraphSvg] = createSignal<SVGElement | undefined>(undefined)
 
   // Initialize viz-js instance
   onMount(async () => {
@@ -45,7 +45,6 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
   })
   
   // Derived values from AppState (single source of truth)
-  const hasResult = () => appState.computation?.navigation?.executionData !== undefined
 
   // Computation is now triggered via message dispatch from App.tsx
 
@@ -79,7 +78,7 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
     const currentInput = appState.inputString
     
     // Only clear results if input actually changed and we're in manual mode
-    if (!appState.runImmediately && hasResult() && 
+    if (!appState.runImmediately && hasExecutionData() && 
         prevInput !== undefined && prevInput !== currentInput) {
       setState({
         currentStep: 0
@@ -124,19 +123,19 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
   }
 
   const goForward = () => {
-    if (!hasResult()) return
+    if (!hasExecutionData()) return
     const newStep = Math.min(state.currentStep + 1, state.diffs.length)
     moveConfigToStep(newStep)
   }
 
   const goBackward = () => {
-    if (!hasResult()) return
+    if (!hasExecutionData()) return
     const newStep = Math.max(state.currentStep - 1, 0)
     moveConfigToStep(newStep)
   }
 
   const goToBeginning = () => {
-    if (!hasResult() || !state.initialConfig) return
+    if (!hasExecutionData() || !state.initialConfig) return
     setState({
       currentStep: 0,
       currentConfig: state.initialConfig.copy()
@@ -144,28 +143,31 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
   }
 
   const goToEnd = () => {
-    if (!hasResult() || !state.finalConfig) return
+    if (!hasExecutionData() || !state.finalConfig) return
     setState({
       currentStep: state.diffs.length,
       currentConfig: state.finalConfig.copy()
     })
   }
 
-  // Register navigation controls with the store on mount
-  onMount(() => {
-    dispatch(new RegisterNavigationControls({
-      goForward,
-      goBackward,
-      goToBeginning,
-      goToEnd,
-      canGoForward: () => hasResult() && state.currentStep < state.diffs.length,
-      canGoBackward: () => hasResult() && state.currentStep > 0
-    }))
+  // Register navigation controls with the store whenever computation changes
+  createEffect(() => {
+    // Re-register whenever we have a computation result
+    if (hasExecutionData()) {
+      dispatch(new RegisterNavigationControls({
+        goForward,
+        goBackward,
+        goToBeginning,
+        goToEnd,
+        canGoForward: () => hasExecutionData() && state.currentStep < state.diffs.length,
+        canGoBackward: () => hasExecutionData() && state.currentStep > 0
+      }))
+    }
   })
 
   // Helper functions for rendering
   const getCurrentConfig = () => {
-    // Return current config regardless of hasResult status
+    // Return current config regardless of hasNavigationData status
     return state.currentConfig
   }
 
@@ -191,7 +193,7 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
     props.tm.states.forEach(stateName => {
       const isAccepting = stateName === props.tm.acceptState
       const isRejecting = stateName === props.tm.rejectState
-      const isCurrent = hasResult() && stateName === currentState
+      const isCurrent = hasExecutionData() && stateName === currentState
       
       let nodeAttrs = []
       if (isAccepting) {
@@ -239,7 +241,7 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
       
       // Check if this is the current transition
       let isCurrentTransition = false
-      if (hasResult() && fromState === currentState && config) {
+      if (hasExecutionData() && fromState === currentState && config) {
         // Check if any of the transitions match the current tape symbols
         const currentSymbols = config.tapes.map((tape, idx) => {
           // Get the symbol at the current head position
@@ -307,7 +309,7 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
         {/* Tape Display - Always shown for TM */}
         <Show when={state.currentConfig}>
           <div class="tm-tapes-container">
-            <h3>Tapes <span class="tm-step-counter">{hasResult() ? `Step ${state.currentStep + 1}/${state.diffs.length + 1}` : 'Initial State'}</span></h3>
+            <h3>Tapes <span class="tm-step-counter">{hasExecutionData() ? `Step ${state.currentStep + 1}/${state.diffs.length + 1}` : 'Initial State'}</span></h3>
             <table class="tm-tapes-table">
               <tbody>
                 <For each={Array.from({ length: props.tm.numTapes }, (_, i) => i)}>

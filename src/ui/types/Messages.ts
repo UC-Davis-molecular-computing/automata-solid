@@ -35,7 +35,7 @@ export class SetComputationResult implements AppMessage {
     navigation?: {
       currentStep: number
       totalSteps: number
-    executionData?: ExecutionData
+      executionData: ExecutionData
     }
   }
   constructor(computation: { 
@@ -45,7 +45,7 @@ export class SetComputationResult implements AppMessage {
     navigation?: {
       currentStep: number
       totalSteps: number
-    executionData?: ExecutionData
+      executionData: ExecutionData
     }
   }) {
     this.computation = computation

@@ -170,7 +170,7 @@ type ComputationResult = {
   navigation?: {
     currentStep: number
     totalSteps: number
-    executionData?: ExecutionData
+    executionData: ExecutionData
   }
 }
 
@@ -568,4 +568,18 @@ const getAutomatonTypeFromFilename = (filename: string): AutomatonType => {
       // For .yaml, .yml, .txt, or unknown extensions, keep current type
       return appState.automatonType
   }
+}
+
+// ========================================
+// UTILITY FUNCTIONS FOR APPSTATE
+// ========================================
+
+// Check if we have execution data (for DFA, NFA, TM, CFG)
+export const hasExecutionData = () => {
+  return appState.computation?.navigation !== undefined
+}
+
+// Check if we have any computation result (for Regex which doesn't have navigation)
+export const hasComputationResult = () => {
+  return appState.computation !== undefined
 }

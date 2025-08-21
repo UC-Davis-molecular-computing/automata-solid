@@ -13,7 +13,7 @@ export type ExecutionData =
   | { type: 'dfa'; statesVisited: string[] }
   | { type: 'nfa'; stateSetsVisited: string[][] }
   | { type: 'tm'; diffs: ConfigDiff[]; initialConfig: TMConfiguration; finalConfig: TMConfiguration; currentConfig: TMConfiguration }
-  | { type: 'cfg'; parseTree?: TreeNode }
+  | { type: 'cfg'; parseTree?: TreeNode } // undefined if CFG rejects inputString
 
 export const AutomatonType = {
   Dfa: 'dfa',
@@ -70,7 +70,8 @@ export interface AppState {
       totalSteps: number
 
       // Type-safe execution data using discriminated unions
-      executionData?: ExecutionData
+      // Always present when navigation exists
+      executionData: ExecutionData
     }
   }
 }

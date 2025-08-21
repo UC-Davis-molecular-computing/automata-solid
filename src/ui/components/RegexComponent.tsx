@@ -1,7 +1,7 @@
 import type { Component } from 'solid-js'
 import { createEffect, Show, For } from 'solid-js'
 import { Regex } from '../../core/Regex'
-import { appState, setAppState } from '../store/AppStore'
+import { appState, setAppState, hasComputationResult } from '../store/AppStore'
 import './TableComponent.css'
 
 interface RegexComponentProps {
@@ -10,7 +10,7 @@ interface RegexComponentProps {
 
 export const RegexComponent: Component<RegexComponentProps> = (props) => {
   // Derived values from AppState (single source of truth)
-  const hasResult = () => appState.computation !== undefined
+  const hasResult = hasComputationResult
 
   // Computation is now triggered via message dispatch from App.tsx
 
