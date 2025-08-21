@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,27 +14,32 @@
             padding: 20px;
             color: #333;
         }
+
         h1 {
             color: #2563eb;
             border-bottom: 3px solid #2563eb;
             padding-bottom: 10px;
         }
+
         h2 {
             color: #1e40af;
             margin-top: 30px;
             border-bottom: 1px solid #e5e7eb;
             padding-bottom: 5px;
         }
+
         h3 {
             color: #1f2937;
             margin-top: 25px;
         }
+
         code {
             background-color: #f3f4f6;
             padding: 2px 4px;
             border-radius: 3px;
             font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
         }
+
         pre {
             background-color: #f8f9fa;
             border: 1px solid #e9ecef;
@@ -43,26 +49,31 @@
             font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
             font-size: 14px;
         }
+
         .example-link {
             color: #2563eb;
             text-decoration: none;
             font-weight: 500;
         }
+
         .example-link:hover {
             text-decoration: underline;
         }
+
         .note {
             background-color: #fef3c7;
             border-left: 4px solid #f59e0b;
             padding: 12px;
             margin: 16px 0;
         }
+
         .tip {
             background-color: #d1fae5;
             border-left: 4px solid #10b981;
             padding: 12px;
             margin: 16px 0;
         }
+
         .keyboard-shortcut {
             background-color: #e5e7eb;
             border: 1px solid #d1d5db;
@@ -71,31 +82,38 @@
             font-family: monospace;
             font-size: 12px;
         }
+
         table {
             border-collapse: collapse;
             width: 100%;
             margin: 16px 0;
         }
-        th, td {
+
+        th,
+        td {
             border: 1px solid #d1d5db;
             padding: 8px 12px;
             text-align: left;
         }
+
         th {
             background-color: #f3f4f6;
             font-weight: 600;
         }
+
         .model-type {
             font-weight: bold;
             color: #1e40af;
         }
     </style>
 </head>
+
 <body>
     <h1>Automaton Simulator Help</h1>
 
     <h2>Introduction</h2>
-    <p>This simulator supports visualization and step-by-step execution of several types of automata and formal language models:</p>
+    <p>This simulator supports visualization and step-by-step execution of several types of automata and formal language
+        models:</p>
     <ul>
         <li><span class="model-type">DFA</span> - Deterministic Finite Automata</li>
         <li><span class="model-type">NFA</span> - Nondeterministic Finite Automata</li>
@@ -106,7 +124,7 @@
 
     <h2>Example Files</h2>
     <p>The easiest way to explain the input file format is by example; see several examples below.</p>
-    
+
     <table>
         <thead>
             <tr>
@@ -160,38 +178,45 @@
     </table>
 
     <h2>Getting Started</h2>
-    
+
     <h3>Basic Usage</h3>
     <ol>
         <li>Select the model type from the <strong>Model</strong> menu</li>
-        <li>Enter your automaton definition in the left panel using <a href="https://yaml.org/spec/1.2.2/">YAML syntax</a></li>
+        <li>Enter your automaton definition in the left panel using <a href="https://yaml.org/spec/1.2.2/">YAML
+                syntax</a></li>
         <li>Type your test string in the input field</li>
         <li>Toggle "Run immediately?" for automatic computation, or use the "Run" button for manual control</li>
         <li>Use navigation controls to step through the computation</li>
     </ol>
 
     <div class="tip">
-        <strong>💡 Tip:</strong> Try loading a default example using <strong>File → Load Default</strong> (<span class="keyboard-shortcut">Ctrl+L</span>) to see the expected format for each model type.
+        <strong>💡 Tip:</strong> Try loading a default example using <strong>File → Load Default</strong> (<span
+            class="keyboard-shortcut">Ctrl+L</span>) to see the expected format for each model type.
     </div>
 
     <h3>File Management</h3>
     <ul>
         <li><strong>Open:</strong> <span class="keyboard-shortcut">Ctrl+O</span> - Load a file from your computer</li>
-        <li><strong>Save:</strong> <span class="keyboard-shortcut">Ctrl+S</span> - Download your current automaton definition</li>
-        <li><strong>Load Default:</strong> <span class="keyboard-shortcut">Ctrl+L</span> - Load an example for the current model type</li>
+        <li><strong>Save:</strong> <span class="keyboard-shortcut">Ctrl+S</span> - Download your current automaton
+            definition</li>
+        <li><strong>Load Default:</strong> <span class="keyboard-shortcut">Ctrl+L</span> - Load an example for the
+            current model type</li>
     </ul>
 
     <h3>Navigation Controls</h3>
     <p>For DFA, NFA, and TM models, you can step through the computation:</p>
     <ul>
         <li><strong>|&lt;&lt;</strong> - Go to beginning</li>
-        <li><strong>&lt; (,)</strong> - Step backward (<span class="keyboard-shortcut">,</span> key or <span class="keyboard-shortcut">←</span>)</li>
-        <li><strong>&gt; (.)</strong> - Step forward (<span class="keyboard-shortcut">.</span> key or <span class="keyboard-shortcut">→</span>)</li>
+        <li><strong>&lt; (,)</strong> - Step backward (<span class="keyboard-shortcut">,</span> key or <span
+                class="keyboard-shortcut">←</span>)</li>
+        <li><strong>&gt; (.)</strong> - Step forward (<span class="keyboard-shortcut">.</span> key or <span
+                class="keyboard-shortcut">→</span>)</li>
         <li><strong>&gt;&gt;|</strong> - Go to end</li>
     </ul>
 
     <h2>YAML Syntax</h2>
-    <p>All automaton definitions use <a href="https://yaml.org/spec/1.2.2/" target="_blank">YAML (YAML Ain't Markup Language)</a> format. YAML is a human-readable data serialization standard.</p>
+    <p>All automaton definitions use <a href="https://yaml.org/spec/1.2.2/" target="_blank">YAML (YAML Ain't Markup
+            Language)</a> format. YAML is a human-readable data serialization standard.</p>
 
     <h3>Key YAML Concepts</h3>
     <p><strong>Arrays:</strong> Lists of items can be written in two ways:</p>
@@ -210,19 +235,23 @@
     <p><strong>Comments:</strong> Use <code>#</code> for documentation</p>
     <pre># This is a comment explaining the automaton</pre>
 
-    <p><strong>Special Characters:</strong> Some characters need quotes in YAML, or if you want to avoid using quotes in state names and alphabet symbols, then avoid these YAML special characters:</p>
+    <p><strong>Special Characters:</strong> Some characters need quotes in YAML, or if you want to avoid using quotes in
+        state names and alphabet symbols, then avoid these YAML special characters:</p>
     <ul>
         <li><code>!</code> - Start of YAML tags (use <code>'!'</code>)</li>
         <li><code>@</code> - Reserved for future use (use <code>'@'</code>)</li>
         <li><code>`</code> - Reserved for future use (use <code>'`'</code>)</li>
         <li><code>|</code>, <code>&gt;</code> - Block scalars (use <code>'|'</code> or <code>'&gt;'</code>)</li>
         <li>Numbers that look like strings: use quotes if you want <code>"123"</code> as text, not the number 123</li>
-        <li>Boolean-like text: use quotes for <code>"true"</code>, <code>"false"</code>, <code>"yes"</code>, <code>"no"</code> if you want them as text</li>
+        <li>Boolean-like text: use quotes for <code>"true"</code>, <code>"false"</code>, <code>"yes"</code>,
+            <code>"no"</code> if you want them as text
+        </li>
     </ul>
 
     <h3>YAML Numeric Interpretation Pitfalls</h3>
-    <p>YAML automatically converts unquoted values that look like numbers. This can cause unexpected errors when using numeric state names with leading zeros:</p>
-    
+    <p>YAML automatically converts unquoted values that look like numbers. This can cause unexpected errors when using
+        numeric state names with leading zeros:</p>
+
     <h4>The Leading Zero Problem</h4>
     <p><strong>Problem: Leading zeros collapse to the same number</strong></p>
     <pre># WRONG - 00 and 01 become numbers 0 and 1
@@ -234,9 +263,10 @@ delta:
     b: 01
   01:       # This is actually state 1 (number)  
     c: 02</pre>
-    
-    <p><strong>Error you'll see:</strong> <code>Map keys must be unique</code> or state reference errors if you have both <code>0</code> and <code>00</code> in your states list.</p>
-    
+
+    <p><strong>Error you'll see:</strong> <code>Map keys must be unique</code> or state reference errors if you have
+        both <code>0</code> and <code>00</code> in your states list.</p>
+
     <h4>Solution: Quote State Names with Leading Zeros</h4>
     <p>When using numeric state names with leading zeros, always use quotes:</p>
     <pre># CORRECT - All state names are strings
@@ -248,9 +278,11 @@ delta:
     b: '01'
   '01':       # String state "01" - different from "1"
     c: '02'</pre>
-    
+
     <div class="note">
-        <strong>📝 Rule of Thumb:</strong> When in doubt, use quotes! It's safer to quote symbols than deal with type conversion errors. The simulator expects string symbols, so <code>'0'</code> is always safer than unquoted <code>0</code>.
+        <strong>📝 Rule of Thumb:</strong> When in doubt, use quotes! It's safer to quote symbols than deal with type
+        conversion errors. The simulator expects string symbols, so <code>'0'</code> is always safer than unquoted
+        <code>0</code>.
     </div>
 
     <h2>Model-Specific Syntax</h2>
@@ -288,8 +320,10 @@ delta:
     0: q000</pre>
 
     <h3>NFA (Nondeterministic Finite Automaton)</h3>
-    <p>Same fields as DFA, but <code>delta</code> can map to either individual states (like DFA) or arrays of states for nondeterminism. When there is only one target state, do not put it in an array. NFAs also support ε-transitions:</p>
-    
+    <p>Same fields as DFA, but <code>delta</code> can map to either individual states (like DFA) or arrays of states for
+        nondeterminism. When there is only one target state, do not put it in an array. NFAs also support ε-transitions:
+    </p>
+
     <p><a href="examples/0s1s2s.nfa" class="example-link">Example: NFA recognizing 0*1*2*</a></p>
     <pre># NFA recognizing the language described by the regular expression 0*1*2*
 
@@ -315,7 +349,8 @@ delta:
     b: q0        # Single target: no array needed</pre>
 
     <div class="note">
-        <strong>📝 Note:</strong> Use empty string <code>""</code> for ε-transitions in NFAs. Only use arrays when there are multiple target states.
+        <strong>📝 Note:</strong> Use empty string <code>""</code> for ε-transitions in NFAs. Only use arrays when there
+        are multiple target states.
     </div>
 
     <h3>TM (Turing Machine)</h3>
@@ -330,8 +365,10 @@ delta:
         <li><code>delta</code> - Transition function with format: <code>[new_state, new_symbols, moves]</code></li>
     </ul>
 
-    <p><strong>Tape Alphabet:</strong> Automatically includes <code>_</code> (blank) and all symbols from <code>input_alphabet</code> and <code>tape_alphabet_extra</code>.</p>
-    
+    <p><strong>Tape Alphabet:</strong> Automatically includes <code>_</code> (blank) and all symbols from
+        <code>input_alphabet</code> and <code>tape_alphabet_extra</code>.
+    </p>
+
     <p><strong>Transition Format:</strong> <code>current_symbols: [new_state, new_symbols, moves]</code></p>
     <ul>
         <li><code>moves</code>: <code>L</code> (left), <code>R</code> (right), <code>S</code> (stay)</li>
@@ -361,14 +398,19 @@ delta:
     _!: [qA, _!, SR]      # Found marker, accept</pre>
 
     <h3>Wildcard Transitions</h3>
-    <p>Turing Machines support wildcard symbols (<code>?</code>) in transition rules, allowing you to write more concise and general transitions. The wildcard <code>?</code> matches any symbol in the tape alphabet.</p>
-    
+    <p>Turing Machines support wildcard symbols (<code>?</code>) in transition rules, allowing you to write more concise
+        and general transitions. The wildcard <code>?</code> matches any symbol in the tape alphabet.</p>
+
     <h4>Wildcard Precedence Rules</h4>
-    <p>When multiple transition rules could apply to the current configuration, the simulator follows these precedence rules:</p>
+    <p>When multiple transition rules could apply to the current configuration, the simulator follows these precedence
+        rules:</p>
     <ol>
-        <li><strong>Specific rules override wildcard rules:</strong> A transition with exact symbols takes priority over one with wildcards</li>
-        <li><strong>More specific wildcards override less specific:</strong> Rules with fewer wildcards take priority over those with more wildcards</li>
-        <li><strong>First match wins:</strong> Among rules of equal specificity, the first one encountered in the delta definition is used</li>
+        <li><strong>Specific rules override wildcard rules:</strong> A transition with exact symbols takes priority over
+            one with wildcards</li>
+        <li><strong>More specific wildcards override less specific:</strong> Rules with fewer wildcards take priority
+            over those with more wildcards</li>
+        <li><strong>First match wins:</strong> Among rules of equal specificity, the first one encountered in the delta
+            definition is used</li>
     </ol>
 
     <h4>Wildcard Examples</h4>
@@ -377,7 +419,7 @@ delta:
   q1:
     '?': [q2, x, R]    # Replace any symbol with 'x', move right
     '0': [q3, '0', L]   # Specific rule: if '0', stay '0', move left</pre>
-    
+
     <p><strong>Multi-tape wildcards:</strong></p>
     <pre>delta:
   q1:
@@ -391,27 +433,32 @@ delta:
         <li>The specific rule <code>a_</code> takes precedence and is executed</li>
     </ul>
 
-    <p><a href="examples/count-a-wildcard.tm" class="example-link">See full example: count-a-wildcard.tm</a> - Demonstrates wildcard usage for counting 'a' symbols</p>
-    <p><a href="examples/w-marker-w-wildcard.tm" class="example-link">See full example: w-marker-w-wildcard.tm</a> - Shows wildcards in palindrome recognition</p>
+    <p><a href="examples/count-a-wildcard.tm" class="example-link">See full example: count-a-wildcard.tm</a> -
+        Demonstrates wildcard usage for counting 'a' symbols</p>
+    <p><a href="examples/w-marker-w-wildcard.tm" class="example-link">See full example: w-marker-w-wildcard.tm</a> -
+        Shows wildcards in palindrome recognition</p>
 
     <div class="note">
-        <strong>📝 Wildcard Best Practices:</strong> Use wildcards to handle general cases and specific rules for special cases. This creates cleaner, more maintainable TM definitions.
+        <strong>📝 Wildcard Best Practices:</strong> Use wildcards to handle general cases and specific rules for
+        special cases. This creates cleaner, more maintainable TM definitions.
     </div>
 
     <h3>TM String Output</h3>
     <p>For Turing Machines, the simulator displays both:</p>
     <ul>
         <li><strong>Boolean output:</strong> accept/reject based on final state</li>
-        <li><strong>String output:</strong> Content from the tape head to the first blank on the last tape (shows "ε" for empty string)</li>
+        <li><strong>String output:</strong> Content from the tape head to the first blank on the last tape (shows "ε"
+            for empty string)</li>
     </ul>
 
     <div class="note">
-        <strong>📝 Performance:</strong> TM computation is limited to 1,000,000 steps. If this limit is reached, you'll see "MAX_STEPS=1,000,000 limit reached" instead of accept/reject.
+        <strong>📝 Performance:</strong> TM computation is limited to 1,000,000 steps. If this limit is reached, you'll
+        see "MAX_STEPS=1,000,000 limit reached" instead of accept/reject.
     </div>
 
     <h3>CFG (Context-Free Grammar)</h3>
     <p>Define production rules using YAML mapping:</p>
-    
+
     <p><a href="examples/balanced-parens.cfg" class="example-link">Example: Grammar for balanced parentheses</a></p>
     <pre># CFG generating language of balanced () parentheses
 
@@ -421,7 +468,7 @@ S: [(S), SS, '']</pre>
 
     <h3>Regex (Regular Expression)</h3>
     <p>Define subexpressions and main expression:</p>
-    
+
     <p><a href="examples/contains-010.regex" class="example-link">Example: Binary strings containing "010"</a></p>
     <pre># Matches any binary string containing the substring 010
 B = (0|1)*  # subexpression matching any binary string
@@ -430,12 +477,14 @@ B 010 B</pre>
     <h2>Advanced Features</h2>
 
     <h3>Local Storage</h3>
-    <p>Your automaton definitions are automatically saved in your browser's local storage. This means your work persists between sessions, but it's stored locally on your device only.</p>
+    <p>Your automaton definitions are automatically saved in your browser's local storage. This means your work persists
+        between sessions, but it's stored locally on your device only.</p>
 
     <h3>Run Modes</h3>
     <ul>
         <li><strong>Run immediately:</strong> Computation happens automatically as you type your test string</li>
-        <li><strong>Manual mode:</strong> Use the "Run" button to control when computation occurs. Useful for complex TMs that may take time to process.</li>
+        <li><strong>Manual mode:</strong> Use the "Run" button to control when computation occurs. Useful for complex
+            TMs that may take time to process.</li>
     </ul>
 
     <h3>Themes</h3>
@@ -450,28 +499,35 @@ B 010 B</pre>
     <h2>Tips and Best Practices</h2>
 
     <div class="tip">
-        <strong>💡 Comments:</strong> Use <code>#</code> comments liberally to document your automata. They help understand complex logic and are ignored by the parser.
+        <strong>💡 Comments:</strong> Use <code>#</code> comments liberally to document your automata. They help
+        understand complex logic and are ignored by the parser.
     </div>
 
     <div class="tip">
-        <strong>💡 State Names:</strong> Use descriptive state names like <code>reading_zeros</code> instead of <code>q1</code> to make your automata more readable.
+        <strong>💡 State Names:</strong> Use descriptive state names like <code>reading_zeros</code> instead of
+        <code>q1</code> to make your automata more readable.
     </div>
 
     <div class="tip">
-        <strong>💡 Testing:</strong> Test your automata with various inputs including edge cases like empty strings, very short inputs, and boundary conditions.
+        <strong>💡 Testing:</strong> Test your automata with various inputs including edge cases like empty strings,
+        very short inputs, and boundary conditions.
     </div>
 
     <div class="note">
-        <strong>📝 Browser Compatibility:</strong> This simulator works best in modern browsers like Chrome, Firefox, Safari, and Edge. JavaScript must be enabled.
+        <strong>📝 Browser Compatibility:</strong> This simulator works best in modern browsers like Chrome, Firefox,
+        Safari, and Edge. JavaScript must be enabled.
     </div>
 
     <h2>Troubleshooting</h2>
 
     <h3>Common Errors</h3>
     <ul>
-        <li><strong>YAML Syntax Error:</strong> Check indentation (use spaces, not tabs) and ensure proper array/object formatting</li>
-        <li><strong>"State not in state list":</strong> Make sure all states referenced in <code>delta</code> are declared in <code>states</code></li>
-        <li><strong>"Symbol not in alphabet":</strong> Verify all symbols in transitions exist in the appropriate alphabet</li>
+        <li><strong>YAML Syntax Error:</strong> Check indentation (use spaces, not tabs) and ensure proper array/object
+            formatting</li>
+        <li><strong>"State not in state list":</strong> Make sure all states referenced in <code>delta</code> are
+            declared in <code>states</code></li>
+        <li><strong>"Symbol not in alphabet":</strong> Verify all symbols in transitions exist in the appropriate
+            alphabet</li>
         <li><strong>TM wildcard errors:</strong> Ensure wildcard patterns don't create ambiguous transitions</li>
     </ul>
 
@@ -479,19 +535,23 @@ B 010 B</pre>
     <ul>
         <li><strong>Large inputs:</strong> Very long test strings may slow down computation, especially for TMs</li>
         <li><strong>Complex NFAs:</strong> NFAs with many ε-transitions can be computationally expensive</li>
-        <li><strong>TM loops:</strong> Infinite loops in TMs will hit the step limit and display "MAX_STEPS limit reached"</li>
+        <li><strong>TM loops:</strong> Infinite loops in TMs will hit the step limit and display "MAX_STEPS limit
+            reached"</li>
     </ul>
 
     <h2>Further Resources</h2>
     <ul>
-        <li><a href="https://yaml.org/spec/1.2.2/" target="_blank">YAML Specification</a> - Official YAML documentation</li>
-        <li><a href="https://github.com/anthropics/claude-code" target="_blank">Project Repository</a> - Source code and issue reporting</li>
+        <li><a href="https://yaml.org/spec/1.2.2/" target="_blank">YAML Specification</a> - Official YAML documentation
+        </li>
+        <li><a href="https://github.com/UC-Davis-molecular-computing/automata-solid" target="_blank">Project
+                Repository</a> - Source code and
+            issue reporting</li>
     </ul>
 
     <hr style="margin: 40px 0; border: none; border-top: 1px solid #e5e7eb;">
     <p style="text-align: center; color: #6b7280; font-size: 14px;">
-        This simulator was built with SolidJS and TypeScript. 
-        <br>Help improve it by reporting issues or contributing to the project.
+        This simulator was built with SolidJS and TypeScript.
     </p>
 </body>
+
 </html>
