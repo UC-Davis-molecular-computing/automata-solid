@@ -151,10 +151,15 @@ export const PanZoomSVG: Component<PanZoomSVGProps> = (props) => {
     savePanZoomState()
   }
 
+  let panzoomContainerClassname = 'panzoom-container'
+  if (props.class) {
+    panzoomContainerClassname += ' ' + props.class
+  }
+
   return (
     <div
       ref={(el) => { containerRef = el }}
-      class={`panzoom-container ${props.class || ''}`}
+      class={panzoomContainerClassname}
       style={typeof props.style === 'object' ? props.style : undefined}
       data-panzoom-container
     >
