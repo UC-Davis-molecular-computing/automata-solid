@@ -104,6 +104,7 @@ const sortedDarkThemes = [
   ...darkThemes.filter(theme => theme.name !== 'monokai').sort((a, b) => a.displayName.localeCompare(b.displayName))
 ]
 
+
 const sortedLightThemes = lightThemes.sort((a, b) => a.displayName.localeCompare(b.displayName))
 
 // Organized theme sections for menu display
