@@ -136,7 +136,7 @@ export const DFAComponent: Component<DFAComponentProps> = (props) => {
     const currentState = getCurrentState()
     const currentSymbol = getCurrentSymbol()
 
-    let dot = 'digraph DFA {\n'
+    let dot = 'digraph "" {\n'
     dot += '  rankdir=LR;\n'
     dot += '  node [shape=circle];\n'
 

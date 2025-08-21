@@ -146,7 +146,7 @@ export const NFAComponent: Component<NFAComponentProps> = (props) => {
     const currentStateSet = getCurrentStateSet()
     const currentSymbol = getCurrentSymbol()
 
-    let dot = 'digraph NFA {\n'
+    let dot = 'digraph "" {\n'
     dot += '  rankdir=LR;\n'
     dot += '  node [shape=circle];\n'
 

@@ -181,7 +181,7 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
     const currentState = getCurrentState()
     const config = getCurrentConfig()
 
-    let dot = 'digraph TM {\n'
+    let dot = 'digraph "" {\n'
     dot += '  rankdir=LR;\n'
     dot += '  node [shape=circle];\n'
 
