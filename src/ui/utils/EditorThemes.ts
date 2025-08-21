@@ -46,7 +46,7 @@ export interface ThemeSection {
 }
 
 // All themes with dark/light classification
-const ALL_THEMES: EditorTheme[] = [
+const darkThemes: EditorTheme[] = [
   // Dark themes
   { name: 'monokai', displayName: 'Monokai', extension: monokai, isDark: true },
   { name: 'one-dark', displayName: 'One Dark', extension: oneDark, isDark: true },
@@ -65,7 +65,6 @@ const ALL_THEMES: EditorTheme[] = [
   { name: 'nord', displayName: 'Nord', extension: nord, isDark: true },
   { name: 'abyss', displayName: 'Abyss', extension: abyss, isDark: true },
   { name: 'andromeda', displayName: 'Andromeda', extension: andromeda, isDark: true },
-  { name: 'noctis-lilac', displayName: 'Noctis Lilac', extension: noctisLilac, isDark: true },
   { name: 'abcdef', displayName: 'ABCDEF', extension: abcdef, isDark: true },
   { name: 'androidstudio', displayName: 'Android Studio', extension: androidstudio, isDark: true },
   { name: 'atomone', displayName: 'Atom One', extension: atomone, isDark: true },
@@ -77,10 +76,12 @@ const ALL_THEMES: EditorTheme[] = [
   { name: 'red', displayName: 'Red', extension: red, isDark: true },
   { name: 'sublime', displayName: 'Sublime', extension: sublime, isDark: true },
   { name: 'cobalt', displayName: 'Cobalt', extension: cobalt, isDark: true },
-  { name: 'espresso', displayName: 'Espresso', extension: espresso, isDark: true },
+]
 
+const lightThemes: EditorTheme[] = [
   // Light themes
   { name: 'default', displayName: 'Default Light', extension: [], isDark: false },
+  { name: 'noctis-lilac', displayName: 'Noctis Lilac', extension: noctisLilac, isDark: false },
   { name: 'github-light', displayName: 'GitHub Light', extension: githubLight, isDark: false },
   { name: 'solarized-light', displayName: 'Solarized Light', extension: solarizedLight, isDark: false },
   { name: 'material-light', displayName: 'Material Light', extension: materialLight, isDark: false },
@@ -91,11 +92,8 @@ const ALL_THEMES: EditorTheme[] = [
   { name: 'bbedit', displayName: 'BBEdit', extension: bbedit, isDark: false },
   { name: 'eclipse', displayName: 'Eclipse', extension: eclipse, isDark: false },
   { name: 'tomorrow', displayName: 'Tomorrow', extension: tomorrow, isDark: false },
+  { name: 'espresso', displayName: 'Espresso', extension: espresso, isDark: false },
 ]
-
-// Organize themes into sections
-const darkThemes = ALL_THEMES.filter(theme => theme.isDark)
-const lightThemes = ALL_THEMES.filter(theme => !theme.isDark)
 
 // Sort alphabetically, but keep monokai first in dark themes
 const sortedDarkThemes = [
