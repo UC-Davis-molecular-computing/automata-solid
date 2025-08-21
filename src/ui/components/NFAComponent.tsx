@@ -283,8 +283,6 @@ export const NFAComponent: Component<NFAComponentProps> = (props) => {
           <div class="graph-view-content">
             <PanZoomSVG
               svgElement={graphSvg()}
-              maxScale={5}
-              minScale={0.3}
             />
           </div>
         </Show>

@@ -43,7 +43,7 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
       console.error('Failed to initialize Viz.js:', error)
     }
   })
-  
+
   // Derived values from AppState (single source of truth)
 
   // Computation is now triggered via message dispatch from App.tsx
@@ -76,16 +76,16 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
   // Clear results and reset state when inputString changes in manual mode  
   createEffect((prevInput) => {
     const currentInput = appState.inputString
-    
+
     // Only clear results if input actually changed and we're in manual mode
-    if (!appState.runImmediately && hasExecutionData() && 
-        prevInput !== undefined && prevInput !== currentInput) {
+    if (!appState.runImmediately && hasExecutionData() &&
+      prevInput !== undefined && prevInput !== currentInput) {
       setState({
         currentStep: 0
       })
       setAppState('computation', undefined)
     }
-    
+
     return currentInput
   })
 
@@ -95,13 +95,13 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
   // Navigation functions using ConfigDiff approach
   const moveConfigToStep = (newStep: number) => {
     if (!state.currentConfig || !state.diffs) return
-    
+
     if (newStep < 0 || newStep > state.diffs.length) {
       throw new Error(`step must be between 0 and ${state.diffs.length}`)
     }
-    
+
     const currentConfig = state.currentConfig.copy()
-    
+
     if (newStep < state.currentStep) {
       // Move backward using reverse diffs
       for (let i = state.currentStep - 1; i >= newStep; i--) {
@@ -115,7 +115,7 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
         currentConfig.applyDiff(diff)
       }
     }
-    
+
     setState({
       currentStep: newStep,
       currentConfig
@@ -180,21 +180,21 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
   const generateDotGraph = () => {
     const currentState = getCurrentState()
     const config = getCurrentConfig()
-    
+
     let dot = 'digraph TM {\n'
     dot += '  rankdir=LR;\n'
     dot += '  node [shape=circle];\n'
-    
+
     // Add invisible start node and arrow to start state
     dot += '  start [shape=point, style=invisible];\n'
     dot += `  start -> "${props.tm.startState}";\n`
-    
+
     // Add states with highlighting
     props.tm.states.forEach(stateName => {
       const isAccepting = stateName === props.tm.acceptState
       const isRejecting = stateName === props.tm.rejectState
       const isCurrent = hasExecutionData() && stateName === currentState
-      
+
       let nodeAttrs = []
       if (isAccepting) {
         nodeAttrs.push('shape=doublecircle', 'color=green')
@@ -204,29 +204,29 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
       if (isCurrent) {
         nodeAttrs.push('style=filled', 'fillcolor=lightblue')
       }
-      
+
       const attrs = nodeAttrs.length > 0 ? ` [${nodeAttrs.join(', ')}]` : ''
       dot += `  "${stateName}"${attrs};\n`
     })
-    
+
     // Add transitions with highlighting
     // Group transitions by from/to states to avoid duplicate edges
-    const transitions: Map<string, Array<{inputSymbols: string, label: string}>> = new Map()
-    
+    const transitions: Map<string, Array<{ inputSymbols: string, label: string }>> = new Map()
+
     Object.entries(props.tm.delta).forEach(([key, [nextState, newSymbols, moveDirections]]) => {
       const [fromState] = key.split(',')
       const transKey = `${fromState}->${nextState}`
-      
+
       if (!transitions.has(transKey)) {
         transitions.set(transKey, [])
       }
-      
+
       // Extract input symbols from key (everything after first comma)
       const inputSymbols = key.substring(fromState.length + 1)
-      
+
       // Create full transition label: "input → output,moves"
       const transitionLabel = `${inputSymbols} → ${newSymbols},${moveDirections}`
-      
+
       const transitionList = transitions.get(transKey)
       assert(transitionList, 'Transition list should exist')
       transitionList.push({
@@ -234,11 +234,11 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
         label: transitionLabel
       })
     })
-    
+
     // Draw transitions
     transitions.forEach((transitionList, transKey) => {
       const [fromState, toState] = transKey.split('->')
-      
+
       // Check if this is the current transition
       let isCurrentTransition = false
       if (hasExecutionData() && fromState === currentState && config) {
@@ -247,33 +247,33 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
           // Get the symbol at the current head position
           return tape[config.headsPos[idx]] || '_'
         })
-        
+
         isCurrentTransition = transitionList.some(transition => {
           // For multi-tape TMs, inputSymbols is a string like "1_" which needs to be split into individual tape symbols
           // Each character represents a symbol on the corresponding tape
           const symbolArray = transition.inputSymbols.split('')
-          const matches = symbolArray.every((sym, i) => 
+          const matches = symbolArray.every((sym, i) =>
             sym === WILDCARD || sym === currentSymbols[i]
           )
           return matches
         })
       }
-      
+
       // Create label with all transition information
       const labels = transitionList.map(t => t.label)
-      const label = labels.length > 3 
-        ? `${labels.slice(0, 3).join('\\n')}...` 
+      const label = labels.length > 3
+        ? `${labels.slice(0, 3).join('\\n')}...`
         : labels.join('\\n')
-      
+
       let edgeAttrs = [`label="${label}"`]
       if (isCurrentTransition) {
         edgeAttrs.push('color=red', 'penwidth=2')
       }
-      
+
       const attrs = edgeAttrs.length > 0 ? ` [${edgeAttrs.join(', ')}]` : ''
       dot += `  "${fromState}" -> "${toState}"${attrs};\n`
     })
-    
+
     dot += '}\n'
     return dot
   }
@@ -286,7 +286,7 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
         const viz = vizInstance()
         if (!viz) return
         const svg = viz.renderSVGElement(dot)
-        
+
         // Let the SVG maintain its intrinsic size and aspect ratio
         // The PanZoomSVG container will handle the sizing constraints
         svg.removeAttribute('width')
@@ -295,7 +295,7 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
         svg.style.maxHeight = '100%'
         svg.style.height = 'auto'
         svg.style.width = 'auto'
-        
+
         setGraphSvg(svg)
       } catch (error) {
         console.error('Failed to render graph:', error)
@@ -314,7 +314,7 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
               <tbody>
                 <For each={Array.from({ length: props.tm.numTapes }, (_, i) => i)}>
                   {(tapeIndex) => (
-                    <TMTapeRow 
+                    <TMTapeRow
                       getTape={() => {
                         const cfg = getCurrentConfig()
                         assert(cfg, 'Config should be defined when currentConfig exists')
@@ -338,26 +338,26 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
         <Show when={!props.isGraphView}>
           <div class="table-view-content">
             <div class="transition-table-container">
-            <table class="transition-table">
-              <thead>
-                <tr>
-                  <th class="transition_header_entry">State</th>
-                  <th class="transition_header_entry">Transitions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <For each={props.tm.states}>
-                  {(stateName) => (
-                    <TMTransitionRow 
-                      tm={props.tm}
-                      stateName={stateName}
-                      currentState={getCurrentState()}
-                      currentConfig={getCurrentConfig()}
-                  />
-                )}
-              </For>
-            </tbody>
-          </table>
+              <table class="transition-table">
+                <thead>
+                  <tr>
+                    <th class="transition_header_entry">State</th>
+                    <th class="transition_header_entry">Transitions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <For each={props.tm.states}>
+                    {(stateName) => (
+                      <TMTransitionRow
+                        tm={props.tm}
+                        stateName={stateName}
+                        currentState={getCurrentState()}
+                        currentConfig={getCurrentConfig()}
+                      />
+                    )}
+                  </For>
+                </tbody>
+              </table>
             </div>
           </div>
         </Show>
@@ -367,8 +367,6 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
           <div class="graph-view-content">
             <PanZoomSVG
               svgElement={graphSvg()}
-              maxScale={5}
-              minScale={0.3}
             />
           </div>
         </Show>
@@ -412,13 +410,13 @@ const TMTransitionRow: Component<TMTransitionRowProps> = (props) => {
 
   const isCurrentTransition = (symbols: string) => {
     if (!isCurrentState() || !props.currentConfig) return false
-    
+
     const scannedSymbols = props.currentConfig.currentScannedSymbols()
-    
+
     // Check if exact match exists (has priority over wildcards) using flattened delta
     const exactKey = `${props.stateName},${scannedSymbols}`
     const hasExactMatch = props.tm.delta.hasOwnProperty(exactKey)
-    
+
     if (symbols === scannedSymbols) {
       // Exact match - always highlight
       return true
@@ -426,7 +424,7 @@ const TMTransitionRow: Component<TMTransitionRowProps> = (props) => {
       // Wildcard match - only if no exact match available
       return true
     }
-    
+
     return false
   }
 
