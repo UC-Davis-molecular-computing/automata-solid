@@ -251,15 +251,11 @@ export const DFAComponent: Component<DFAComponentProps> = (props) => {
         {/* Graph View */}
         <Show when={props.isGraphView}>
           <div class="graph-view-content">
-            <Show when={graphSvg()} fallback={<div>Loading graph...</div>}>
-              <PanZoomSVG
-                svgElement={graphSvg()}
-                maxScale={5}
-                minScale={0.3}
-              >
-                {graphSvg()}
-              </PanZoomSVG>
-            </Show>
+            <PanZoomSVG
+              svgElement={graphSvg()}
+              maxScale={5}
+              minScale={0.3}
+            />
           </div>
         </Show>
       </div>

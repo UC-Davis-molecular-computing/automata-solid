@@ -1,5 +1,5 @@
 import type { Component, JSX } from 'solid-js'
-import { onMount, onCleanup, createSignal } from 'solid-js'
+import { onMount, onCleanup, createEffect } from 'solid-js'
 import Panzoom from '@panzoom/panzoom'
 
 interface PanZoomSVGProps {
@@ -14,130 +14,130 @@ interface PanZoomSVGProps {
   duration?: number
 }
 
+// Simple global state to persist pan/zoom across component remounts
+let globalHasInitialFit = false
+let savedPanZoom = { x: 0, y: 0, scale: 1 }
+
 export const PanZoomSVG: Component<PanZoomSVGProps> = (props) => {
   let containerRef: HTMLDivElement | undefined
-  const [panzoomInstance, setPanzoomInstance] = createSignal<ReturnType<typeof Panzoom> | null>(null)
+  let svgContainerRef: HTMLDivElement | undefined
+  let panzoomInstance: ReturnType<typeof Panzoom> | undefined
+  let wheelHandler: ((event: WheelEvent) => void) | undefined
+  let isEventListenerAdded = false
 
-  onMount(() => {
-    if (!containerRef) return
+  // Save current pan/zoom state whenever it changes
+  const savePanZoomState = () => {
+    if (panzoomInstance) {
+      const pan = panzoomInstance.getPan()
+      const scale = panzoomInstance.getScale()
+      savedPanZoom = { x: pan.x, y: pan.y, scale }
+    }
+  }
 
-    // Wait for SVG element to be available
-    const initializePanzoom = () => {
-      if (!containerRef) return
-      
-      const svgElement = props.svgElement || containerRef.querySelector('svg')
-      
-      if (svgElement) {
-        try {
-          const panzoom = Panzoom(svgElement, {
-            maxScale: props.maxScale ?? 4,
-            minScale: props.minScale ?? 0.5,
-            startScale: props.startScale ?? 1,
-            animate: props.animate ?? true,
-            duration: props.duration ?? 200,
-            // Enable mouse wheel zooming
-            wheel: true,
-            // Disable panning on text selection
-            exclude: 'text',
-            // Smooth animations
-            transition: true
-          })
+  // Enable event listening after state is properly set
+  const enableEventListening = () => {
+    if (svgContainerRef && panzoomInstance && !isEventListenerAdded) {
+      svgContainerRef.addEventListener('panzoomchange', savePanZoomState)
+      isEventListenerAdded = true
+    }
+  }
 
-          setPanzoomInstance(panzoom)
+  // Initialize panzoom instance only
+  const initializePanzoom = () => {
+    if (!containerRef || !svgContainerRef || panzoomInstance) return
+    
+    try {
+      panzoomInstance = Panzoom(svgContainerRef, {
+        maxScale: props.maxScale ?? 4,
+        minScale: props.minScale ?? 0.5,
+        startScale: props.startScale ?? 1,
+        animate: props.animate ?? false, // Disable animation during initialization
+        duration: props.duration ?? 200,
+        // Disable panning on text selection
+        exclude: 'text',
+        // Smooth animations
+        transition: true
+      })
 
-          // Add mouse wheel event listener to container
-          containerRef.addEventListener('wheel', (event) => {
-            if (!event.ctrlKey && !event.metaKey) {
-              panzoom.zoomWithWheel(event)
-            }
-          })
-
-        } catch (error) {
-          console.error('Failed to initialize Panzoom:', error)
+      // Add simple wheel handler for zooming
+      wheelHandler = (event: WheelEvent) => {
+        if (panzoomInstance) {
+          event.preventDefault()
+          panzoomInstance.zoomWithWheel(event)
         }
       }
-    }
-
-    // Try to initialize immediately
-    initializePanzoom()
-
-    // If SVG isn't ready yet, watch for it
-    if (!props.svgElement && !containerRef.querySelector('svg')) {
-      const observer = new MutationObserver(() => {
-        if (containerRef && containerRef.querySelector('svg')) {
-          initializePanzoom()
-          observer.disconnect()
-        }
-      })
       
-      observer.observe(containerRef, {
-        childList: true,
-        subtree: true
-      })
+      containerRef.addEventListener('wheel', wheelHandler, { passive: false })
 
-      // Clean up observer after a reasonable timeout
-      setTimeout(() => observer.disconnect(), 5000)
+    } catch (error) {
+      console.error('Failed to initialize Panzoom:', error)
     }
+  }
+
+  // Update SVG content and handle state restoration
+  createEffect(() => {
+    if (!svgContainerRef) return
+    
+    if (props.svgElement) {
+      // Update SVG content first
+      svgContainerRef.innerHTML = ''
+      svgContainerRef.appendChild(props.svgElement.cloneNode(true))
+      
+      if (panzoomInstance) {
+        // Restore saved state immediately after SVG is updated
+        if (globalHasInitialFit) {
+          panzoomInstance.zoom(savedPanZoom.scale, { animate: false })
+          panzoomInstance.pan(savedPanZoom.x, savedPanZoom.y, { animate: false })
+          enableEventListening()
+        }
+        // ONLY do initial fit if this is the very first SVG load ever
+        else {
+          panzoomInstance.reset()
+          globalHasInitialFit = true
+          enableEventListening()
+        }
+      }
+    } else {
+      // Show loading message when no SVG
+      svgContainerRef.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666;">Loading graph...</div>'
+    }
+  })
+
+  onMount(() => {
+    if (!containerRef || !svgContainerRef) return
+    initializePanzoom()
   })
 
   onCleanup(() => {
-    const instance = panzoomInstance()
-    if (instance) {
-      instance.destroy()
+    // Save state before cleanup
+    savePanZoomState()
+    
+    if (panzoomInstance) {
+      panzoomInstance.destroy()
+      panzoomInstance = undefined
+    }
+    
+    if (wheelHandler && containerRef) {
+      containerRef.removeEventListener('wheel', wheelHandler)
+      wheelHandler = undefined
     }
   })
 
-  // Public API methods that could be useful
+  // Public API methods
   const zoomIn = () => {
-    const instance = panzoomInstance()
-    if (instance) instance.zoomIn()
+    if (panzoomInstance) panzoomInstance.zoomIn()
   }
 
   const zoomOut = () => {
-    const instance = panzoomInstance()
-    if (instance) instance.zoomOut()
+    if (panzoomInstance) panzoomInstance.zoomOut()
   }
 
   const zoomToFit = () => {
-    const instance = panzoomInstance()
-    if (!instance || !containerRef) return
+    if (!panzoomInstance) return
     
-    const svgElement = containerRef.querySelector('svg') as SVGSVGElement
-    if (!svgElement) return
-    
-    // Reset first to get accurate measurements
-    instance.reset()
-    
-    // Calculate the same fit scale as initialization
-    const containerRect = containerRef.getBoundingClientRect()
-    
-    let svgWidth: number, svgHeight: number
-    
-    if (svgElement.viewBox && svgElement.viewBox.baseVal.width) {
-      svgWidth = svgElement.viewBox.baseVal.width
-      svgHeight = svgElement.viewBox.baseVal.height
-    } else {
-      const bbox = svgElement.getBBox ? svgElement.getBBox() : svgElement.getBoundingClientRect()
-      svgWidth = bbox.width
-      svgHeight = bbox.height
-    }
-    
-    // Calculate scale to fit both dimensions with padding
-    const padding = 20
-    const scaleX = (containerRect.width - padding * 2) / svgWidth
-    const scaleY = (containerRect.height - padding * 2) / svgHeight
-    const fitScale = Math.min(scaleX, scaleY, 1)
-    
-    // Apply the calculated scale
-    instance.zoom(fitScale)
-    
-    // Center the SVG
-    const scaledWidth = svgWidth * fitScale
-    const scaledHeight = svgHeight * fitScale
-    const panX = (containerRect.width - scaledWidth) / 2
-    const panY = (containerRect.height - scaledHeight) / 2
-    
-    instance.pan(panX, panY)
+    panzoomInstance.reset()
+    // Save the new state after reset
+    savePanZoomState()
   }
 
   return (
@@ -206,7 +206,20 @@ export const PanZoomSVG: Component<PanZoomSVGProps> = (props) => {
         </button>
       </div>
 
-      {props.children}
+      {/* SVG Container - this is what gets panned/zoomed */}
+      <div
+        ref={(el) => { svgContainerRef = el }}
+        style={{
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          'align-items': 'center',
+          'justify-content': 'center'
+        }}
+      >
+        {/* For children-based usage (when svgElement prop is not used) */}
+        {!props.svgElement && props.children}
+      </div>
     </div>
   )
 }
