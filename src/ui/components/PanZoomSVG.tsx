@@ -15,17 +15,16 @@ interface PanZoomSVGProps {
 
 
 export const PanZoomSVG: Component<PanZoomSVGProps> = (props) => {
-  let containerRef: HTMLDivElement | undefined
-  let svgContainerRef: HTMLDivElement | undefined
+  let panzoomContainerRef: HTMLDivElement | undefined
+  let panzoomElementRef: HTMLDivElement | undefined
   let panzoomInstance: ReturnType<typeof Panzoom> | undefined
-
 
   // Initialize panzoom instance only
   const initializePanzoom = () => {
-    if (!containerRef || !svgContainerRef || panzoomInstance) return
+    if (!panzoomContainerRef || !panzoomElementRef || panzoomInstance) return
 
     try {
-      panzoomInstance = Panzoom(svgContainerRef, {
+      panzoomInstance = Panzoom(panzoomElementRef, {
         maxScale: 10,
         minScale: 0.1,
         startScale: props.startScale ?? 1,
@@ -36,12 +35,12 @@ export const PanZoomSVG: Component<PanZoomSVGProps> = (props) => {
         // Smooth animations
         transition: true,
         // Use the container as the canvas for capturing events
-        canvas: containerRef,
+        canvas: panzoomContainerRef,
         // cursor: 'grab', // turns white and invisible in Chrome sometimes, so go with the default 'move'
       })
 
       // Add wheel handler to container for zooming
-      containerRef.addEventListener('wheel', (event: WheelEvent) => {
+      panzoomContainerRef.addEventListener('wheel', (event: WheelEvent) => {
         if (panzoomInstance) {
           event.preventDefault()
           panzoomInstance.zoomWithWheel(event)
@@ -70,17 +69,17 @@ export const PanZoomSVG: Component<PanZoomSVGProps> = (props) => {
 
   // Update SVG content when it changes
   createEffect(() => {
-    if (!svgContainerRef) return
+    if (!panzoomElementRef) return
     
     if (props.svgElement) {
       // Only update the SVG content, don't touch zoom/pan
-      svgContainerRef.innerHTML = ''
-      svgContainerRef.appendChild(props.svgElement.cloneNode(true))
+      panzoomElementRef.innerHTML = ''
+      panzoomElementRef.appendChild(props.svgElement.cloneNode(true))
     }
   })
 
   onMount(() => {
-    if (!containerRef || !svgContainerRef) return
+    if (!panzoomContainerRef || !panzoomElementRef) return
     initializePanzoom()
   })
 
@@ -114,7 +113,7 @@ export const PanZoomSVG: Component<PanZoomSVGProps> = (props) => {
 
   return (
     <div
-      ref={(el) => { containerRef = el }}
+      ref={(el) => { panzoomContainerRef = el }}
       class={panzoomContainerClassname}
       style={typeof props.style === 'object' ? props.style : undefined}
       data-panzoom-container
@@ -147,7 +146,7 @@ export const PanZoomSVG: Component<PanZoomSVGProps> = (props) => {
 
       {/* SVG Container - this is what gets panned/zoomed */}
       <div
-        ref={(el) => { svgContainerRef = el }}
+        ref={(el) => { panzoomElementRef = el }}
         class="panzoom-element"
       >
         {/* For children-based usage (when svgElement prop is not used) */}
