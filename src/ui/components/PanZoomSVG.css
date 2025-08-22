@@ -12,13 +12,20 @@
 }
 
 
-/* Ensure the panzoom element fills the container */
+/* Panzoom element with centered content */
 .panzoom-element {
   width: 100%;
   height: 100%;
-  position: absolute;
-  top: 0;
-  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* Make SVG responsive within panzoom element */
+.panzoom-element svg {
+  width: 100%;
+  height: 100%;
 }
 
 /* Control buttons */

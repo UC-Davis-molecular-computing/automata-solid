@@ -32,7 +32,7 @@ export const PanZoomSVG: Component<PanZoomSVGProps> = (props) => {
         animate: props.animate ?? false, // Disable animation during initialization
         duration: props.duration ?? 200,
         // Disable panning on text selection
-        exclude: '.panzoom-controls, .panzoom-control-btn',
+        exclude: ['.panzoom-controls', '.panzoom-control-btn'],
         // Smooth animations
         transition: true,
         // Use the container as the canvas for capturing events

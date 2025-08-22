@@ -18,23 +18,6 @@ export function renderGraphEffect(options: GraphRendererOptions): void {
     try {
       const dot = generateDotGraph()
       const svg = viz.renderSVGElement(dot)
-
-      // Ensure SVG has proper dimensions and units
-      const viewBox = svg.getAttribute('viewBox')
-      if (viewBox) {
-        const [, , width, height] = viewBox.split(' ').map(Number)
-        // Set dimensions in pixels instead of points
-        svg.setAttribute('width', `${width}px`)
-        svg.setAttribute('height', `${height}px`)
-      }
-      
-      // Ensure SVG is visible and sized properly
-      svg.style.display = 'block'
-      svg.style.maxWidth = '100%'
-      svg.style.maxHeight = '100%'
-      svg.style.width = 'auto'
-      svg.style.height = 'auto'
-
       setGraphSvg(svg)
     } catch (error) {
       console.error('Failed to render graph:', error)
