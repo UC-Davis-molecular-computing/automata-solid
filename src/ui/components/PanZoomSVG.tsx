@@ -15,8 +15,11 @@ interface PanZoomSVGProps {
 
 
 export const PanZoomSVG: Component<PanZoomSVGProps> = (props) => {
+  // outer div; expands to fit available space
   let panzoomContainerRef: HTMLDivElement | undefined
+  // inner div controlled by panzoom (transformation applied here); always has same size as SVG
   let panzoomElementRef: HTMLDivElement | undefined
+  // We give panzoomElementRef to panzoomInstance so that panzoom will transform this div 
   let panzoomInstance: ReturnType<typeof Panzoom> | undefined
 
   // Initialize panzoom instance only
