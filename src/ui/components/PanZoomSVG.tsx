@@ -76,11 +76,6 @@ export const PanZoomSVG: Component<PanZoomSVGProps> = (props) => {
       // Only update the SVG content, don't touch zoom/pan
       svgContainerRef.innerHTML = ''
       svgContainerRef.appendChild(props.svgElement.cloneNode(true))
-      
-      // Initialize panzoom if not already initialized
-      if (!panzoomInstance && containerRef) {
-        initializePanzoom()
-      }
     }
   })
 
