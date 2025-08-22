@@ -13,32 +13,12 @@ interface PanZoomSVGProps {
   duration?: number
 }
 
-// Simple global state to persist pan/zoom across component remounts
-let globalHasInitialFit = false
-let savedPanZoom = { x: 0, y: 0, scale: 1 }
 
 export const PanZoomSVG: Component<PanZoomSVGProps> = (props) => {
   let containerRef: HTMLDivElement | undefined
   let svgContainerRef: HTMLDivElement | undefined
   let panzoomInstance: ReturnType<typeof Panzoom> | undefined
-  let isEventListenerAdded = false
 
-  // Save current pan/zoom state whenever it changes
-  const savePanZoomState = () => {
-    if (panzoomInstance) {
-      const pan = panzoomInstance.getPan()
-      const scale = panzoomInstance.getScale()
-      savedPanZoom = { x: pan.x, y: pan.y, scale }
-    }
-  }
-
-  // Enable event listening after state is properly set
-  const enableEventListening = () => {
-    if (svgContainerRef && panzoomInstance && !isEventListenerAdded) {
-      svgContainerRef.addEventListener('panzoomchange', savePanZoomState)
-      isEventListenerAdded = true
-    }
-  }
 
   // Initialize panzoom instance only
   const initializePanzoom = () => {
@@ -88,20 +68,18 @@ export const PanZoomSVG: Component<PanZoomSVGProps> = (props) => {
     }
   }
 
-  // Handle panzoom initialization and reset when SVG changes
+  // Update SVG content when it changes
   createEffect(() => {
-    if (!svgContainerRef || !containerRef) return
+    if (!svgContainerRef) return
     
     if (props.svgElement) {
-      // Ensure panzoom is initialized
-      if (!panzoomInstance) {
+      // Only update the SVG content, don't touch zoom/pan
+      svgContainerRef.innerHTML = ''
+      svgContainerRef.appendChild(props.svgElement.cloneNode(true))
+      
+      // Initialize panzoom if not already initialized
+      if (!panzoomInstance && containerRef) {
         initializePanzoom()
-      }
-
-      // Reset panzoom when new SVG arrives
-      if (panzoomInstance) {
-        panzoomInstance.reset()
-        enableEventListening()
       }
     }
   })
@@ -112,15 +90,10 @@ export const PanZoomSVG: Component<PanZoomSVGProps> = (props) => {
   })
 
   onCleanup(() => {
-    // Save state before cleanup
-    savePanZoomState()
-
     if (panzoomInstance) {
       panzoomInstance.destroy()
       panzoomInstance = undefined
     }
-
-    // Event listeners are cleaned up automatically by Panzoom.destroy()
   })
 
   // Public API methods
@@ -134,10 +107,9 @@ export const PanZoomSVG: Component<PanZoomSVGProps> = (props) => {
 
   const zoomToFit = () => {
     if (!panzoomInstance) return
-
+    
+    // Just reset - let panzoom handle the fit
     panzoomInstance.reset()
-    // Save the new state after reset
-    savePanZoomState()
   }
 
   let panzoomContainerClassname = 'panzoom-container'
@@ -182,7 +154,6 @@ export const PanZoomSVG: Component<PanZoomSVGProps> = (props) => {
       <div
         ref={(el) => { svgContainerRef = el }}
         class="panzoom-element"
-        innerHTML={props.svgElement ? props.svgElement.outerHTML : ''}
       >
         {/* For children-based usage (when svgElement prop is not used) */}
         {!props.svgElement && props.children}
