@@ -88,32 +88,21 @@ export const PanZoomSVG: Component<PanZoomSVGProps> = (props) => {
     }
   }
 
-  // Update SVG content and handle state restoration
+  // Handle panzoom initialization and reset when SVG changes
   createEffect(() => {
-    if (!svgContainerRef) return
-
+    if (!svgContainerRef || !containerRef) return
+    
     if (props.svgElement) {
-      // Update SVG content first
-      svgContainerRef.innerHTML = ''
-      svgContainerRef.appendChild(props.svgElement.cloneNode(true))
-
-      if (panzoomInstance) {
-        // Restore saved state immediately after SVG is updated
-        if (globalHasInitialFit) {
-          panzoomInstance.zoom(savedPanZoom.scale, { animate: false })
-          panzoomInstance.pan(savedPanZoom.x, savedPanZoom.y, { animate: false })
-          enableEventListening()
-        }
-        // ONLY do initial fit if this is the very first SVG load ever
-        else {
-          panzoomInstance.reset()
-          globalHasInitialFit = true
-          enableEventListening()
-        }
+      // Ensure panzoom is initialized
+      if (!panzoomInstance) {
+        initializePanzoom()
       }
-    } else {
-      // Show loading message when no SVG
-      svgContainerRef.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666;">Loading graph...</div>'
+
+      // Reset panzoom when new SVG arrives
+      if (panzoomInstance) {
+        panzoomInstance.reset()
+        enableEventListening()
+      }
     }
   })
 
@@ -193,6 +182,7 @@ export const PanZoomSVG: Component<PanZoomSVGProps> = (props) => {
       <div
         ref={(el) => { svgContainerRef = el }}
         class="panzoom-element"
+        innerHTML={props.svgElement ? props.svgElement.outerHTML : ''}
       >
         {/* For children-based usage (when svgElement prop is not used) */}
         {!props.svgElement && props.children}

@@ -212,7 +212,7 @@ export const NFAComponent: Component<NFAComponentProps> = (props) => {
   // Effect to update graph when state changes
   createEffect(() =>
     renderGraphEffect({
-      isGraphView: props.isGraphView,
+      isGraphView: () => props.isGraphView,
       vizInstance,
       generateDotGraph,
       setGraphSvg

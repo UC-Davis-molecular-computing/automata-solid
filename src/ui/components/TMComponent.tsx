@@ -282,7 +282,7 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
   // Effect to update graph when state changes
   createEffect(() =>
     renderGraphEffect({
-      isGraphView: props.isGraphView,
+      isGraphView: () => props.isGraphView,
       vizInstance,
       generateDotGraph,
       setGraphSvg
