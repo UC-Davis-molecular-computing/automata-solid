@@ -117,7 +117,7 @@ function main() {
   // Parse command line arguments
   const args = process.argv.slice(2);
   if (args.length !== 3) {
-    console.log(`USAGE: node ${path.basename(__filename)} <submission_file> <inputs_json_file> <outputs_json_file>\n\n` +
+    console.log(`USAGE: npx tsx ${path.basename(import.meta.url)} <submission_file> <inputs_json_file> <outputs_json_file>\n\n` +
                 `<submission_file> should end in one of ${EXTENSIONS.join(' ')}`);
     process.exit(-1);
   }
@@ -335,6 +335,6 @@ function printCurrentCompleteResultAndExit(outputsFilename: string) {
 }
 
 // Run main function if this file is executed directly
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   main();
 }

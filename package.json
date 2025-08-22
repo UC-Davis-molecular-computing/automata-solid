@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "build:process-inputs": "npx esbuild src/process_inputs.ts --bundle --platform=node --target=node16 --format=cjs --outfile=src/process_inputs.js --external:fs --external:path && chmod 755 src/process_inputs.js",
     "preview": "vite preview",
     "test": "vitest run",
     "test:run": "vitest run",
