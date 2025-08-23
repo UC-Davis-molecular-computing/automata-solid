@@ -4,7 +4,7 @@ import Panzoom from '@panzoom/panzoom'
 import './PanZoomSVG.css'
 
 interface PanZoomSVGProps {
-  svgElement?: SVGElement
+  svgElement: SVGElement
 }
 
 
@@ -41,9 +41,9 @@ export const PanZoomSVG: Component<PanZoomSVGProps> = (props) => {
       // Set the instance in the signal
       setPanzoomInstance(panzoomInstance)
       
-      // If we have an SVG prop but no SVG in DOM, add it now
+      // If no SVG in DOM, add it now
       const svgInDom = panzoomElementRef.querySelector('svg')
-      if (props.svgElement && !svgInDom) {
+      if (!svgInDom) {
         panzoomElementRef.replaceChildren(props.svgElement)
       }
 
@@ -69,7 +69,7 @@ export const PanZoomSVG: Component<PanZoomSVGProps> = (props) => {
 
   // Update SVG content when it changes
   createEffect(() => {
-    if (!panzoomElementRef || !props.svgElement) return
+    if (!panzoomElementRef) return
     
     // Only update if panzoom is initialized
     if (getPanzoomInstance()) {

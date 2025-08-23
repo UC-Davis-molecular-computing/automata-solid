@@ -1,10 +1,10 @@
 import * as Viz from '@viz-js/viz'
 
 interface GraphRendererOptions {
-  isGraphView: () => boolean | undefined
+  isGraphView: () => boolean
   vizInstance: () => Awaited<ReturnType<typeof Viz.instance>> | undefined
   generateDotGraph: () => string
-  setGraphSvg: (value: SVGElement | undefined) => void
+  setGraphSvg: (value: SVGElement) => void
 }
 
 export function renderGraphEffect(options: GraphRendererOptions): void {
@@ -22,8 +22,5 @@ export function renderGraphEffect(options: GraphRendererOptions): void {
     } catch (error) {
       console.error('Failed to render graph:', error)
     }
-  } else if (!graphView) {
-    // Clear the SVG when not in graph view to ensure clean state
-    setGraphSvg(undefined)
   }
 }

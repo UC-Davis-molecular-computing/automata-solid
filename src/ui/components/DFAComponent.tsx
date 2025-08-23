@@ -3,6 +3,7 @@ import { createEffect, For, onMount, createSignal, Show } from 'solid-js'
 import type { DFA } from '../../core/DFA'
 import { deltaKey } from '../../core/Utils'
 import { appState, setAppState, dispatch, hasExecutionData } from '../store/AppStore'
+import { ViewMode } from '../types/AppState'
 import { RegisterNavigationControls } from '../types/Messages'
 import { PanZoomSVG } from './PanZoomSVG'
 import { renderGraphEffect } from '../utils/GraphRenderer'
@@ -11,7 +12,6 @@ import './TableComponent.css'
 
 interface DFAComponentProps {
   dfa: DFA
-  isGraphView?: boolean
 }
 
 export const DFAComponent: Component<DFAComponentProps> = (props) => {
@@ -20,7 +20,7 @@ export const DFAComponent: Component<DFAComponentProps> = (props) => {
 
   // Graph rendering state
   const [vizInstance, setVizInstance] = createSignal<Awaited<ReturnType<typeof Viz.instance>> | undefined>(undefined)
-  const [graphSvg, setGraphSvg] = createSignal<SVGElement | undefined>(undefined)
+  const [graphSvg, setGraphSvg] = createSignal<SVGElement>((<svg />) as SVGElement)
 
   // Initialize viz-js instance
   onMount(async () => {
@@ -187,7 +187,7 @@ export const DFAComponent: Component<DFAComponentProps> = (props) => {
   // Effect to update graph when state changes
   createEffect(() =>
     renderGraphEffect({
-      isGraphView: () => props.isGraphView,
+      isGraphView: () => appState.viewMode === ViewMode.Graph,
       vizInstance,
       generateDotGraph,
       setGraphSvg
@@ -207,7 +207,7 @@ export const DFAComponent: Component<DFAComponentProps> = (props) => {
         </div>
 
         {/* Table View */}
-        <Show when={!props.isGraphView}>
+        <Show when={appState.viewMode !== ViewMode.Graph}>
           <div class="table-view-content">
             <div class="transition-table-container">
               <table id="transition_table" class="transition-table">
@@ -235,7 +235,7 @@ export const DFAComponent: Component<DFAComponentProps> = (props) => {
         </Show>
 
         {/* Graph View */}
-        <Show when={props.isGraphView}>
+        <Show when={appState.viewMode === ViewMode.Graph}>
           <div class="graph-view-content">
             <PanZoomSVG
               svgElement={graphSvg()}

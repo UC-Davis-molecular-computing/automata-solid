@@ -15,7 +15,7 @@ import { NFA } from '../core/NFA'
 import { Regex } from '../core/Regex'
 import { CFG } from '../core/CFG'
 import { appState, setAppState, dispatch } from './store/AppStore'
-import { AutomatonType, ViewMode } from './types/AppState'
+import { AutomatonType } from './types/AppState'
 import { LoadDefault, SaveFile, OpenFile, TriggerComputation } from './types/Messages'
 import './App.css'
 
@@ -247,30 +247,27 @@ const App: Component = () => {
                   </div>
                 </Show>
 
-                <Show when={appState.automatonType === AutomatonType.Dfa && appState.automaton && appState.automaton instanceof DFA}>
+                <Show when={appState.automaton instanceof DFA}>
                   <DFAComponent
                     dfa={appState.automaton as DFA}
-                    isGraphView={appState.viewMode === ViewMode.Graph}
                   />
                 </Show>
-                <Show when={appState.automatonType === AutomatonType.Nfa && appState.automaton && appState.automaton instanceof NFA}>
+                <Show when={appState.automaton instanceof NFA}>
                   <NFAComponent
                     nfa={appState.automaton as NFA}
-                    isGraphView={appState.viewMode === ViewMode.Graph}
                   />
                 </Show>
-                <Show when={appState.automatonType === AutomatonType.Tm && appState.automaton && appState.automaton instanceof TM}>
+                <Show when={appState.automaton instanceof TM}>
                   <TMComponent
                     tm={appState.automaton as TM}
-                    isGraphView={appState.viewMode === ViewMode.Graph}
                   />
                 </Show>
-                <Show when={appState.automatonType === AutomatonType.Regex && appState.automaton && appState.automaton instanceof Regex}>
+                <Show when={appState.automaton instanceof Regex}>
                   <RegexComponent
                     regex={appState.automaton as Regex}
                   />
                 </Show>
-                <Show when={appState.automatonType === AutomatonType.Cfg && appState.automaton && appState.automaton instanceof CFG}>
+                <Show when={appState.automaton instanceof CFG}>
                   <CFGComponent
                     cfg={appState.automaton as CFG}
                   />
