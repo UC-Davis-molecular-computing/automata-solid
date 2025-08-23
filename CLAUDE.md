@@ -4,9 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a TypeScript rewrite of an automata simulator web application. It is in the subdirectory 'automata-ts'. The project contains two reference implementations in different languages:
-- `automata-ts-old/automata-dart/`: Dart implementation (imperative logic reference)
-- `automata-ts-old/automata-elm/`: Elm implementation (UI architecture reference)
+This is a TypeScript rewrite of an automata simulator web application.
 
 The TypeScript version should:
 - Use **SolidJS** framework with **Elm Architecture** pattern (Model-View-Update)

@@ -338,6 +338,65 @@ export class TreeNode {
     return buffer.join('')
   }
 
+  /**
+   * Returns a graphviz DOT representation of the parse tree
+   */
+  toGraphviz(): string {
+    let dot = 'digraph {\n'
+    dot += '  rankdir=TB;\n'  // Top-down layout
+    dot += '  node [shape=circle];\n'  // Default node style without fill
+    
+    const nodeCounter = { count: 0 }
+    const nodeMap = new Map<TreeNode, string>()
+    
+    // Generate nodes and edges
+    dot += this.generateDotNodes(nodeCounter, nodeMap)
+    dot += this.generateDotEdges(nodeMap)
+    
+    dot += '}\n'
+    return dot
+  }
+
+  private generateDotNodes(nodeCounter: { count: number }, nodeMap: Map<TreeNode, string>): string {
+    const nodeId = `node${nodeCounter.count++}`
+    nodeMap.set(this, nodeId)
+    
+    // Style leaf nodes based on type
+    const isLeaf = this.children.length === 0
+    let nodeAttrs = `label="${this.symbol}"`
+    
+    if (isLeaf) {
+      if (this.symbol === EPSILON) {
+        nodeAttrs += `, class="epsilon-leaf"`
+      } else {
+        nodeAttrs += `, class="terminal-leaf"`
+      }
+    } else {
+      nodeAttrs += `, class="variable-node"`
+    }
+    
+    let dot = `  ${nodeId} [${nodeAttrs}];\n`
+    
+    for (const child of this.children) {
+      dot += child.generateDotNodes(nodeCounter, nodeMap)
+    }
+    
+    return dot
+  }
+
+  private generateDotEdges(nodeMap: Map<TreeNode, string>): string {
+    let dot = ''
+    const thisNodeId = nodeMap.get(this)
+    
+    for (const child of this.children) {
+      const childNodeId = nodeMap.get(child)
+      dot += `  ${thisNodeId} -> ${childNodeId};\n`
+      dot += child.generateDotEdges(nodeMap)
+    }
+    
+    return dot
+  }
+
   private buildTreeString(buffer: string[], prefix: string, tail: boolean): void {
     const BOT = '└'
     const MID = '├'

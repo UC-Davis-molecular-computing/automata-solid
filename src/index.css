@@ -28,6 +28,28 @@ body {
   min-height: 100vh;
 }
 
+/* CFG Parse tree graph node styling */
+.terminal-leaf ellipse {
+  fill: lightblue !important;
+  stroke: #1976d2 !important;
+}
+
+.epsilon-leaf ellipse {
+  fill: lightgreen !important;
+  stroke: #388e3c !important;
+}
+
+.variable-node ellipse {
+  fill: white !important;
+  stroke: #333 !important;
+}
+
+/* Fix font rendering for all parse tree text */
+.cfg-parse-tree svg text {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-size: 12px !important;
+}
+
 #root {
   width: 100%;
   height: 100vh;
