@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "vite build",
+    "check": "tsc --noEmit",
     "preview": "vite preview",
     "test": "vitest run",
     "test:run": "vitest run",
@@ -85,6 +86,7 @@
     "tsx": "^4.7.0",
     "typescript": "~5.8.3",
     "vite": "^7.0.4",
+    "vite-plugin-checker": "^0.8.0",
     "vite-plugin-solid": "^2.11.7",
     "vitest": "^2.0.0"
   }
