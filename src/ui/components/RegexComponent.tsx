@@ -31,9 +31,6 @@ export const RegexComponent: Component<RegexComponentProps> = (props) => {
 
 
   return (
-    <div class="dfa-table-component">
-      <div class="dfa-content">
-          {/* Regex Information */}
           <div class="regex-info">
             <Show when={props.regex.getSubstitutionSteps().length === 0}>
               <div class="regex-section">
@@ -81,7 +78,5 @@ export const RegexComponent: Component<RegexComponentProps> = (props) => {
               </div>
             </Show>
           </div>
-      </div>
-    </div>
   )
 }

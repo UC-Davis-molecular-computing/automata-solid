@@ -357,38 +357,6 @@
   font-weight: normal;
 }
 
-/* CFG parse tree styling */
-.cfg-parse-tree {
-  background-color: #f8f9fa;
-  padding: 15px;
-  border-radius: 8px;
-  border: 1px solid #dee2e6;
-  margin-top: 20px;
-}
-
-.cfg-parse-tree h3 {
-  margin: 0 0 10px;
-  font-size: 16px;
-  font-weight: 600;
-  color: #495057;
-}
-
-.parse-tree-display {
-  background-color: white;
-  border: 1px solid #ced4da;
-  border-radius: 4px;
-  padding: 12px;
-  overflow-x: auto;
-}
-
-.parse-tree-display pre {
-  margin: 0;
-  font-family: Consolas, Monaco, 'Courier New', monospace;
-  font-size: 14px;
-  line-height: 1.4;
-  color: #333;
-  white-space: pre;
-}
 
 /* TM-specific styles */
 .tm-tapes-container {

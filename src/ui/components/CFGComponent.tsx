@@ -2,7 +2,7 @@ import type { Component } from 'solid-js'
 import { createEffect, Show } from 'solid-js'
 import { CFG } from '../../core/CFG'
 import { appState, setAppState, hasExecutionData } from '../store/AppStore'
-import './TableComponent.css'
+import './CFGComponent.css'
 
 interface CFGComponentProps {
   cfg: CFG
@@ -34,18 +34,13 @@ export const CFGComponent: Component<CFGComponentProps> = (_props) => {
   })
 
   return (
-    <div class="dfa-table-component">
-      <div class="dfa-content">
-        {/* Parse Tree Display */}
-        <Show when={hasExecutionData() && appState.computation?.accepts && parseTree()}>
-          <div class="cfg-parse-tree">
-            <h3>Parse Tree</h3>
-            <div class="parse-tree-display">
-              <pre><code>{parseTree()}</code></pre>
-            </div>
-          </div>
-        </Show>
+    <Show when={hasExecutionData() && appState.computation?.accepts && parseTree()}>
+      <div class="cfg-parse-tree">
+        <h3>Parse Tree</h3>
+        <div class="parse-tree-display">
+          <pre>{parseTree()}</pre>
+        </div>
       </div>
-    </div>
+    </Show>
   )
 }
