@@ -1,5 +1,5 @@
 import type { Component, JSX } from 'solid-js'
-import { onMount, onCleanup, createEffect } from 'solid-js'
+import { onMount, onCleanup, createEffect, createSignal } from 'solid-js'
 import Panzoom from '@panzoom/panzoom'
 import './PanZoomSVG.css'
 
@@ -20,13 +20,14 @@ export const PanZoomSVG: Component<PanZoomSVGProps> = (props) => {
   // inner div controlled by panzoom (transformation applied here); always has same size as SVG
   let panzoomElementRef: HTMLDivElement | undefined
   // We give panzoomElementRef to panzoomInstance so that panzoom will transform this div 
-  let panzoomInstance: ReturnType<typeof Panzoom> | undefined
+  const [getPanzoomInstance, setPanzoomInstance] = createSignal<ReturnType<typeof Panzoom> | undefined>(undefined)
 
   // Initialize panzoom instance only
   const initializePanzoom = () => {
-    if (!panzoomContainerRef || !panzoomElementRef || panzoomInstance) return
+    if (!panzoomContainerRef || !panzoomElementRef || getPanzoomInstance()) return
 
     try {
+      const panzoomInstance = Panzoom(panzoomElementRef, {
         maxScale: 10,
         minScale: 0.1,
         startScale: props.startScale ?? 1,
@@ -41,13 +42,16 @@ export const PanZoomSVG: Component<PanZoomSVGProps> = (props) => {
         // cursor: 'grab', // turns white and invisible in Chrome sometimes, so go with the default 'move'
       })
 
-      // Add wheel handler to container for zooming
-      panzoomContainerRef.addEventListener('wheel', (event: WheelEvent) => {
-        if (panzoomInstance) {
-          event.preventDefault()
-          panzoomInstance.zoomWithWheel(event)
-        }
-      }, { passive: false })
+      panzoomContainerRef.addEventListener('wheel', panzoomInstance.zoomWithWheel)
+      
+      // Set the instance in the signal
+      setPanzoomInstance(panzoomInstance)
+      
+      // If we have an SVG prop but no SVG in DOM, add it now
+      const svgInDom = panzoomElementRef.querySelector('svg')
+      if (props.svgElement && !svgInDom) {
+        panzoomElementRef.appendChild(props.svgElement)
+      }
 
       // These are used to style the grab and grabbing cursors, but since they turn white and invisible
       // on a white background in Chrome sometimes, these are commented out to avoid the disappearing cursor.
@@ -71,12 +75,12 @@ export const PanZoomSVG: Component<PanZoomSVGProps> = (props) => {
 
   // Update SVG content when it changes
   createEffect(() => {
-    if (!panzoomElementRef) return
+    if (!panzoomElementRef || !props.svgElement) return
     
-    if (props.svgElement) {
-      // Only update the SVG content, don't touch zoom/pan
-      panzoomElementRef.innerHTML = ''
-      panzoomElementRef.appendChild(props.svgElement.cloneNode(true))
+    // Only update if panzoom is initialized
+    if (getPanzoomInstance()) {
+      // Replace any existing content with the new SVG
+      panzoomElementRef.replaceChildren(props.svgElement)
     }
   })
 
@@ -86,26 +90,30 @@ export const PanZoomSVG: Component<PanZoomSVGProps> = (props) => {
   })
 
   onCleanup(() => {
-    if (panzoomInstance) {
-      panzoomInstance.destroy()
-      panzoomInstance = undefined
+    const instance = getPanzoomInstance()
+    if (instance) {
+      instance.destroy()
+      setPanzoomInstance(undefined)
     }
   })
 
   // Public API methods
   const zoomIn = () => {
-    if (panzoomInstance) panzoomInstance.zoomIn()
+    const instance = getPanzoomInstance()
+    if (instance) instance.zoomIn()
   }
 
   const zoomOut = () => {
-    if (panzoomInstance) panzoomInstance.zoomOut()
+    const instance = getPanzoomInstance()
+    if (instance) instance.zoomOut()
   }
 
   const zoomToFit = () => {
-    if (!panzoomInstance) return
+    const instance = getPanzoomInstance()
+    if (!instance) return
     
     // Just reset - let panzoom handle the fit
-    panzoomInstance.reset()
+    instance.reset()
   }
 
   let panzoomContainerClassname = 'panzoom-container'
@@ -140,7 +148,6 @@ export const PanZoomSVG: Component<PanZoomSVGProps> = (props) => {
           onClick={zoomToFit}
           class="panzoom-control-btn"
           title="Fit to View"
-          style={{ 'font-size': '12px' }}
         >
           ⌂
         </button>
@@ -151,8 +158,7 @@ export const PanZoomSVG: Component<PanZoomSVGProps> = (props) => {
         ref={(el) => { panzoomElementRef = el }}
         class="panzoom-element"
       >
-        {/* For children-based usage (when svgElement prop is not used) */}
-        {!props.svgElement && props.children}
+        {/* Content is managed by createEffect, not JSX */}
       </div>
     </div>
   )
