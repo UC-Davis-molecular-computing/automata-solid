@@ -50,7 +50,7 @@ export const PanZoomSVG: Component<PanZoomSVGProps> = (props) => {
       // If we have an SVG prop but no SVG in DOM, add it now
       const svgInDom = panzoomElementRef.querySelector('svg')
       if (props.svgElement && !svgInDom) {
-        panzoomElementRef.appendChild(props.svgElement)
+        panzoomElementRef.replaceChildren(props.svgElement)
       }
 
       // These are used to style the grab and grabbing cursors, but since they turn white and invisible
