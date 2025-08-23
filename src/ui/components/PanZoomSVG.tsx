@@ -4,13 +4,7 @@ import Panzoom from '@panzoom/panzoom'
 import './PanZoomSVG.css'
 
 interface PanZoomSVGProps {
-  children?: JSX.Element
   svgElement?: SVGElement | null
-  class?: string
-  style?: JSX.CSSProperties | string
-  startScale?: number
-  animate?: boolean
-  duration?: number
 }
 
 
@@ -30,9 +24,9 @@ export const PanZoomSVG: Component<PanZoomSVGProps> = (props) => {
       const panzoomInstance = Panzoom(panzoomElementRef, {
         maxScale: 10,
         minScale: 0.1,
-        startScale: props.startScale ?? 1,
-        animate: props.animate ?? false, // Disable animation during initialization
-        duration: props.duration ?? 200,
+        startScale: 1,
+        animate: false, // Disable animation during initialization
+        duration: 200,
         // Disable panning on text selection
         exclude: ['.panzoom-controls', '.panzoom-control-btn'],
         // Smooth animations
@@ -116,16 +110,10 @@ export const PanZoomSVG: Component<PanZoomSVGProps> = (props) => {
     instance.reset()
   }
 
-  let panzoomContainerClassname = 'panzoom-container'
-  if (props.class) {
-    panzoomContainerClassname += ' ' + props.class
-  }
-
   return (
     <div
       ref={(el) => { panzoomContainerRef = el }}
-      class={panzoomContainerClassname}
-      style={typeof props.style === 'object' ? props.style : undefined}
+      class="panzoom-container"
       data-panzoom-container
     >
       {/* Control buttons (optional) */}
