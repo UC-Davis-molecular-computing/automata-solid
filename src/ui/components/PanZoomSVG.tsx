@@ -27,7 +27,6 @@ export const PanZoomSVG: Component<PanZoomSVGProps> = (props) => {
     if (!panzoomContainerRef || !panzoomElementRef || panzoomInstance) return
 
     try {
-      panzoomInstance = Panzoom(panzoomElementRef, {
         maxScale: 10,
         minScale: 0.1,
         startScale: props.startScale ?? 1,
