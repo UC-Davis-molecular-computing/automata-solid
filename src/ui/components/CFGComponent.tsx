@@ -6,7 +6,6 @@ import { appState, setAppState, hasExecutionData } from '../store/AppStore'
 import { ViewMode } from '../types/AppState'
 import { renderGraphEffect } from '../utils/GraphRenderer'
 import { PanZoomSVG } from './PanZoomSVG'
-import { assert } from '../../core/Utils'
 import './CFGComponent.css'
 
 interface CFGComponentProps {
@@ -16,7 +15,7 @@ interface CFGComponentProps {
 export const CFGComponent: Component<CFGComponentProps> = (_props) => {
   // Viz.js instance for rendering graphviz
   const [vizInstance, setVizInstance] = createSignal<Awaited<ReturnType<typeof Viz.instance>>>()
-  const [graphSvg, setGraphSvg] = createSignal<SVGElement>()
+  const [graphSvg, setGraphSvg] = createSignal<SVGElement>((<svg />) as SVGElement)
 
   // Initialize Viz.js
   createEffect(async () => {
@@ -88,13 +87,9 @@ export const CFGComponent: Component<CFGComponentProps> = (_props) => {
           </Show>
 
           {/* Graph View */}
-          <Show when={appState.viewMode === ViewMode.Graph && graphSvg()}>
+          <Show when={appState.viewMode === ViewMode.Graph}>
             <div class="graph-view-content">
-              {(() => {
-                const svg = graphSvg()
-                assert(svg, 'SVG element should exist when graph view is active')
-                return <PanZoomSVG svgElement={svg} />
-              })()}
+              <PanZoomSVG svgElement={graphSvg()} />
             </div>
           </Show>
         </div>
