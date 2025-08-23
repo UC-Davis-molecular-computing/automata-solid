@@ -1,10 +1,10 @@
-import type { Component, JSX } from 'solid-js'
+import type { Component } from 'solid-js'
 import { onMount, onCleanup, createEffect, createSignal } from 'solid-js'
 import Panzoom from '@panzoom/panzoom'
 import './PanZoomSVG.css'
 
 interface PanZoomSVGProps {
-  svgElement?: SVGElement | null
+  svgElement?: SVGElement
 }
 
 
