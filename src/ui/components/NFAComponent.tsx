@@ -1,6 +1,7 @@
 import type { Component } from 'solid-js'
 import { createEffect, For, Show, onMount, createSignal } from 'solid-js'
 import { NFA } from '../../core/NFA'
+import { assert } from '../../core/Utils'
 import { appState, setAppState, dispatch, hasExecutionData } from '../store/AppStore'
 import { ViewMode } from '../types/AppState'
 import { RegisterNavigationControls } from '../types/Messages'
@@ -172,7 +173,13 @@ export const NFAComponent: Component<NFAComponentProps> = (props) => {
       dot += `  "${stateName}"${attrs};\n`
     })
 
-    // Add transitions with highlighting
+    // Group transitions by (fromState, toState) pairs
+    const transitionMap = new Map<string, {
+      regularSymbols: string[], 
+      hasEpsilon: boolean, 
+      hasCurrentTransition: boolean
+    }>()
+    
     props.nfa.states.forEach(fromState => {
       // Regular transitions
       props.nfa.inputAlphabet.forEach(symbol => {
@@ -184,25 +191,75 @@ export const NFAComponent: Component<NFAComponentProps> = (props) => {
             symbol === currentSymbol
 
           toStates.forEach(toState => {
-            let edgeAttrs = [`label="${symbol}"`]
-            if (isCurrentTransition) {
-              edgeAttrs.push('color=red', 'penwidth=2')
+            const edgeKey = `${fromState}->${toState}`
+            
+            if (!transitionMap.has(edgeKey)) {
+              transitionMap.set(edgeKey, {
+                regularSymbols: [], 
+                hasEpsilon: false, 
+                hasCurrentTransition: false
+              })
             }
-
-            const attrs = edgeAttrs.length > 0 ? ` [${edgeAttrs.join(', ')}]` : ''
-            dot += `  "${fromState}" -> "${toState}"${attrs};\n`
+            const edge = transitionMap.get(edgeKey)
+            assert(edge, `Edge not found for key: ${edgeKey}`)
+            edge.regularSymbols.push(symbol)
+            if (isCurrentTransition) {
+              edge.hasCurrentTransition = true
+            }
           })
         }
       })
 
-      // Epsilon transitions (not highlighted as per requirements)
+      // Epsilon transitions
       const epsilonKey = `${fromState},`
       const epsilonStates = props.nfa.delta[epsilonKey]
       if (epsilonStates && epsilonStates.length > 0) {
         epsilonStates.forEach(toState => {
-          dot += `  "${fromState}" -> "${toState}" [label="ε", style=dashed];\n`
+          const edgeKey = `${fromState}->${toState}`
+          
+          if (!transitionMap.has(edgeKey)) {
+            transitionMap.set(edgeKey, {
+              regularSymbols: [], 
+              hasEpsilon: false, 
+              hasCurrentTransition: false
+            })
+          }
+          const edge = transitionMap.get(edgeKey)
+          assert(edge, `Edge not found for key: ${edgeKey}`)
+          edge.hasEpsilon = true
         })
       }
+    })
+
+    // Add consolidated transitions
+    transitionMap.forEach((edge, edgeKey) => {
+      const [fromState, toState] = edgeKey.split('->')
+      
+      // Build label with regular symbols and epsilon if present
+      const symbols = []
+      if (edge.regularSymbols.length > 0) {
+        symbols.push(...edge.regularSymbols)
+      }
+      if (edge.hasEpsilon) {
+        symbols.push('ε')
+      }
+      const label = symbols.join(',')
+      
+      let edgeAttrs = [`label="${label}"`]
+      
+      // If there are only epsilon transitions, use dashed style
+      // Otherwise use solid (even if epsilon is present alongside regular symbols)
+      if (edge.regularSymbols.length === 0 && edge.hasEpsilon) {
+        edgeAttrs.push('style=dashed')
+      }
+      
+      // Highlight in red if it's the current transition (only for regular symbols)
+      if (edge.hasCurrentTransition) {
+        edgeAttrs.push('color=red', 'penwidth=2')
+      }
+      
+      const attrs = edgeAttrs.length > 0 ? ` [${edgeAttrs.join(', ')}]` : ''
+      dot += `  "${fromState}" -> "${toState}"${attrs};\n`
     })
 
     dot += '}\n'

@@ -1,7 +1,7 @@
 import type { Component } from 'solid-js'
 import { createEffect, For, onMount, createSignal, Show } from 'solid-js'
 import type { DFA } from '../../core/DFA'
-import { deltaKey } from '../../core/Utils'
+import { deltaKey, assert } from '../../core/Utils'
 import { appState, setAppState, dispatch, hasExecutionData } from '../store/AppStore'
 import { ViewMode } from '../types/AppState'
 import { RegisterNavigationControls } from '../types/Messages'
@@ -162,22 +162,41 @@ export const DFAComponent: Component<DFAComponentProps> = (props) => {
       dot += `  "${stateName}"${attrs};\n`
     })
 
-    // Add transitions with highlighting
+    // Group transitions by (fromState, toState) pairs
+    const transitionMap = new Map<string, {symbols: string[], hasCurrentTransition: boolean}>()
+    
     props.dfa.states.forEach(fromState => {
       props.dfa.inputAlphabet.forEach(symbol => {
         const toState = props.dfa.delta[deltaKey(fromState, symbol)]
         if (toState) {
+          const edgeKey = `${fromState}->${toState}`
           const isCurrentTransition = hasExecutionData() && fromState === currentState && symbol === currentSymbol
-
-          let edgeAttrs = [`label="${symbol}"`]
-          if (isCurrentTransition) {
-            edgeAttrs.push('color=red', 'penwidth=2')
+          
+          if (!transitionMap.has(edgeKey)) {
+            transitionMap.set(edgeKey, {symbols: [], hasCurrentTransition: false})
           }
-
-          const attrs = edgeAttrs.length > 0 ? ` [${edgeAttrs.join(', ')}]` : ''
-          dot += `  "${fromState}" -> "${toState}"${attrs};\n`
+          const edge = transitionMap.get(edgeKey)
+          assert(edge, `Edge not found for key: ${edgeKey}`)
+          edge.symbols.push(symbol)
+          if (isCurrentTransition) {
+            edge.hasCurrentTransition = true
+          }
         }
       })
+    })
+
+    // Add consolidated transitions
+    transitionMap.forEach((edge, edgeKey) => {
+      const [fromState, toState] = edgeKey.split('->')
+      const label = edge.symbols.join(',')
+      
+      let edgeAttrs = [`label="${label}"`]
+      if (edge.hasCurrentTransition) {
+        edgeAttrs.push('color=red', 'penwidth=2')
+      }
+      
+      const attrs = edgeAttrs.length > 0 ? ` [${edgeAttrs.join(', ')}]` : ''
+      dot += `  "${fromState}" -> "${toState}"${attrs};\n`
     })
 
     dot += '}\n'

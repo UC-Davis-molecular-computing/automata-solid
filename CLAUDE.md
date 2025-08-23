@@ -120,10 +120,16 @@ npx tsx examples\error-messages-nfa.ts
 ### ⚠️ Critical Code Quality Rules for Claude Code
 - **ALWAYS clean up compilation and lint errors** after making code changes
 - **Never leave TypeScript errors or ESLint errors unaddressed** - these indicate serious issues
+- **ALWAYS prevent all linter warnings** - warnings are unacceptable and must be fixed
 - **Use the `assert` function from `src/core/Utils.ts`** to help with null/undefined checks and reduce linting warnings
 - **The `assert` function signature**: `assert(condition: any, msg?: string): asserts condition`
+- **NEVER use the `!` non-null assertion operator** - it only provides compile-time checking with no runtime validation
 - **Example usage**: Instead of `obj!.property` (non-null assertion), use `assert(obj, 'obj should be defined'); obj.property`
-- **Benefits**: Provides runtime validation and satisfies TypeScript's type checker without using risky non-null assertions
+- **Why assert is better**: The `assert` function provides both runtime validation (throws an error if condition is false) AND satisfies TypeScript's type checker, making the code safer and preventing linter warnings
+- **Common patterns**:
+  - Map lookups: `const value = map.get(key); assert(value, 'Value not found'); // use value safely`
+  - Array access: `const item = array[index]; assert(item, 'Item not found'); // use item safely`
+  - Optional chaining: `const result = obj?.method(); assert(result, 'Method returned null'); // use result safely`
 - **When to run cleanup**: After implementing features, before committing, and as part of code review process
 
 ### 📋 TypeScript Configuration Simplified
