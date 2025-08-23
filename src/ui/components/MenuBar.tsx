@@ -163,6 +163,22 @@ export const MenuBar: Component = () => {
                 </span>
               </Menubar.RadioItem>
             </Menubar.RadioGroup>
+            {appState.automatonType === AutomatonType.Cfg && appState.viewMode === ViewMode.Graph && (
+              <>
+                <Menubar.Separator class="menu-separator" />
+                <Menubar.CheckboxItem
+                  class="menu-item"
+                  checked={appState.cfgLeavesAtBottom}
+                  onChange={() => setAppState('cfgLeavesAtBottom', !appState.cfgLeavesAtBottom)}
+                  title="When enabled, all terminal symbols (leaves) are aligned at the bottom level of the parse tree for easier string reading"
+                >
+                  <Menubar.ItemIndicator>
+                    ☑
+                  </Menubar.ItemIndicator>
+                  Parse tree leaves on bottom
+                </Menubar.CheckboxItem>
+              </>
+            )}
           </Menubar.Content>
         </Menubar.Portal>
       </Menubar.Menu>

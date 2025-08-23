@@ -41,6 +41,7 @@ delta:
         theme: 'monokai',
         viewMode: ViewMode.Table,
         splitPercentage: 0.5,
+        cfgLeavesAtBottom: true,
         // automaton, parseError, result are undefined by default (omitted)
       }
       

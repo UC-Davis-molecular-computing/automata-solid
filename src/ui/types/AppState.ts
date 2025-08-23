@@ -43,6 +43,7 @@ export interface AppState {
   viewMode: ViewMode
   splitPercentage: number
   runImmediately: boolean
+  cfgLeavesAtBottom: boolean
 
   // Input and test state
   inputString: string
@@ -83,6 +84,7 @@ export const getDefaultInitialState = (): AppState => ({
   viewMode: ViewMode.Table,
   splitPercentage: 0.5,
   runImmediately: true,
+  cfgLeavesAtBottom: true,
   inputString: '',
   editorContent: ParserUtil.getDefaultContent(AutomatonType.Dfa),
 })

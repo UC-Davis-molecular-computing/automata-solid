@@ -15,7 +15,8 @@ function createMockAppStore() {
     theme: 'monokai',
     viewMode: ViewMode.Table,
     splitPercentage: 0.5,
-    runImmediately: true
+    runImmediately: true,
+    cfgLeavesAtBottom: true
   }
   
   const [appState, setAppState] = createStore<AppState>(initialState)

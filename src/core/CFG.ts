@@ -341,23 +341,29 @@ export class TreeNode {
   /**
    * Returns a graphviz DOT representation of the parse tree
    */
-  toGraphviz(): string {
+  toGraphviz(leavesAtBottom: boolean): string {
     let dot = 'digraph {\n'
     dot += '  rankdir=TB;\n'  // Top-down layout
     dot += '  node [shape=circle];\n'  // Default node style without fill
     
     const nodeCounter = { count: 0 }
     const nodeMap = new Map<TreeNode, string>()
+    const leafNodeIds: string[] = []
     
     // Generate nodes and edges
-    dot += this.generateDotNodes(nodeCounter, nodeMap)
+    dot += this.generateDotNodes(nodeCounter, nodeMap, leavesAtBottom ? leafNodeIds : [])
     dot += this.generateDotEdges(nodeMap)
+    
+    // Force all leaf nodes to the same bottom rank if requested
+    if (leavesAtBottom && leafNodeIds.length > 0) {
+      dot += `  {rank=same; ${leafNodeIds.join('; ')}};\n`
+    }
     
     dot += '}\n'
     return dot
   }
 
-  private generateDotNodes(nodeCounter: { count: number }, nodeMap: Map<TreeNode, string>): string {
+  private generateDotNodes(nodeCounter: { count: number }, nodeMap: Map<TreeNode, string>, leafNodeIds: string[]): string {
     const nodeId = `node${nodeCounter.count++}`
     nodeMap.set(this, nodeId)
     
@@ -366,6 +372,9 @@ export class TreeNode {
     let nodeAttrs = `label="${this.symbol}"`
     
     if (isLeaf) {
+      if (leafNodeIds.length >= 0) {  // Only collect if array is provided
+        leafNodeIds.push(nodeId)
+      }
       if (this.symbol === EPSILON) {
         nodeAttrs += `, class="epsilon-leaf"`
       } else {
@@ -378,7 +387,7 @@ export class TreeNode {
     let dot = `  ${nodeId} [${nodeAttrs}];\n`
     
     for (const child of this.children) {
-      dot += child.generateDotNodes(nodeCounter, nodeMap)
+      dot += child.generateDotNodes(nodeCounter, nodeMap, leafNodeIds)
     }
     
     return dot

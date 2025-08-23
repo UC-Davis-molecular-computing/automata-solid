@@ -45,7 +45,7 @@ export const CFGComponent: Component<CFGComponentProps> = (_props) => {
   const generateDotGraph = () => {
     const tree = parseTree()
     if (!tree) return 'digraph { }'
-    return tree.toGraphviz()
+    return tree.toGraphviz(appState.cfgLeavesAtBottom)
   }
 
   // Effect to update graph when state changes
