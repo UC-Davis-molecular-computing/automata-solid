@@ -2,6 +2,18 @@
  * Utility functions shared across different automaton types (DFA, NFA, TM, etc.)
  */
 
+/**
+ * Graphviz node font size for consistent graph rendering
+ * Used in graph generation methods across all automaton types
+ */
+export const GRAPHVIZ_NODE_FONT_SIZE = 14
+
+/**
+ * Graphviz node margin (padding inside nodes) for consistent graph rendering
+ * Smaller values create more compact nodes. Default is 0.11 (x) and 0.055 (y)
+ */
+export const GRAPHVIZ_NODE_MARGIN = 0.0
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function assert(condition: any, msg?: string): asserts condition {
   if (!condition) {

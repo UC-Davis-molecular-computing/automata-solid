@@ -44,10 +44,16 @@ body {
   stroke: #333 !important;
 }
 
-/* Fix font rendering for all parse tree text */
-.cfg-parse-tree svg text {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-  font-size: 12px !important;
+/* Graph view text styling - applies to all automata types */
+/* Node text - use system font for consistency */
+.graph-view-content g.node text {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, sans-serif !important;
+  /* font-size: 24px !important; */
+}
+
+/* Edge text - use system font */
+.graph-view-content g.edge text {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, sans-serif !important;
 }
 
 #root {

@@ -1,7 +1,7 @@
 import type { Component } from 'solid-js'
 import { createEffect, For, Show, onMount, createSignal } from 'solid-js'
 import { NFA } from '../../core/NFA'
-import { assert } from '../../core/Utils'
+import { assert, GRAPHVIZ_NODE_FONT_SIZE, GRAPHVIZ_NODE_MARGIN } from '../../core/Utils'
 import { appState, setAppState, dispatch, hasExecutionData } from '../store/AppStore'
 import { ViewMode } from '../types/AppState'
 import { RegisterNavigationControls } from '../types/Messages'
@@ -150,7 +150,7 @@ export const NFAComponent: Component<NFAComponentProps> = (props) => {
 
     let dot = 'digraph "" {\n'
     dot += '  rankdir=LR;\n'
-    dot += '  node [shape=circle];\n'
+    dot += `  node [shape=circle, fontsize=${GRAPHVIZ_NODE_FONT_SIZE}, margin=${GRAPHVIZ_NODE_MARGIN}];\n`
 
     // Add invisible start node and arrow to start state
     dot += '  start [shape=point, style=invisible];\n'

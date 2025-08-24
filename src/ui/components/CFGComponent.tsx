@@ -1,7 +1,8 @@
 import type { Component } from 'solid-js'
 import { createEffect, createSignal, Show } from 'solid-js'
 import * as Viz from '@viz-js/viz'
-import { CFG } from '../../core/CFG'
+import { CFG, EPSILON, TreeNode } from '../../core/CFG'
+import { GRAPHVIZ_NODE_FONT_SIZE, GRAPHVIZ_NODE_MARGIN } from '../../core/Utils'
 import { appState, setAppState, hasExecutionData } from '../store/AppStore'
 import { ViewMode } from '../types/AppState'
 import { renderGraphEffect } from '../utils/GraphRenderer'
@@ -40,11 +41,79 @@ export const CFGComponent: Component<CFGComponentProps> = (_props) => {
     return parseTree()?.toTreeString?.()
   }
 
+  // Helper functions for DOT graph generation
+  const generateDotNodes = (
+    tree: TreeNode, 
+    nodeCounter: { count: number }, 
+    nodeMap: Map<TreeNode, string>, 
+    leafNodeIds: string[]
+  ): string => {
+    const nodeId = `node${nodeCounter.count++}`
+    nodeMap.set(tree, nodeId)
+    
+    // Style leaf nodes based on type
+    const isLeaf = tree.children.length === 0
+    let nodeAttrs = `label="${tree.symbol}"`
+    
+    if (isLeaf) {
+      if (leafNodeIds.length >= 0) {  // Only collect if array is provided
+        leafNodeIds.push(nodeId)
+      }
+      if (tree.symbol === EPSILON) {
+        nodeAttrs += `, class="epsilon-leaf"`
+      } else {
+        nodeAttrs += `, class="terminal-leaf"`
+      }
+    } else {
+      nodeAttrs += `, class="variable-node"`
+    }
+    
+    let dot = `  ${nodeId} [${nodeAttrs}];\n`
+    
+    for (const child of tree.children) {
+      dot += generateDotNodes(child, nodeCounter, nodeMap, leafNodeIds)
+    }
+    
+    return dot
+  }
+
+  const generateDotEdges = (tree: TreeNode, nodeMap: Map<TreeNode, string>): string => {
+    let dot = ''
+    const thisNodeId = nodeMap.get(tree)
+    
+    for (const child of tree.children) {
+      const childNodeId = nodeMap.get(child)
+      dot += `  ${thisNodeId} -> ${childNodeId};\n`
+      dot += generateDotEdges(child, nodeMap)
+    }
+    
+    return dot
+  }
+
   // Generate DOT graph description for the parse tree
   const generateDotGraph = () => {
     const tree = parseTree()
     if (!tree) return 'digraph { }'
-    return tree.toGraphviz(appState.cfgLeavesAtBottom)
+    
+    let dot = 'digraph {\n'
+    dot += '  rankdir=TB;\n'  // Top-down layout
+    dot += `  node [shape=circle, fontsize=${GRAPHVIZ_NODE_FONT_SIZE}, margin=${GRAPHVIZ_NODE_MARGIN}];\n`  // Larger font with reduced padding
+    
+    const nodeCounter = { count: 0 }
+    const nodeMap = new Map<TreeNode, string>()
+    const leafNodeIds: string[] = []
+    
+    // Generate nodes and edges
+    dot += generateDotNodes(tree, nodeCounter, nodeMap, appState.cfgLeavesAtBottom ? leafNodeIds : [])
+    dot += generateDotEdges(tree, nodeMap)
+    
+    // Force all leaf nodes to the same bottom rank if requested
+    if (appState.cfgLeavesAtBottom && leafNodeIds.length > 0) {
+      dot += `  {rank=same; ${leafNodeIds.join('; ')}};\n`
+    }
+    
+    dot += '}\n'
+    return dot
   }
 
   // Effect to update graph when state changes
