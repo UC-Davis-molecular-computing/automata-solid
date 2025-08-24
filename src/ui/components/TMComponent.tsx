@@ -2,7 +2,7 @@ import type { Component } from 'solid-js'
 import { createEffect, For, Show, onMount, createSignal } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import { TM, TMConfiguration, ConfigDiff } from '../../core/TM'
-import { wildcardMatch, WILDCARD, assert, GRAPHVIZ_NODE_FONT_SIZE, GRAPHVIZ_NODE_MARGIN } from '../../core/Utils'
+import { wildcardMatch, WILDCARD, assert, GRAPHVIZ_NODE_FONT_SIZE, GRAPHVIZ_NODE_MARGIN, GRAPHVIZ_NODE_WIDTH, GRAPHVIZ_NODE_HEIGHT } from '../../core/Utils'
 import { appState, setAppState, dispatch, hasExecutionData } from '../store/AppStore'
 import { ViewMode } from '../types/AppState'
 import { RegisterNavigationControls } from '../types/Messages'
@@ -184,7 +184,7 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
 
     let dot = 'digraph "" {\n'
     dot += '  rankdir=LR;\n'
-    dot += `  node [shape=circle, fontsize=${GRAPHVIZ_NODE_FONT_SIZE}, margin=${GRAPHVIZ_NODE_MARGIN}];\n`
+    dot += `  node [shape=circle, fontsize=${GRAPHVIZ_NODE_FONT_SIZE}, margin=${GRAPHVIZ_NODE_MARGIN}, width=${GRAPHVIZ_NODE_WIDTH}, height=${GRAPHVIZ_NODE_HEIGHT}];\n`
 
     // Add invisible start node and arrow to start state
     dot += '  start [shape=point, style=invisible];\n'

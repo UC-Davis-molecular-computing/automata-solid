@@ -14,6 +14,18 @@ export const GRAPHVIZ_NODE_FONT_SIZE = 14
  */
 export const GRAPHVIZ_NODE_MARGIN = 0.0
 
+/**
+ * Graphviz node minimum width for consistent graph rendering
+ * Setting a very small value allows nodes to shrink to fit text tightly
+ */
+export const GRAPHVIZ_NODE_WIDTH = 0.01
+
+/**
+ * Graphviz node minimum height for consistent graph rendering
+ * Setting a very small value allows nodes to shrink to fit text tightly
+ */
+export const GRAPHVIZ_NODE_HEIGHT = 0.01
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function assert(condition: any, msg?: string): asserts condition {
   if (!condition) {

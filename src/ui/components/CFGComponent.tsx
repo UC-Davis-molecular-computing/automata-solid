@@ -2,7 +2,7 @@ import type { Component } from 'solid-js'
 import { createEffect, createSignal, Show } from 'solid-js'
 import * as Viz from '@viz-js/viz'
 import { CFG, EPSILON, TreeNode } from '../../core/CFG'
-import { GRAPHVIZ_NODE_FONT_SIZE, GRAPHVIZ_NODE_MARGIN } from '../../core/Utils'
+import { GRAPHVIZ_NODE_FONT_SIZE, GRAPHVIZ_NODE_MARGIN, GRAPHVIZ_NODE_WIDTH, GRAPHVIZ_NODE_HEIGHT } from '../../core/Utils'
 import { appState, setAppState, hasExecutionData } from '../store/AppStore'
 import { ViewMode } from '../types/AppState'
 import { renderGraphEffect } from '../utils/GraphRenderer'
@@ -97,7 +97,7 @@ export const CFGComponent: Component<CFGComponentProps> = (_props) => {
     
     let dot = 'digraph {\n'
     dot += '  rankdir=TB;\n'  // Top-down layout
-    dot += `  node [shape=circle, fontsize=${GRAPHVIZ_NODE_FONT_SIZE}, margin=${GRAPHVIZ_NODE_MARGIN}];\n`  // Larger font with reduced padding
+    dot += `  node [shape=circle, fontsize=${GRAPHVIZ_NODE_FONT_SIZE}, margin=${GRAPHVIZ_NODE_MARGIN}, width=${GRAPHVIZ_NODE_WIDTH}, height=${GRAPHVIZ_NODE_HEIGHT}];\n`  // Tight node sizing
     
     const nodeCounter = { count: 0 }
     const nodeMap = new Map<TreeNode, string>()
