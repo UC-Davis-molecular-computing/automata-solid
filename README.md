@@ -2,7 +2,7 @@
 
 A modern TypeScript-based automata simulator built with SolidJS for visualizing and testing various computational models including Deterministic and Non-deterministic Finite Automata, Turing Machines, Context-Free Grammars, and Regular Expressions. The deployed app is here: [Automata Simulator](https://web.cs.ucdavis.edu/~doty/automata/).
 
-This was an exercise in vibe-coding for me; it was developed in about two days using Claude Code in August 2025. I wrote essentially no code.
+This was an exercise in vibe-coding for me; it was developed in about two days using Claude Code in August 2025. I wrote essentially no code. (Of course it helps I've implemented this three times before, in [Groovy](https://groovy-lang.org/), then [Dart](https://dart.dev/), then [Elm](https://elm-lang.org/), so had plenty to work with.)
 
 ## Features
 
