@@ -81,7 +81,7 @@ export interface AppState {
 export const getDefaultInitialState = (): AppState => ({
   automatonType: AutomatonType.Dfa,
   theme: 'monokai',
-  viewMode: ViewMode.Table,
+  viewMode: ViewMode.Graph,
   splitPercentage: 0.5,
   runImmediately: true,
   cfgLeavesAtBottom: true,
