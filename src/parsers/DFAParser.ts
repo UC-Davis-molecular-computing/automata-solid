@@ -42,15 +42,15 @@ export class DFAParser {
   private baseValidate: ValidateFunction
 
   constructor() {
-    this.ajv = new Ajv({ 
-      allErrors: true, 
+    this.ajv = new Ajv({
+      allErrors: true,
       $data: true,  // Enable $data references in schema
       verbose: true // Enable verbose mode for better error details
     })
-    
+
     // Add ajv-errors plugin for custom error messages
     addErrors(this.ajv)
-    
+
     // Compile base schema for first pass validation
     this.baseValidate = this.ajv.compile(dfaBaseSchema)
   }
@@ -64,24 +64,24 @@ export class DFAParser {
   parseDFA(yamlString: string): DFA {
     // Create LineCounter for position tracking
     const lineCounter = new LineCounter()
-    
+
     // Parse YAML using the yaml package with CST preservation
-    const doc = parseDocument(yamlString, { 
+    const doc = parseDocument(yamlString, {
       lineCounter,
       keepSourceTokens: true // Keep source tokens for position mapping
     })
-    
+
     // Check for YAML syntax errors
     if (doc.errors.length > 0) {
       const firstError = doc.errors[0]
-      const position = firstError.linePos ? 
-        { line: firstError.linePos[0].line, col: firstError.linePos[1]?.col || 0, offset: firstError.pos?.[0] || 0 } : 
+      const position = firstError.linePos ?
+        { line: firstError.linePos[0].line, col: firstError.linePos[1]?.col || 0, offset: firstError.pos?.[0] || 0 } :
         undefined
-      
+
       const formattedError = ParserUtil.formatYamlSyntaxError(yamlString, firstError.message, position)
       throw new Error(formattedError)
     }
-    
+
     // Convert document to JavaScript object
     const parsed = doc.toJS()
 
@@ -124,7 +124,7 @@ export class DFAParser {
   private validateDelta(spec: DFASpec, originalYaml: string, doc: Document, lineCounter: LineCounter): void {
     // Build dynamic schema for delta validation
     const deltaSchema = this.buildDeltaSchema(spec.states, spec.input_alphabet)
-    
+
     // Create a wrapper object to validate just the delta
     const deltaWrapper = { delta: spec.delta }
     const wrapperSchema = {
@@ -134,10 +134,10 @@ export class DFAParser {
       },
       required: ["delta"]
     }
-    
+
     // Compile and validate
     const deltaValidate = this.ajv.compile(wrapperSchema)
-    
+
     if (!deltaValidate(deltaWrapper)) {
       const errors = deltaValidate.errors || []
       const formattedErrors = ParserUtil.formatValidationErrors(originalYaml, doc, errors, lineCounter)
@@ -150,7 +150,7 @@ export class DFAParser {
    */
   private buildDeltaSchema(states: string[], inputAlphabet: string[]): object {
     const deltaProperties: Record<string, DFASchemaProperty> = {}
-    
+
     // Generate explicit properties for each valid state
     for (const state of states) {
       deltaProperties[state] = {
@@ -161,11 +161,11 @@ export class DFAParser {
           additionalProperties: `transition input symbol must be one of the defined input symbols: ${setNotation(inputAlphabet)}`
         }
       }
-      
+
       // Generate explicit properties for each valid symbol
       for (const symbol of inputAlphabet) {
         deltaProperties[state].properties[symbol] = {
-          type: "string", 
+          type: "string",
           enum: states,
           errorMessage: `transition input state must be one of the defined states: ${setNotation(states)}`
         }
@@ -184,6 +184,8 @@ export class DFAParser {
 
   static getDefaultYAML(): string {
     return `# DFA recognizing { x in {0,1}* | x does not end in 000 }
+# note YAML syntax allows lists in JSON syntax like [q, q0, q00, q000]
+# but also with dashes on separate lines like states is specified below
 
 states: 
   - q      # last bit was a 1 or non-existent
