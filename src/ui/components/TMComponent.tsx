@@ -225,8 +225,34 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
       // Extract input symbols from key (everything after first comma)
       const inputSymbols = key.substring(fromState.length + 1)
 
-      // Create full transition label: "input → output,moves"
-      const transitionLabel = `${inputSymbols} → ${newSymbols},${moveDirections}`
+      // Create simplified transition label
+      // For 1-tape machines: if symbol doesn't change, only show direction
+      // For multi-tape machines: if all symbols stay the same, only show directions
+      let transitionLabel: string
+      
+      if (props.tm.numTapes === 1) {
+        // Single tape: compare single characters
+        if (inputSymbols === newSymbols) {
+          // Symbol doesn't change, only show direction
+          transitionLabel = `${inputSymbols} → ${moveDirections}`
+        } else {
+          // Symbol changes, show full transition
+          transitionLabel = `${inputSymbols} → ${newSymbols},${moveDirections}`
+        }
+      } else {
+        // Multi-tape: check if all symbols stay the same
+        const inputSymbolsArray = inputSymbols.split('')
+        const newSymbolsArray = newSymbols.split('')
+        const allSymbolsSame = inputSymbolsArray.every((sym, idx) => sym === newSymbolsArray[idx])
+        
+        if (allSymbolsSame) {
+          // All symbols stay the same, only show directions
+          transitionLabel = `${inputSymbols} → ${moveDirections}`
+        } else {
+          // At least one symbol changes, show full transition
+          transitionLabel = `${inputSymbols} → ${newSymbols},${moveDirections}`
+        }
+      }
 
       const transitionList = transitions.get(transKey)
       assert(transitionList, 'Transition list should exist')
