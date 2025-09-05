@@ -228,7 +228,8 @@ const runUnifiedComputation = (automaton: Automaton, automatonType: AutomatonTyp
     case AutomatonType.Nfa: {
       const nfa = automaton as NFA
       const stateSetsVisited = nfa.stateSetsVisited(inputString)
-      const accepts = stateSetsVisited.some(set => set.some(state => nfa.acceptStates.includes(state)))
+      const finalStates = stateSetsVisited[stateSetsVisited.length - 1]
+      const accepts = finalStates.some(state => nfa.acceptStates.includes(state))
 
       return {
         accepts,

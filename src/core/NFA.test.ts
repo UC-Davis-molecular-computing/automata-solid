@@ -120,6 +120,19 @@ describe('NFA', () => {
       expect(nfa0ThreeFromEnd.accepts('0011101')).toBe(false)
     })
 
+    test('nfa0ThreeFromEnd rejects 011100 (bug regression test)', () => {
+      // This test verifies the fix for a bug where the UI was incorrectly
+      // accepting this string. The third-to-last bit is 1 (not 0), and the
+      // final states {q1, q2, q3} do not include the accept state q4.
+      expect(nfa0ThreeFromEnd.accepts('011100')).toBe(false)
+      
+      // Verify the state sets to ensure correct computation
+      const stateSets = nfa0ThreeFromEnd.stateSetsVisited('011100')
+      const finalStates = stateSets[stateSets.length - 1]
+      expect(finalStates).toEqual(['q1', 'q2', 'q3'])
+      expect(finalStates).not.toContain('q4')
+    })
+
     test('nfa010or101 rejects empty string', () => {
       expect(nfa010or101.accepts('')).toBe(false)
     })
