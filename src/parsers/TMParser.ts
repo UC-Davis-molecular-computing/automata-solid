@@ -53,15 +53,15 @@ export class TMParser {
   private baseValidate: ValidateFunction
 
   constructor() {
-    this.ajv = new Ajv({ 
-      allErrors: true, 
+    this.ajv = new Ajv({
+      allErrors: true,
       $data: true,  // Enable $data references in schema
       verbose: true // Enable verbose mode for better error details
     })
-    
+
     // Add ajv-errors plugin for custom error messages
     addErrors(this.ajv)
-    
+
     // Compile base schema for first pass validation
     this.baseValidate = this.ajv.compile(tmBaseSchema)
   }
@@ -90,20 +90,20 @@ export class TMParser {
     try {
       // Create LineCounter for position tracking
       const lineCounter = new LineCounter()
-      
+
       // Parse YAML using the yaml package with CST preservation
-      const doc = parseDocument(yamlString, { 
+      const doc = parseDocument(yamlString, {
         lineCounter,
         keepSourceTokens: true // Keep source tokens for position mapping
       })
-      
+
       // Check for YAML syntax errors
       if (doc.errors.length > 0) {
         const firstError = doc.errors[0]
-        const position = firstError.linePos ? 
-          { line: firstError.linePos[0].line, col: firstError.linePos[1]?.col || 0, offset: firstError.pos?.[0] || 0 } : 
+        const position = firstError.linePos ?
+          { line: firstError.linePos[0].line, col: firstError.linePos[1]?.col || 0, offset: firstError.pos?.[0] || 0 } :
           undefined
-        
+
         return {
           errors: [{
             message: ParserUtil.formatYamlSyntaxError(yamlString, firstError.message, position),
@@ -112,7 +112,7 @@ export class TMParser {
           }]
         }
       }
-      
+
       // Convert document to JavaScript object
       const parsed = doc.toJS()
 
@@ -137,7 +137,7 @@ export class TMParser {
       }
       const finalTapeAlphabetExtra = Array.from(tapeAlphabetExtraSet)
       const tapeAlphabet = [...(spec.input_alphabet || []), ...finalTapeAlphabetExtra]
-      
+
       // Check for overlaps between input_alphabet and tape_alphabet_extra
       const inputSet = new Set(spec.input_alphabet || [])
       const extraSet = new Set(finalTapeAlphabetExtra)
@@ -202,7 +202,7 @@ export class TMParser {
 
     // Build dynamic schema for delta validation (includes tape count consistency check)
     const deltaSchema = this.buildDeltaSchema(spec.states, tapeAlphabet, numTapes)
-    
+
     // Create a wrapper object to validate just the delta
     const deltaWrapper = { delta: spec.delta }
     const wrapperSchema = {
@@ -212,15 +212,15 @@ export class TMParser {
       },
       required: ["delta"]
     }
-    
+
     // Compile and validate
     const deltaValidate = this.ajv.compile(wrapperSchema)
-    
+
     if (!deltaValidate(deltaWrapper)) {
       const errors = deltaValidate.errors || []
       return ParserUtil.formatValidationErrors(originalYaml, doc, errors, lineCounter)
     }
-    
+
     return []
   }
 
@@ -231,7 +231,7 @@ export class TMParser {
   private getAlphabetOverlapErrors(spec: TMSpec, overlappingSymbols: string[], yamlString: string, doc: Document, lineCounter: LineCounter): FormattedError[] {
     // Create AJV-style errors for the overlapping symbols to use with formatValidationErrors
     const ajvErrors = []
-    
+
     for (const symbol of overlappingSymbols) {
       const symbolIndex = spec.tape_alphabet_extra.indexOf(symbol)
       if (symbolIndex >= 0) {
@@ -245,7 +245,7 @@ export class TMParser {
         })
       }
     }
-    
+
     if (ajvErrors.length === 0) {
       // Fallback error
       ajvErrors.push({
@@ -257,7 +257,7 @@ export class TMParser {
         params: {}
       })
     }
-    
+
     // Use the same formatting as other validation errors
     return ParserUtil.formatValidationErrors(yamlString, doc, ajvErrors, lineCounter)
   }
@@ -268,7 +268,7 @@ export class TMParser {
    */
   private buildDeltaSchema(states: string[], tapeAlphabet: string[], numTapes: number): object {
     const deltaProperties: Record<string, TMSchemaProperty> = {}
-    
+
     // Generate explicit properties for each valid state
     for (const state of states) {
       deltaProperties[state] = {
@@ -309,7 +309,7 @@ export class TMParser {
         additionalProperties: false,
         errorMessage: {
           additionalProperties: `All input symbols must be exactly ${numTapes} characters (determined from first transition). Check for inconsistent tape counts.`
-        }  
+        }
       }
     }
 
@@ -335,9 +335,10 @@ reject_state: qR
 
 delta:
   s:
+    _: [qA, _, S]
     0: [r00, x, R]
     1: [r11, x, R]
-    x: [qA, x, S]    # empty string is palindrome
+    x: [qA, x, S]
   r00:
     0: [r00, 0, R]
     1: [r01, 1, R]
