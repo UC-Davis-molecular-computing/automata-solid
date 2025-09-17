@@ -211,53 +211,66 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
     })
 
     // Add transitions with highlighting
-    // Group transitions by from/to states to avoid duplicate edges
-    const transitions: Map<string, Array<{ inputSymbols: string, label: string }>> = new Map()
+    // Group transitions by from/to states and action (newSymbols + moveDirections) to consolidate labels
+    const transitionGroups: Map<string, Array<{ inputSymbols: string, newSymbols: string, moveDirections: string }>> = new Map()
 
     Object.entries(props.tm.delta).forEach(([key, [nextState, newSymbols, moveDirections]]) => {
       const [fromState] = key.split(',')
-      const transKey = `${fromState}->${nextState}`
-
-      if (!transitions.has(transKey)) {
-        transitions.set(transKey, [])
-      }
-
-      // Extract input symbols from key (everything after first comma)
       const inputSymbols = key.substring(fromState.length + 1)
 
-      // Create simplified transition label
-      // For 1-tape machines: if symbol doesn't change, only show direction
-      // For multi-tape machines: if all symbols stay the same, only show directions
-      let transitionLabel: string
-      
-      if (props.tm.numTapes === 1) {
-        // Single tape: compare single characters
-        if (inputSymbols === newSymbols) {
-          // Symbol doesn't change, only show direction
-          transitionLabel = `${inputSymbols} → ${moveDirections}`
-        } else {
-          // Symbol changes, show full transition
-          transitionLabel = `${inputSymbols} → ${newSymbols},${moveDirections}`
-        }
-      } else {
-        // Multi-tape: check if all symbols stay the same
-        const inputSymbolsArray = inputSymbols.split('')
-        const newSymbolsArray = newSymbols.split('')
-        const allSymbolsSame = inputSymbolsArray.every((sym, idx) => sym === newSymbolsArray[idx])
-        
-        if (allSymbolsSame) {
-          // All symbols stay the same, only show directions
-          transitionLabel = `${inputSymbols} → ${moveDirections}`
-        } else {
-          // At least one symbol changes, show full transition
-          transitionLabel = `${inputSymbols} → ${newSymbols},${moveDirections}`
-        }
+      // Create a unique key for transitions with same from/to states and same action
+      // Same action means: same move direction AND either:
+      // 1. Both write the exact same symbol, OR
+      // 2. Both leave their input symbol unchanged
+      const symbolsUnchanged = inputSymbols === newSymbols
+      const actionKey = symbolsUnchanged
+        ? `${fromState}->${nextState}:unchanged,${moveDirections}`
+        : `${fromState}->${nextState}:${newSymbols},${moveDirections}`
+
+      if (!transitionGroups.has(actionKey)) {
+        transitionGroups.set(actionKey, [])
       }
 
-      const transitionList = transitions.get(transKey)
+      const transitionList = transitionGroups.get(actionKey)
       assert(transitionList, 'Transition list should exist')
       transitionList.push({
         inputSymbols,
+        newSymbols,
+        moveDirections
+      })
+    })
+
+    // Convert grouped transitions to final format for rendering
+    const transitions: Map<string, Array<{ inputSymbols: string, label: string }>> = new Map()
+
+    transitionGroups.forEach((transitionList, actionKey) => {
+      const [fromToStates, action] = actionKey.split(':')
+      const [writeAction, moveDirections] = action.split(',')
+
+      if (!transitions.has(fromToStates)) {
+        transitions.set(fromToStates, [])
+      }
+
+      // Consolidate input symbols for transitions with the same action into a single label
+      const inputSymbolsList = transitionList.map(t => t.inputSymbols)
+      const consolidatedInputSymbols = inputSymbolsList.join(',')
+
+      // Create simplified transition label based on action type
+      let transitionLabel: string
+
+      if (writeAction === 'unchanged') {
+        // All transitions in this group leave their input symbols unchanged, only show direction
+        transitionLabel = `${consolidatedInputSymbols} → ${moveDirections}`
+      } else {
+        // All transitions in this group write the same specific symbol, always show symbol and direction
+        transitionLabel = `${consolidatedInputSymbols} → ${writeAction},${moveDirections}`
+      }
+
+      // Add this consolidated label to the transitions for this from/to state pair
+      const finalTransitionList = transitions.get(fromToStates)
+      assert(finalTransitionList, 'Final transition list should exist')
+      finalTransitionList.push({
+        inputSymbols: consolidatedInputSymbols,
         label: transitionLabel
       })
     })
@@ -276,13 +289,19 @@ export const TMComponent: Component<TMComponentProps> = (props) => {
         })
 
         isCurrentTransition = transitionList.some(transition => {
-          // For multi-tape TMs, inputSymbols is a string like "1_" which needs to be split into individual tape symbols
-          // Each character represents a symbol on the corresponding tape
-          const symbolArray = transition.inputSymbols.split('')
-          const matches = symbolArray.every((sym, i) =>
-            sym === WILDCARD || sym === currentSymbols[i]
-          )
-          return matches
+          // For consolidated transitions, inputSymbols might contain multiple input combinations separated by commas
+          // Split by commas to get individual input combinations
+          const inputCombinations = transition.inputSymbols.split(',')
+
+          return inputCombinations.some(inputCombo => {
+            // For multi-tape TMs, each input combination is a string like "1_" which needs to be split into individual tape symbols
+            // Each character represents a symbol on the corresponding tape
+            const symbolArray = inputCombo.split('')
+            const matches = symbolArray.every((sym, i) =>
+              sym === WILDCARD || sym === currentSymbols[i]
+            )
+            return matches
+          })
         })
       }
 
