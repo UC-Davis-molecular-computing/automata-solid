@@ -335,9 +335,9 @@ reject_state: qR
 
 delta:
   s:
-    _: [qA, _, S]
     0: [r00, x, R]
     1: [r11, x, R]
+    _: [qA, _, S]
     x: [qA, x, S]
   r00:
     0: [r00, 0, R]
