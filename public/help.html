@@ -537,6 +537,36 @@ B 010 B</pre>
         <li><strong>Complex NFAs:</strong> NFAs with many ε-transitions can be computationally expensive</li>
         <li><strong>TM loops:</strong> Infinite loops in TMs will hit the step limit and display "MAX_STEPS limit
             reached"</li>
+        <li><strong>Regex subexpressions:</strong> <code>.regex</code> files can define variables with subexpressions.
+            For example:
+            <pre>A = 0|1;
+B = A2;
+34B | 56A</pre>
+            is equivalent to the regex <code>34((0|1)2) | 56(0|1)</code>.
+            <p>Each subexpression may reference previous variables. The last expression appears after the last semicolon
+                (with no variable definition or equals sign). This can help with avoiding typing long subexpressions
+                multiple times. Also, you can use longer variable names for subexpressions, which is helpful when the
+                input alphabet contains all single letters. It will not work properly to use single-letter variable
+                names such as A or b in this case. For example:</p>
+            <pre>Sigma = q|w|e|r|t|y|u|i|o|p|a|s|d|f|g|h|j|k|l|z|x|c|v|b|n|m|Q|W|E|R|T|Y|U|I|O|P|A|S|D|F|G|H|J|K|L|Z|X|C|V|B|N|M;
+Sigma* abc Sigma* abc Sigma* abc Sigma*</pre>
+            <p>matches any word with three appearances of abc in it.</p>
+            <p><strong>Warning:</strong> Do not use newlines within a subexpression. Most of the automata simulator is
+                robust to newlines, but using newlines within a subexpression will put the symbols <code>\n</code> into
+                your final regex. Put each subexpression on a single line.</p>
+            <p><strong>However, be careful with this feature!</strong> It works by simply substituting each
+                subexpression in all the remaining ones. So it is possible (and inadvisable) to write a short regex that
+                will blow up the memory requirements exponentially, e.g.,</p>
+            <pre>A = 0123456789;
+B = AAAAAAAAAA;
+C = BBBBBBBBBB;
+D = CCCCCCCCCC;
+E = DDDDDDDDDD;
+F = EEEEEEEEEE;
+G = FFFFFFFFFF;
+G</pre>
+            <p>which defines a regular expression with ten million symbols in it.</p>
+        </li>
     </ul>
 
     <h2>Further Resources</h2>
