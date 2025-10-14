@@ -87,6 +87,8 @@ npx tsx examples\error-messages-nfa.ts
 - **The problem**: Watch mode causes Claude Code commands to timeout after 2 minutes even though tests finish in ~1 second
 - **Solution**: `npm run test:run` makes tests exit immediately after completion
 - Use `npx vitest run --reporter=verbose` for detailed test output when debugging
+- Only create new test files when necessary; in general favor putting unit tests in existing .test.ts files.
+- DO NOT delete the node_modules or dist folders; they are set to be ignore by Dropbox, if you delete it and recreate it, it will resync to Dropbox.
 
 ### ⚠️ Playwright Testing Notes for Claude Code
 - **Always use `npm run test:e2e:ci`** for playwright tests to avoid hanging

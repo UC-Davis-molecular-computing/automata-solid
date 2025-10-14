@@ -1,5 +1,6 @@
 import { assert } from './Utils'
 import type { Automaton } from './Automaton'
+import { RE2JS } from 're2js'
 
 /**
  * Helper function to escape special regex characters
@@ -21,7 +22,7 @@ function escapeRegExp(string: string): string {
  */
 export class Regex implements Automaton {
   readonly source: string
-  private readonly pattern: RegExp
+  private readonly pattern: RE2JS
   readonly inputAlphabet: string[]
 
   constructor(regexStr: string) {
@@ -40,7 +41,7 @@ export class Regex implements Automaton {
 
     // Create regex pattern - escape dots and anchor to match whole string
     const escapedStr = cleanedStr.replace(/\./g, '\\.')
-    this.pattern = new RegExp(`^(${escapedStr})$`)
+    this.pattern = RE2JS.compile(`^(${escapedStr})$`)
 
     // Extract input alphabet from processed string
     this.inputAlphabet = this.extractInputAlphabet(cleanedStr)
@@ -284,7 +285,7 @@ export class Regex implements Automaton {
    * Test if the regex accepts the given input string
    */
   accepts(input: string): boolean {
-    return this.pattern.test(input)
+    return this.pattern.matches(input)
   }
 
   /**

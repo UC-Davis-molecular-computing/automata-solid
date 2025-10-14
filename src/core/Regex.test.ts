@@ -16,11 +16,11 @@ describe('Regex', () => {
       const defaultRegexWithComments = `# Matches any binary string containing the substring 010
 B = (0|1)*;  # subexpression matching any binary string
 B 010 B`
-      
+
       // RegexParser should handle comment stripping and not throw an error
       const parser = new RegexParser()
       expect(() => parser.parseRegex(defaultRegexWithComments)).not.toThrow()
-      
+
       // The resulting regex should work correctly
       const regex = parser.parseRegex(defaultRegexWithComments)
       expect(regex.accepts('010')).toBe(true)
@@ -268,7 +268,7 @@ B 010 B`
 
     test('validates all illegal characters', () => {
       const illegalChars = ['#', '$', '%', '^', '&', '!', '?', '[', ']', '{', '}']
-      
+
       for (const char of illegalChars) {
         expect(() => new Regex(`a${char}b`))
           .toThrow(/illegal characters/)
@@ -301,17 +301,17 @@ B 010 B`
   describe('Subexpression bug test', () => {
     test('should handle subexpression with semicolons correctly', () => {
       const regexStr = `B = (0|1)*; B 010 B`
-      
+
       // This should work - matches any binary string containing 010 as a substring
       const regex = new Regex(regexStr)
-      
+
       expect(regex.accepts('010')).toBe(true)      // exact match
       expect(regex.accepts('1010')).toBe(true)     // 010 at end
       expect(regex.accepts('0101')).toBe(true)     // 010 at start
       expect(regex.accepts('101010')).toBe(true)   // 010 in middle
       expect(regex.accepts('0100')).toBe(true)     // 010 at start
       expect(regex.accepts('001011')).toBe(true)   // 010 in middle
-      
+
       expect(regex.accepts('000')).toBe(false)     // no 010
       expect(regex.accepts('111')).toBe(false)     // no 010
       expect(regex.accepts('101')).toBe(false)     // no 010
@@ -322,17 +322,17 @@ B 010 B`
   describe('Variable substitution in expressions', () => {
     test('should substitute variables that appear multiple times consecutively', () => {
       const regex = new Regex('A = 0|1|2|3|4|5|6|7|8|9; B = AAAAAAAAAA; B')
-      
+
       // Should accept any 10-digit string
       expect(regex.accepts('1234567890')).toBe(true)
       expect(regex.accepts('0000000000')).toBe(true)
       expect(regex.accepts('9876543210')).toBe(true)
-      
+
       // Should reject strings of wrong length
       expect(regex.accepts('123456789')).toBe(false)   // 9 digits
       expect(regex.accepts('12345678901')).toBe(false) // 11 digits
       expect(regex.accepts('')).toBe(false)            // empty
-      
+
       // Should reject non-digits
       expect(regex.accepts('123456789a')).toBe(false)
       expect(regex.accepts('abcdefghij')).toBe(false)
@@ -341,18 +341,18 @@ B 010 B`
     test('should show correct substitution steps for consecutive variables', () => {
       const regex = new Regex('A = 0|1|2|3|4|5|6|7|8|9; B = AAAAAAAAAA; B')
       const steps = regex.getSubstitutionSteps()
-      
+
       // Should have 3 steps: B -> (AAAAAAAAAA) -> (A)(A)(A)... with all As substituted
       expect(steps).toHaveLength(3)
-      
+
       // Step 1: Just B
       expect(steps[0].expression).toBe('B')
       expect(steps[0].subexpressions).toBe('A = 0|1|2|3|4|5|6|7|8|9; B = AAAAAAAAAA;')
-      
+
       // Step 2: B replaced with AAAAAAAAAA
       expect(steps[1].expression).toBe('(AAAAAAAAAA)')
       expect(steps[1].subexpressions).toBe('A = 0|1|2|3|4|5|6|7|8|9;')
-      
+
       // Step 3: All As replaced with digit choices
       expect(steps[2].expression).toBe('((0|1|2|3|4|5|6|7|8|9)(0|1|2|3|4|5|6|7|8|9)(0|1|2|3|4|5|6|7|8|9)(0|1|2|3|4|5|6|7|8|9)(0|1|2|3|4|5|6|7|8|9)(0|1|2|3|4|5|6|7|8|9)(0|1|2|3|4|5|6|7|8|9)(0|1|2|3|4|5|6|7|8|9)(0|1|2|3|4|5|6|7|8|9)(0|1|2|3|4|5|6|7|8|9))')
       expect(steps[2].subexpressions).toBe('')
@@ -361,8 +361,26 @@ B 010 B`
     test('should extract correct input alphabet after full substitution', () => {
       const regex = new Regex('A = 0|1|2|3|4|5|6|7|8|9; B = AAAAAAAAAA; B')
       const alphabet = regex.getInputAlphabet()
-      
+
       expect(alphabet).toEqual(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'])
+    })
+  })
+
+  describe('Catastrophic backtracking prevention', () => {
+    test('should handle nested quantifiers without exponential backtracking', () => {
+      // This pattern causes catastrophic backtracking in native JavaScript RegExp
+      // With 20 'a's, native RegExp takes over 60 seconds to fail
+      // With RE2 (re2js), it should complete in milliseconds
+      const regex = new Regex('(((a*)*)*)*b')
+
+      // Should reject the input (no 'b' at the end)
+      expect(regex.accepts('a'.repeat(20))).toBe(false)
+
+      // Verify it still accepts valid inputs
+      expect(regex.accepts('b')).toBe(true)
+      expect(regex.accepts('ab')).toBe(true)
+      expect(regex.accepts('aaab')).toBe(true)
+      expect(regex.accepts('a'.repeat(20) + 'b')).toBe(true) // 20 'a's + 'b'
     })
   })
 })
