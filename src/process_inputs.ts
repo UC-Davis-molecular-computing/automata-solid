@@ -99,7 +99,7 @@ interface CFGJson {
 
 interface CompleteResult {
   results?: TestResult[];
-  error?: string;
+  error: string;  // Always present, empty string "" means no error (matches Elm behavior)
   // JSON representations of automata for Python's non_input_tests to analyze structure
   dfa?: DFAJson;
   nfa?: NFAJson;
@@ -108,9 +108,9 @@ interface CompleteResult {
   cfg?: CFGJson;
 }
 
-// Global result object - matches Dart implementation pattern
+// Global result object - matches Elm implementation pattern
 const completeResult: CompleteResult = {
-  // All fields are optional and undefined by default
+  error: "",  // Initialize to empty string (matches Elm's defaultCompleteResult)
 };
 
 function main() {
