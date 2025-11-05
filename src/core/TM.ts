@@ -46,7 +46,7 @@ export class ConfigDiff {
       const headPos = oldCfg.headsPos[i]
       const newTape = newCfg.tapes[i]
       const oldTape = oldCfg.tapes[i]
-      
+
       if (headPos === newTape.length) {
         // If the tape head moved back, headPos may not be valid in new tape
         newSymbols += oldTape[headPos]
@@ -59,7 +59,7 @@ export class ConfigDiff {
 
     const headsPosMove = new Int8Array(oldCfg.tm.numTapes)
     const tapesLenDiff = new Int8Array(oldCfg.tm.numTapes)
-    
+
     for (let i = 0; i < oldCfg.headsPos.length; i++) {
       headsPosMove[i] = newCfg.headsPos[i] - oldCfg.headsPos[i]
       tapesLenDiff[i] = newCfg.tapes[i].length - oldCfg.tapes[i].length
@@ -70,9 +70,9 @@ export class ConfigDiff {
 
   toString(): string {
     return `(states: ${this.oldState} → ${this.newState}\n` +
-           `symbols: ${this.oldSymbols} → ${this.newSymbols}\n` +
-           `head moves: [${Array.from(this.headsPosMove).join(', ')}]\n` +
-           `tapes len diff: [${Array.from(this.tapesLenDiff).join(', ')}])`
+      `symbols: ${this.oldSymbols} → ${this.newSymbols}\n` +
+      `head moves: [${Array.from(this.headsPosMove).join(', ')}]\n` +
+      `tapes len diff: [${Array.from(this.tapesLenDiff).join(', ')}])`
   }
 }
 
@@ -133,12 +133,12 @@ export class TMConfiguration {
     const outputTapeIdx = this.tapes.length - 1
     const outputTape = this.tapes[outputTapeIdx]
     const tapeHeadPos = this.headsPos[outputTapeIdx]
-    
+
     let posBlank = outputTape.indexOf(TM.BLANK, tapeHeadPos)
     if (posBlank === -1) {
       posBlank = outputTape.length
     }
-    
+
     if (posBlank === tapeHeadPos) {
       return ''
     } else {
@@ -156,7 +156,7 @@ export class TMConfiguration {
     }
 
     const scannedSymbols = this.currentScannedSymbols()
-    
+
     // Look up transition with wildcard support in flattened delta
     let action: [string, string, string] | undefined
     let matchedPattern: string | undefined
@@ -190,7 +190,7 @@ export class TMConfiguration {
     const nextState = action[0]
     let nextSymbols = action[1]
     const moveDirections = action[2]
-    
+
     // Apply wildcard masking to output if needed
     if (matchedPattern && matchedPattern.includes(WILDCARD) && nextSymbols.includes(WILDCARD)) {
       nextSymbols = wildcardMaskedOutput(scannedSymbols, nextSymbols)
@@ -226,7 +226,7 @@ export class TMConfiguration {
 
       // Handle tape expansion/contraction using Elm-based logic
       const tapeChange = this.calculateTapeChange(nextSymbol, move, curHeadPos, tape)
-      
+
       if (tapeChange === 'grow') {
         tape.push(TM.BLANK)
       } else if (tapeChange === 'shrink') {
@@ -245,7 +245,7 @@ export class TMConfiguration {
     const isNextRightEnd = (headPos === tape.length - 2)
     const endsInBlank = (tape[tape.length - 1] === TM.BLANK)
     const hasPenultimateBlank = (tape.length >= 2 && tape[tape.length - 2] === TM.BLANK)
-    
+
     // Grow: if at right end AND (moving right OR writing non-blank)
     if (isOnRightEnd && (move === 1 || nextSymbol !== TM.BLANK)) {
       return 'grow'
@@ -277,10 +277,10 @@ export class TMConfiguration {
     if (this.isHalting()) {
       throw new Error(`there is no next configuration after configuration [${this.toString()}]`)
     }
-    
+
     const oldState = this.state
     const scannedSymbols = this.currentScannedSymbols()
-    
+
     // Look up transition with wildcard support in flattened delta
     let action: [string, string, string] | undefined
     let matchedPattern: string | undefined
@@ -317,12 +317,12 @@ export class TMConfiguration {
     // Save old configuration state for diff
     const oldHeadsPos = [...this.headsPos]
     const oldTapesLengths = this.tapes.map(tape => tape.length)
-    
+
     // Apply the transition (similar to existing goToNextConfig logic)
     const nextState = action[0]
     let nextSymbols = action[1]
     const moveDirections = action[2]
-    
+
     // Apply wildcard masking to output if needed
     if (matchedPattern && matchedPattern.includes(WILDCARD) && nextSymbols.includes(WILDCARD)) {
       nextSymbols = wildcardMaskedOutput(scannedSymbols, nextSymbols)
@@ -358,7 +358,7 @@ export class TMConfiguration {
 
       // Handle tape expansion/contraction using Elm-based logic
       const tapeChange = this.calculateTapeChange(nextSymbol, move, curHeadPos, tape)
-      
+
       if (tapeChange === 'grow') {
         tape.push(TM.BLANK)
       } else if (tapeChange === 'shrink') {
@@ -374,7 +374,7 @@ export class TMConfiguration {
     // Create and return the diff
     const headsPosMove = new Int8Array(this.tm.numTapes)
     const tapesLenDiff = new Int8Array(this.tm.numTapes)
-    
+
     for (let i = 0; i < this.tm.numTapes; i++) {
       headsPosMove[i] = this.headsPos[i] - oldHeadsPos[i]
       tapesLenDiff[i] = this.tapes[i].length - oldTapesLengths[i]
@@ -396,29 +396,29 @@ export class TMConfiguration {
       const oldHeadPos = this.headsPos[tapeIdx]
       const newHeadPos = oldHeadPos + diff.headsPosMove[tapeIdx]
       const oldSymbol = tape[oldHeadPos]
-      
+
       if (oldSymbol !== diff.oldSymbols[tapeIdx]) {
         throw new Error(`cannot apply diff to TMConfiguration, before scanned symbols do not match: config scanned symbols: ${this.currentScannedSymbols()}, diff.oldSymbols: ${diff.oldSymbols}`)
       }
-      
+
       const newSymbol = diff.newSymbols[tapeIdx]
       const oldTapeLength = this.tapes[tapeIdx].length
       const newTapeLength = oldTapeLength + diff.tapesLenDiff[tapeIdx]
 
       // Write the new symbol at the old head position
       tape[oldHeadPos] = newSymbol
-      
+
       // Adjust tape length
       if (newTapeLength - oldTapeLength === 1) {
         tape.push(TM.BLANK)
       } else if (newTapeLength - oldTapeLength === -1) {
         tape.pop()
       }
-      
+
       // Move the head
       this.headsPos[tapeIdx] = newHeadPos
     }
-    
+
     this.state = diff.newState
   }
 
@@ -444,14 +444,14 @@ export class TMConfiguration {
       } else if (newTapeLength - oldTapeLength === -1) {
         tape.push(TM.BLANK)
       }
-      
+
       // Restore the old symbol at the old head position
       tape[oldHeadPos] = oldSymbol
-      
+
       // Move the head back
       this.headsPos[tapeIdx] = oldHeadPos
     }
-    
+
     this.state = diff.oldState
   }
 
@@ -495,11 +495,11 @@ export class TMConfiguration {
     if (this.tm !== other.tm) return false
     if (this.state !== other.state) return false
     if (this.headsPos.length !== other.headsPos.length) return false
-    
+
     for (let i = 0; i < this.headsPos.length; i++) {
       if (this.headsPos[i] !== other.headsPos[i]) return false
     }
-    
+
     if (this.tapes.length !== other.tapes.length) return false
     for (let i = 0; i < this.tapes.length; i++) {
       const thisTape = this.tapes[i]
@@ -509,7 +509,7 @@ export class TMConfiguration {
         if (thisTape[j] !== otherTape[j]) return false
       }
     }
-    
+
     return true
   }
 }
@@ -519,8 +519,8 @@ export class TMConfiguration {
  */
 export class TM implements Automaton {
   // Maximum number of steps to run TM
-  static readonly MAX_STEPS = 10**6
-  
+  static readonly MAX_STEPS = 10 ** 6
+
   // Blank symbol; must be in tape_alphabet but not input_alphabet
   static readonly BLANK = '_'
 
@@ -531,10 +531,10 @@ export class TM implements Automaton {
   readonly acceptState: string
   readonly rejectState: string
   readonly numTapes: number
-  
+
   // Transition function: delta["state,symbols"] = [nextState, newSymbols, moveDirections]
   readonly delta: Record<string, [string, string, string]>
-  
+
   // For performance: track non-wildcard transitions for fast exact matching
   readonly nonWildcardInputSymbols: Map<string, Set<string>> = new Map()
 
@@ -561,7 +561,7 @@ export class TM implements Automaton {
     }
 
     const tapeAlphabetSet = new Set(tapeAlphabet)
-    
+
     if (tapeAlphabet.length !== tapeAlphabetSet.size) {
       throw new Error('duplicate tape alphabet symbols')
     }
@@ -594,7 +594,7 @@ export class TM implements Automaton {
         throw new Error(`input alphabet cannot contain wildcard symbol '${WILDCARD}'`)
       }
     }
-    
+
     for (const symbol of tapeAlphabet) {
       if (symbol === WILDCARD) {
         throw new Error(`tape alphabet cannot contain wildcard symbol '${WILDCARD}'`)
@@ -638,7 +638,7 @@ export class TM implements Automaton {
       if (state === rejectState) {
         throw new Error(`cannot define transition on reject state ${rejectState}`)
       }
-      
+
       // Initialize non-wildcard symbol set for this state
       this.nonWildcardInputSymbols.set(state, new Set())
 
@@ -688,7 +688,7 @@ export class TM implements Automaton {
           if (!tapeAlphabetSet.has(nextSymbol) && nextSymbol !== WILDCARD) {
             throw new Error(`transition delta(${state}, ${symbols}) has output symbol ${nextSymbol} not in tape alphabet ${setNotation(tapeAlphabet)} (nor wildcard ${WILDCARD})`)
           }
-          
+
           // Validate wildcard output constraints
           if (nextSymbol === WILDCARD && symbols[i] !== WILDCARD) {
             throw new Error(`transitions with wildcard ${WILDCARD} as output symbol must have it in same position of input symbols, but transition delta(${state}, ${symbols}) -> ${setNotation(action)} has disagreement at position ${i}`)
@@ -710,7 +710,7 @@ export class TM implements Automaton {
     this.startState = startState
     this.acceptState = acceptState
     this.rejectState = rejectState
-    
+
     // Flatten the nested delta format to match DFA/NFA pattern
     const flatDelta: Record<string, [string, string, string]> = {}
     for (const [state, symbolMap] of Object.entries(delta)) {
@@ -734,10 +734,10 @@ export class TM implements Automaton {
     for (const key of Object.keys(this.delta)) {
       const commaIndex = key.indexOf(',')
       if (commaIndex === -1) continue
-      
+
       const state = key.substring(0, commaIndex)
       const symbols = key.substring(commaIndex + 1)
-      
+
       if (!stateTransitions.has(state)) {
         stateTransitions.set(state, [])
       }
@@ -745,19 +745,19 @@ export class TM implements Automaton {
       assert(transitions, `Transitions should exist for state "${state}"`)
       transitions.push(symbols)
     }
-    
+
     // Check each state for overlapping wildcard patterns
     for (const [state, patterns] of stateTransitions.entries()) {
       const wildcardPatterns = patterns.filter(pattern => pattern.includes(WILDCARD))
-      
+
       // Check each pair of wildcard patterns for overlaps
       for (let i = 0; i < wildcardPatterns.length; i++) {
         for (let j = i + 1; j < wildcardPatterns.length; j++) {
           const pattern1 = wildcardPatterns[i]
           const pattern2 = wildcardPatterns[j]
-          
+
           const overlaps = wildcardIntersect(pattern1, pattern2, this.tapeAlphabet)
-          
+
           // Check if any overlap lacks a specific non-wildcard transition
           for (const overlapString of overlaps) {
             if (!this.nonWildcardInputSymbols.get(state)?.has(overlapString)) {
@@ -809,7 +809,7 @@ export class TM implements Automaton {
    * Only returns the final configuration. Used by autograder to avoid OOM errors.
    * For web simulator with step-by-step debugging, use getConfigDiffsAndFinalConfig().
    */
-  private runToCompletion(input: string): TMConfiguration {
+  runToCompletion(input: string): TMConfiguration {
     const config = this.initialConfig(input)
 
     for (let step = 0; step < TM.MAX_STEPS; step++) {
@@ -830,10 +830,10 @@ export class TM implements Automaton {
    */
   getConfigDiffsAndFinalConfig(input: string): { diffs: ConfigDiff[], finalConfig: TMConfiguration } {
     checkAgainstInputAlphabet(this.inputAlphabet, input)
-    
+
     const diffs: ConfigDiff[] = []
     const config = this.initialConfig(input)
-    
+
     for (let step = 0; step < TM.MAX_STEPS; step++) {
       if (config.isHalting()) {
         break
@@ -841,7 +841,7 @@ export class TM implements Automaton {
       const diff = config.goToNextConfigWithDiff()
       diffs.push(diff)
     }
-    
+
     return { diffs, finalConfig: config }
   }
 
@@ -858,15 +858,15 @@ export class TM implements Automaton {
   initialConfig(input: string): TMConfiguration {
     const initHeadsPos = new Array(this.numTapes).fill(0)
     const initTapes: string[][] = new Array(this.numTapes)
-    
+
     // First tape gets the input + blank
     initTapes[0] = [...input.split(''), TM.BLANK]
-    
+
     // Other tapes start with just blank
     for (let i = 1; i < this.numTapes; i++) {
       initTapes[i] = [TM.BLANK]
     }
-    
+
     return new TMConfiguration(this, this.startState, initHeadsPos, initTapes)
   }
 
@@ -903,7 +903,7 @@ export class TM implements Automaton {
    */
   deltaToString(): string {
     const lines: string[] = []
-    
+
     // Calculate maximum width for formatting
     let maxWidth = 0
     for (const state of this.states) {
@@ -914,12 +914,12 @@ export class TM implements Automaton {
         }
       }
     }
-    
+
     for (const [key, action] of Object.entries(this.delta)) {
       const stateSymbol = key.padStart(maxWidth)
       lines.push(`${stateSymbol} → ${action.join(',')}`)
     }
-    
+
     return lines.join('\n')
   }
 
@@ -928,11 +928,11 @@ export class TM implements Automaton {
    */
   equals(other: TM): boolean {
     if (this.numTapes !== other.numTapes) return false
-    
+
     // Check basic properties
     if (this.startState !== other.startState ||
-        this.acceptState !== other.acceptState ||
-        this.rejectState !== other.rejectState) {
+      this.acceptState !== other.acceptState ||
+      this.rejectState !== other.rejectState) {
       return false
     }
 
@@ -940,37 +940,37 @@ export class TM implements Automaton {
     const thisStatesSet = new Set(this.states)
     const otherStatesSet = new Set(other.states)
     if (thisStatesSet.size !== otherStatesSet.size ||
-        !Array.from(thisStatesSet).every(state => otherStatesSet.has(state))) {
+      !Array.from(thisStatesSet).every(state => otherStatesSet.has(state))) {
       return false
     }
 
     const thisInputSet = new Set(this.inputAlphabet)
     const otherInputSet = new Set(other.inputAlphabet)
     if (thisInputSet.size !== otherInputSet.size ||
-        !Array.from(thisInputSet).every(symbol => otherInputSet.has(symbol))) {
+      !Array.from(thisInputSet).every(symbol => otherInputSet.has(symbol))) {
       return false
     }
 
     const thisTapeSet = new Set(this.tapeAlphabet)
     const otherTapeSet = new Set(other.tapeAlphabet)
     if (thisTapeSet.size !== otherTapeSet.size ||
-        !Array.from(thisTapeSet).every(symbol => otherTapeSet.has(symbol))) {
+      !Array.from(thisTapeSet).every(symbol => otherTapeSet.has(symbol))) {
       return false
     }
 
     // Check delta functions are equal
     const thisKeys = Object.keys(this.delta)
     const otherKeys = Object.keys(other.delta)
-    
+
     if (thisKeys.length !== otherKeys.length) return false
-    
+
     for (const key of thisKeys) {
       const thisAction = this.delta[key]
       const otherAction = other.delta[key]
-      
+
       if (!otherAction) return false
       if (thisAction.length !== otherAction.length) return false
-      
+
       for (let i = 0; i < thisAction.length; i++) {
         if (thisAction[i] !== otherAction[i]) return false
       }

@@ -118,15 +118,15 @@ function main() {
   const args = process.argv.slice(2);
   if (args.length !== 3) {
     console.log(`USAGE: npx tsx ${path.basename(import.meta.url)} <submission_file> <inputs_json_file> <outputs_json_file>\n\n` +
-                `<submission_file> should end in one of ${EXTENSIONS.join(' ')}`);
+      `<submission_file> should end in one of ${EXTENSIONS.join(' ')}`);
     process.exit(-1);
   }
 
   console.log("***************\nfrom within node, command-line arguments to process_inputs.js are" +
-              `\n<submission_file>   = ${args[0]}` +
-              `\n<inputs_json_file>  = ${args[1]}` +
-              `\n<outputs_json_file> = ${args[2]}` +
-              "\n***************");
+    `\n<submission_file>   = ${args[0]}` +
+    `\n<inputs_json_file>  = ${args[1]}` +
+    `\n<outputs_json_file> = ${args[2]}` +
+    "\n***************");
 
   const submissionFilename = args[0];
   const inputsFilename = args[1];
@@ -135,17 +135,17 @@ function main() {
   try {
     // Read and parse the submission file
     const machine = readMachine(submissionFilename);
-    
+
     // Read test inputs
     const testInputs = readInputs(inputsFilename);
     completeResult.results = testInputs;
-    
+
     // Process each test input
     processInputs(machine);
-    
+
     // Write results and exit
     printCurrentCompleteResultAndExit(outputsFilename);
-    
+
   } catch (error) {
     if (error instanceof Error) {
       completeResult.error = error.message;
@@ -158,7 +158,7 @@ function main() {
 
 function readMachine(filename: string): DFA | NFA | TM | CFG | Regex {
   let machineText: string;
-  
+
   try {
     machineText = fs.readFileSync(filename, 'utf8');
   } catch (error) {
@@ -166,13 +166,13 @@ function readMachine(filename: string): DFA | NFA | TM | CFG | Regex {
     const fullFilename = path.resolve(filename);
     const errorMessage = error instanceof Error ? error.message : String(error);
     throw new Error(`could not read ${baseFilename}\n` +
-                   `make sure submission file ends in proper extension and that it is encoded in ANSI or UTF-8 and contains no non-ASCII characters\n` +
-                   `full pathname of file searched for is ${fullFilename}\n` +
-                   `original error: ${errorMessage}`);
+      `make sure submission file ends in proper extension and that it is encoded in ANSI or UTF-8 and contains no non-ASCII characters\n` +
+      `full pathname of file searched for is ${fullFilename}\n` +
+      `original error: ${errorMessage}`);
   }
 
   const extension = path.extname(filename);
-  
+
   try {
     switch (extension) {
       case '.dfa':
@@ -180,31 +180,31 @@ function readMachine(filename: string): DFA | NFA | TM | CFG | Regex {
         // Store JSON for Python's non_input_tests to analyze (e.g., state count checks)
         completeResult.dfa = dfaToJson(dfa);
         return dfa;
-        
+
       case '.nfa':
         const nfa = new NFAParser().parseNFA(machineText);
         // Store JSON for Python's non_input_tests to analyze (e.g., subset construction validation)
         completeResult.nfa = nfaToJson(nfa);
         return nfa;
-        
+
       case '.tm':
         const tm = new TMParser().parseTM(machineText);
         // Store JSON for Python's non_input_tests to analyze (e.g., state count grading)
         completeResult.tm = tmToJson(tm);
         return tm;
-        
+
       case '.cfg':
         const cfg = new CFGParser().parseCFG(machineText);
         // Store JSON for Python's non_input_tests to analyze (e.g., rule structure checks)
         completeResult.cfg = cfgToJson(cfg);
         return cfg;
-        
+
       case '.regex':
         const regex = new RegexParser().parseRegex(machineText);
         // Store JSON for Python's non_input_tests to analyze
         completeResult.regex = regexToJson(regex);
         return regex;
-        
+
       default:
         throw new Error(`extension must be one of ${EXTENSIONS.join(', ')}, but is ${extension}`);
     }
@@ -215,7 +215,7 @@ function readMachine(filename: string): DFA | NFA | TM | CFG | Regex {
 
 function readInputs(inputsFilename: string): TestResult[] {
   let inputsText: string;
-  
+
   try {
     inputsText = fs.readFileSync(inputsFilename, 'utf8');
   } catch (error) {
@@ -244,6 +244,8 @@ function processInputs(machine: DFA | NFA | TM | CFG | Regex) {
     throw new Error('No test results to process');
   }
 
+  process.stdout.write(`In process_inputs.ts, testing inputs on the submitted ${machine.constructor.name}...\n`);
+
   for (const result of completeResult.results) {
     const input = result.input;
 
@@ -253,18 +255,18 @@ function processInputs(machine: DFA | NFA | TM | CFG | Regex) {
     try {
       if (machine instanceof TM) {
         // Turing Machine: get both boolean and string output
-        const { finalConfig } = machine.getConfigDiffsAndFinalConfig(input);
+        const finalConfig = machine.runToCompletion(input);
         const finalState = finalConfig.state;
-        
+
         // Check if halted (accept or reject state)
         const halted = finalState === machine.acceptState || finalState === machine.rejectState;
         if (!halted) {
           throw new Error(`TM didn't halt on input ${input}`);
         }
-        
+
         result.submitted_boolean_output = finalState === machine.acceptState;
         result.submitted_string_output = finalConfig.outputString();
-        
+
       } else {
         // DFA, NFA, CFG: just boolean accept/reject
         result.submitted_boolean_output = machine.accepts(input);
