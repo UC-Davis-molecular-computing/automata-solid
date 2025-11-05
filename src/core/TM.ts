@@ -787,9 +787,9 @@ export class TM implements Automaton {
    */
   accepts(input: string): boolean {
     checkAgainstInputAlphabet(this.inputAlphabet, input)
-    
-    // Use memory-efficient approach instead of configsVisited
-    const { finalConfig } = this.getConfigDiffsAndFinalConfig(input)
+
+    // Use memory-efficient approach - don't store diffs for autograder
+    const finalConfig = this.runToCompletion(input)
     return finalConfig.state === this.acceptState
   }
 
@@ -798,10 +798,28 @@ export class TM implements Automaton {
    */
   run(input: string): string {
     checkAgainstInputAlphabet(this.inputAlphabet, input)
-    
-    // Use memory-efficient approach instead of configsVisited
-    const { finalConfig } = this.getConfigDiffsAndFinalConfig(input)
+
+    // Use memory-efficient approach - don't store diffs for autograder
+    const finalConfig = this.runToCompletion(input)
     return finalConfig.outputString()
+  }
+
+  /**
+   * Run TM to completion without storing configuration history (memory-efficient).
+   * Only returns the final configuration. Used by autograder to avoid OOM errors.
+   * For web simulator with step-by-step debugging, use getConfigDiffsAndFinalConfig().
+   */
+  private runToCompletion(input: string): TMConfiguration {
+    const config = this.initialConfig(input)
+
+    for (let step = 0; step < TM.MAX_STEPS; step++) {
+      if (config.isHalting()) {
+        break
+      }
+      config.goToNextConfig()
+    }
+
+    return config
   }
 
 

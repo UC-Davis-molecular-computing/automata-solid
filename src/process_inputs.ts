@@ -246,7 +246,10 @@ function processInputs(machine: DFA | NFA | TM | CFG | Regex) {
 
   for (const result of completeResult.results) {
     const input = result.input;
-    
+
+    // Print before processing this test (no newline)
+    process.stdout.write(`Testing "${input}"... `);
+
     try {
       if (machine instanceof TM) {
         // Turing Machine: get both boolean and string output
@@ -266,9 +269,21 @@ function processInputs(machine: DFA | NFA | TM | CFG | Regex) {
         // DFA, NFA, CFG: just boolean accept/reject
         result.submitted_boolean_output = machine.accepts(input);
       }
-      
+
+      // Print success with details (with newline)
+      const boolOutput = result.submitted_boolean_output ? 'accept' : 'reject';
+      const strOutput = result.submitted_string_output || '';
+      if (strOutput) {
+        console.log(`output: ${boolOutput}, string: "${strOutput}"`);
+      } else {
+        console.log(`output: ${boolOutput}`);
+      }
+
     } catch (error) {
       result.error = `error: ${error instanceof Error ? error.message : String(error)}`;
+
+      // Print error (with newline)
+      console.log(`ERROR: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 }

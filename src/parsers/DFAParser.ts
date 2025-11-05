@@ -184,8 +184,8 @@ export class DFAParser {
 
   static getDefaultYAML(): string {
     return `# DFA recognizing { x in {0,1}* | x does not end in 000 }
-# note YAML syntax allows lists in JSON syntax like [q, q0, q00, q000]
-# but also with dashes on separate lines like states is specified below
+# YAML syntax allows lists in JSON syntax such as [q, q0, q00]
+# but also with dashes on separate lines as states is specified below.
 
 states: 
   - q      # last bit was a 1 or non-existent
@@ -201,20 +201,22 @@ start_state: q
 # accept if last three bits were not 000
 accept_states: [q, q0, q00]
 
+# if we see a 0, move closer to state q000
+# if we see a 1, reset back to state q
 delta:
-  # if we see a 1, reset
   q:
-    1: q
     0: q0    # if we see a 0, count one more 0 than before
+    1: q     # YAML requires a space after the colon
+             # typing 1:q instead would produce an error
   q0:
+    0: q00   # one more 0
     1: q
-    0: q00
   q00:
+    0: q000  # one more 0
     1: q
-    0: q000
   q000:
-    1: q
-    0: q000  # until we get to three`
+    0: q000  # until we get to three, then stay here until we see a 1
+    1: q`
   }
 
 }
