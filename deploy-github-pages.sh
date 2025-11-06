@@ -42,14 +42,15 @@ echo -e "${BLUE}🔄 Replacing content...${NC}"
 cd "$TEMP_DIR"
 
 # Remove old files (but keep .git and README.md)
-# First remove directories, then files
-for item in *; do
-    if [ "$item" != ".git" ] && [ "$item" != "README.md" ]; then
-        rm -rf "$item"
-    fi
-done
+# Use git to remove tracked files (safer and more reliable)
+echo -e "${BLUE}🗑️  Removing old files...${NC}"
+# Remove all tracked files except README.md
+git ls-files | grep -v '^README.md$' | xargs -r git rm -rf --
+# Remove untracked files and directories except README.md
+git clean -fdx -e README.md
 
 # Copy new build files
+echo -e "${BLUE}📋 Copying new build files...${NC}"
 cp -r ../dist/* .
 
 # Step 4: Check if there are changes to commit

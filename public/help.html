@@ -403,15 +403,20 @@ delta:
         and general transitions. The wildcard <code>?</code> matches any symbol in the tape alphabet.</p>
 
     <h4>Wildcard Precedence Rules</h4>
-    <p>When multiple transition rules could apply to the current configuration, the simulator follows these precedence
-        rules:</p>
     <ol>
-        <li><strong>Specific rules override wildcard rules:</strong> A transition with exact symbols takes priority over
-            one with wildcards</li>
-        <li><strong>More specific wildcards override less specific:</strong> Rules with fewer wildcards take priority
-            over those with more wildcards</li>
-        <li><strong>First match wins:</strong> Among rules of equal specificity, the first one encountered in the delta
-            definition is used</li>
+        <li>If there is a wildcard-containing transition that matches the (state, symbols) pair also matched by a
+            wildcard-free transition, the wildcard-free transition takes precedence. For example,
+            <a href="examples/count-a-wildcard.tm" class="example-link">count-a-wildcard.tm</a>
+            uses the wildcard-free transitions <tt>q1,a_: [q1,a0,RR]</tt> and <tt>q1,__: [qA,__,SS]</tt>, if they match
+            (i.e., if the current state is <tt>q1</tt> and the tape symbols are <tt>a</tt> and <tt>_</tt>), then the
+            wildcard-free transition <tt>q1,a_: [q1,a0,RR]</tt> will be used instead of the wildcard-containing
+            transition <tt>q1,?_ -> [q1,?_,RS]</tt>.
+        </li>
+        <li>Suppose two transitions <em>both</em> contain wildcards and overlap, for instance
+            <tt>q,0?1: [r,111,RS]</tt> and <tt>q,??1: [t,000,LL]</tt> both match tuples 001 and 011.
+            This is disallowed, and you must specify wildcard-free transitions for each transition in the overlap,
+            in this case you would need to specify transitions of the form <tt>q,001: ...</tt> and <tt>q,011: ...</tt>.
+        </li>
     </ol>
 
     <h4>Wildcard Examples</h4>
