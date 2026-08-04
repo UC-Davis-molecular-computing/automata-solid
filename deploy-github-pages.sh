@@ -13,7 +13,9 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-PAGES_REPO="https://github.com/dave-doty/automata.git"
+# Uses SSH so the push authenticates with your SSH key rather than a personal
+# access token (which would need periodic rotation).
+PAGES_REPO="git@github.com:dave-doty/automata.git"
 TEMP_DIR="automata-github-pages"
 
 # Step 1: Build the application
@@ -29,6 +31,9 @@ fi
 if [ -d "$TEMP_DIR" ]; then
     echo -e "${BLUE}🔄 Updating existing repository...${NC}"
     cd "$TEMP_DIR"
+    # Keep the remote in sync with PAGES_REPO so a clone made with an older
+    # URL (e.g. the previous HTTPS one) doesn't keep using it.
+    git remote set-url origin "$PAGES_REPO"
     git fetch origin
     git reset --hard origin/main
     cd ..
@@ -53,14 +58,7 @@ git clean -fdx -e README.md
 echo -e "${BLUE}📋 Copying new build files...${NC}"
 cp -r ../dist/* .
 
-# Step 4: Check if there are changes to commit
-if git diff --quiet && git diff --staged --quiet; then
-    echo -e "${GREEN}✅ No changes to deploy${NC}"
-    cd ..
-    exit 0
-fi
-
-# Step 5: Commit and push
+# Step 4: Commit and push
 echo -e "${BLUE}📤 Committing and pushing changes...${NC}"
 
 # Configure git user from parent repo if not already set
@@ -82,18 +80,29 @@ if [ -z "$(git config user.name)" ] || [ -z "$(git config user.email)" ]; then
     fi
 fi
 
-git add .
+# Stage everything, then check whether the rebuild actually changed anything.
+# This check MUST come after `git add`: the earlier `git rm` leaves
+# staged deletions, so a pre-add check always looks like there are changes even
+# when the new build is byte-identical to what is already deployed. Getting this
+# wrong made `git commit` abort the script (set -e) just before the push.
+git add -A
 
-# Create a commit message with timestamp
+if git diff --cached --quiet HEAD; then
+    echo -e "${GREEN}✅ No changes to deploy${NC}"
+    cd ..
+    exit 0
+fi
+
+# This repo only ever receives build output; nothing is developed in it, so the
+# commit message is deliberately minimal. It records the source revision the
+# build came from, which is the one thing worth being able to look up later.
 TIMESTAMP=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
-git commit -m "Update to new TypeScript/SolidJS automata app
+SOURCE_REV=$(cd .. && git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+if ! (cd .. && git diff --quiet HEAD 2>/dev/null); then
+    SOURCE_REV="$SOURCE_REV-dirty"
+fi
 
-Deployed on: $TIMESTAMP
-
-- Replace old Elm-based app with modern TypeScript/SolidJS version
-- Improved performance and maintainability  
-- Enhanced error reporting and YAML parsing
-- Fixed TM tape handling bugs"
+git commit -m "Deploy $SOURCE_REV ($TIMESTAMP)"
 
 git push origin main
 

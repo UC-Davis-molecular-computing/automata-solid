@@ -168,6 +168,106 @@ cd ../automata-ts-old/automata-elm && elm make src/Main.elm
 cd ../automata-ts-old/automata-elm/tests && elm-test
 ```
 
+## Deployment
+
+There are two independent deploy targets. Neither is run by CI — both are manual scripts.
+
+| Script | Target | Live URL | Auth |
+|---|---|---|---|
+| `./deploy-github-pages.sh` | `dave-doty/automata` repo | https://dave-doty.github.io/automata/ | GitHub SSH key |
+| `./deploy-personal-website.sh` | UC Davis web server via `scp` | https://web.cs.ucdavis.edu/~doty/automata/ | SSH to `$d` |
+
+Both scripts run `npm run build` themselves — no need to build first.
+
+`deploy-github-pages.sh` builds, clones (or hard-resets) the pages repo into `automata-github-pages/`, replaces its contents with `dist/` while preserving `README.md`, then commits and pushes to `main`. If the rebuild is byte-identical to what is already deployed it prints "No changes to deploy" and exits 0 without pushing.
+
+### GitHub authentication uses SSH, not a token
+
+Deployment pushes over SSH (`git@github.com:...`). It previously used a classic personal access token over HTTPS; that token was deleted because it required annual rotation and its `repo` scope granted write access to every repository on the account, including the `UC-Davis-molecular-computing` org.
+
+**Do not reintroduce an HTTPS remote or a personal access token.** SSH keys do not expire, so there is nothing to rotate.
+
+### Setting up a new machine
+
+A fresh machine has no GitHub SSH key and both deploys will fail with `Permission denied (publickey)`. To fix:
+
+```bash
+# 1. Does a key already exist and work? This prints "Hi <username>!" on success.
+ssh -T git@github.com
+
+# 2. If not, create one (skip if ~/.ssh/id_ed25519 already exists)
+ssh-keygen -t ed25519 -C "your_email@example.com"
+
+# 3. Load it into the agent
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/id_ed25519
+
+# 4. Copy the PUBLIC key and add it at https://github.com/settings/keys
+#    ("New SSH key"). Never share or commit the private key (no .pub suffix).
+cat ~/.ssh/id_ed25519.pub
+
+# 5. Verify
+ssh -T git@github.com
+```
+
+Then confirm both remotes use SSH, since a fresh `git clone` of an HTTPS URL will not:
+
+```bash
+git remote -v                                # want git@github.com:...
+git remote set-url origin git@github.com:UC-Davis-molecular-computing/automata-solid.git
+```
+
+The `automata-github-pages/` working clone needs no manual fixing — `deploy-github-pages.sh` runs `git remote set-url origin "$PAGES_REPO"` on every run, so a clone made from an old HTTPS URL is corrected automatically.
+
+**If a machine genuinely cannot use SSH** (e.g. outbound port 22 is blocked), prefer SSH over HTTPS port 443 before falling back to a token — add to `~/.ssh/config`:
+
+```
+Host github.com
+  Hostname ssh.github.com
+  Port 443
+```
+
+Only if that also fails, use a **fine-grained** token (not classic) scoped to the single repository with `Contents: Read and write`. Note it will expire and need rotation.
+
+### Verifying a deploy end-to-end
+
+Running the script is not proof the site updated. If the rebuild is byte-identical to what is deployed, the script correctly exits 0 without pushing — so a "successful" run can publish nothing.
+
+To test the whole pipeline without touching the app bundle, use a throwaway file in `public/`. Vite copies `public/` verbatim into `dist/`, so it reaches the live site without changing any hashed JS/CSS asset:
+
+```bash
+echo "check-$(date -u +%Y%m%dT%H%M%SZ)" > public/deploy-check.txt
+./deploy-github-pages.sh          # commit should show only deploy-check.txt changed
+curl https://dave-doty.github.io/automata/deploy-check.txt   # wait ~40s for Pages
+
+rm public/deploy-check.txt
+./deploy-github-pages.sh          # removes it again; URL should 404
+```
+
+GitHub Pages served the change about 40 seconds after the push when this was last tested.
+
+To check what is currently live matches a local build, compare hashes rather than eyeballing the page:
+
+```bash
+npm run build
+for f in index.html assets/index-*.js; do
+  diff <(curl -s "https://dave-doty.github.io/automata/$f") "dist/$f" >/dev/null \
+    && echo "$f MATCH" || echo "$f DIFFER"
+done
+```
+
+Note: if `curl` fails with `error setting certificate file: .../anaconda3/ssl/cacert.pem`, that is a broken `CURL_CA_BUNDLE` from conda, not a site problem. Work around it with:
+`env -u CURL_CA_BUNDLE curl --cacert /etc/ssl/certs/ca-certificates.crt ...`
+
+### Troubleshooting
+
+- `Permission denied (publickey)` — no key on this machine, or the key is not added to the GitHub account. Run the setup steps above.
+- `could not read Username for 'https://github.com'` — a remote is still HTTPS. Repoint it with `git remote set-url`.
+- Deploy exits 0 saying "No changes to deploy" — expected when `dist/` matches what is already live. Vite output filenames are content-hashed, so identical source produces identical filenames.
+- **The `dave-doty/automata` repo page looks months out of date even after a successful deploy.** This is normal and not a failure. Git records a commit per file only when that file's *bytes* change. The script re-copies everything each run, but unchanged files (`help.html`, `examples/*`, `turing-machine.png`, `README.md`) keep their original commit dates indefinitely, and GitHub's file listing shows those per-file dates. After a real deploy only `index.html` and `assets/index-*.js` show today. Check the repo's top commit bar, or `pushed_at` from `https://api.github.com/repos/dave-doty/automata`, rather than the file rows. Every deploy commit also carries the same hardcoded message, which adds to the impression that nothing changed.
+- A source change produced no new bundle hash — the build minifies and strips comments, so comment-only edits (including `/*! ... */` legal comments) yield a byte-identical bundle and nothing to deploy. Only changes that survive minification alter the hash.
+- `deploy-personal-website.sh` fails with a `$d`-related scp error — that script relies on a shell variable `$d` holding the UC Davis scp destination. It is set per-machine, not in the repo (on the current machine: `export d=doty@set.cs.ucdavis.edu` in `~/.bashrc`), so a new machine needs that line added.
+
 ## Testing Strategy
 
 Reference test files show comprehensive unit testing:
